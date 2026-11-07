@@ -20,3 +20,4 @@ Tự sinh bằng `npm run bench:experiment -- --ledger`. Không sửa tay. Cách
 | [EXP-011](EXP-011/README.md) | Luật + gpt-oss-120b mức low | hybrid-hint, groq openai/gpt-oss-120b (reasoning low), prompt bench-v2 | `098afb3` | 3.2% (1/31) | 25.0% (8/32) | chưa xem | chưa xem | – | – | 2 |
 | [EXP-012](EXP-012/README.md) | Quét ban đầu 50 tin, đánh giá mỗi 2 tin, prompt gọn: kiểm tra offline và 4 lượt thật | đếm offline trên tune, 4 lượt thật gpt-oss-20b mức low, prompt bench-v5 | `9840674` | – (–) | – (–) | chưa xem | chưa xem | – | – | 2 |
 | [EXP-013](EXP-013/README.md) | Xét ngữ cảnh đời thường trong ±4 tin quanh bằng chứng | rules, tune và ca đệm 30, 50 tin | `xem-git-log` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | – | – | 2 |
+| [EXP-014](EXP-014/README.md) | Thử bản nháp luật đe dọa trên bộ câu do thành viên khác viết | rules + 2 luật nháp lúc chạy, 20 câu ngoài repo | `39c9962` | – (–) | – (–) | chưa xem | chưa xem | – | – | 2 |
