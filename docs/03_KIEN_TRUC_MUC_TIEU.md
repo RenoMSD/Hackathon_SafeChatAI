@@ -168,6 +168,8 @@ Một bảng `safechat-<môi trường>`, tính phí theo lượt, có thuộc t
 
 ## 9. Bedrock và dữ liệu
 
+Đây là bài thi và demo dùng dữ liệu giả lập, nên các giới hạn dưới đây chỉ để trả lời khi được hỏi về thiết kế, không phải điều kiện để demo.
+
 **Tài liệu AWS nêu:**
 - Đầu vào và đầu ra không được dùng để huấn luyện model, và không chia sẻ với nhà cung cấp model.
 - Với cross-Region inference, dữ liệu không lưu ở vùng đích, trừ các model bắt buộc lưu giữ.
@@ -198,7 +200,7 @@ Giá và khả dụng **phải kiểm tra lại lúc chạy**. Luật vẫn ch�
 
 ## 11. Không làm trong 24h
 
-Tự huấn luyện hoặc fine-tune mô hình · RAG · iOS · viết app native từ đầu · phát hành APK công khai · Google Play, Chrome Web Store (thời gian duyệt ngoài tầm kiểm soát) · quyền Trợ năng hoặc đọc thông báo · adapter Zalo · tài khoản người dùng · RDS, Kubernetes, ECS · triển khai song song trên Google Cloud · lưu nội dung chat trên server.
+Tự huấn luyện hoặc fine-tune mô hình · RAG · iOS · viết app native từ đầu · Google Play, Chrome Web Store (thời gian duyệt ngoài tầm kiểm soát) · quyền Trợ năng hoặc đọc thông báo · adapter Zalo · tài khoản người dùng · RDS, Kubernetes, ECS · triển khai song song trên Google Cloud · lưu nội dung chat trên server.
 
 ## Nguồn
 

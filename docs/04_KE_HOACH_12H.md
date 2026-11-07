@@ -4,6 +4,19 @@ Ba người làm độc lập trên 3 nhánh, ghép vào `main` ở 3 mốc cố
 
 **H0** là lúc cả nhóm bắt đầu. Hỗ trợ AI rút ngắn được phần viết code, nhưng **không rút ngắn được** phần đăng ký tài khoản, hạn mức Bedrock, gán nhãn, thử trên điện thoại và luyện demo. Các việc đó phải bắt đầu đúng giờ.
 
+## Phạm vi: đây là bài thi
+
+Chỉ làm những gì phục vụ **bảo mật** và **tiêu chí chấm**. Demo dùng dữ liệu giả lập, không vận hành với người dùng thật.
+
+| Giữ, vì nằm trong tiêu chí chấm | Bỏ, không mất thời gian |
+|---|---|
+| Không lộ khóa, HTTPS, CORS, IAM quyền tối thiểu | Rà soát điều khoản Meta, Chrome Web Store, Google Play |
+| Che PII, không log nội dung, rào chặn chèn lệnh, lọc đầu ra | Yêu cầu về vùng lưu dữ liệu và điều khoản model cho chat thật |
+| Trích dẫn khớp tin gốc, giải thích được quyết định của AI | Hạn chế phát APK. Có thể gửi APK cho ban giám khảo nếu cần |
+| Số liệu trung thực, tái lập được, nêu nguồn dữ liệu | Quy định phát hành sau cuộc thi |
+
+Vùng Tokyo vẫn là mặc định vì model đã có sẵn ở đó. Vùng khác cũng được nếu chạy tốt hơn.
+
 ## 1. Ai làm gì
 
 | | **Duy** | **Danh** | **Đạt** |
@@ -117,7 +130,7 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 
 **H6–H8.5**
 - [ ] Extension gọi gateway, cập nhật màn hình đồng ý, bỏ yêu cầu Groq key.
-- [ ] Sửa rủi ro widget: bỏ `TRUSTED_AND_UNTRUSTED_CONTEXTS`, background chỉ gửi mức và điểm, Shadow DOM `closed`, chỉ hiện sau khi đồng ý, mặc định tắt trên Facebook.
+- [ ] Sửa bảo mật widget: bỏ `TRUSTED_AND_UNTRUSTED_CONTEXTS`, background chỉ gửi mức và điểm, Shadow DOM `closed`.
 - [ ] Thử mục 28–30 của `apps/extension/HUONG_DAN_CAI_DAT.md` trên Facebook thật, ghi lại kết quả.
 
 **H8.5–H12**
@@ -128,7 +141,7 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 
 ### Việc chung
 
-- [ ] **H5–H7: Bộ đề kín 15 ca** từ bài báo mới. Đạt chuyển thể, Danh và Đạt gán nhãn độc lập. Giữ ngoài repo, chuyển cho Duy dưới dạng file để chạy tự động. **Duy không đọc nội dung, không gán nhãn.**
+- [ ] (P1) **H5–H7: Bộ đề kín 15 ca** từ bài báo mới, để tăng độ tin cậy của số liệu cuối. Đạt chuyển thể, Danh và Đạt gán nhãn độc lập. Giữ ngoài repo, chuyển cho Duy dưới dạng file để chạy tự động. **Duy không đọc nội dung, không gán nhãn.**
 - [ ] H1: quyết định `LICENSE` trước khi kết thúc, vì repo đang public.
 - [ ] H10–H11.5: slide, kịch bản demo 3 phút, luyện ít nhất 2 lần trên đúng máy.
 
