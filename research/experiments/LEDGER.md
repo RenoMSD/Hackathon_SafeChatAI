@@ -17,3 +17,4 @@ Tự sinh bằng `npm run bench:experiment -- --ledger`. Không sửa tay. Cách
 | [EXP-008](EXP-008/README.md) | Đợt 1: phủ định liệt kê, chiều tiền, giấu gia đình, ứng tiền | rules | `ca76683+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |
 | [EXP-009](EXP-009/README.md) | Gom đủ 5 tin mới gọi AI một lần, gọi nốt tin lẻ khi dừng 60 giây | đếm lượt gọi bằng AI giả, không gọi mạng | `a7abe92+dirty` | – (–) | – (–) | chưa xem | chưa xem | – | – | 2 |
 | [EXP-010](EXP-010/README.md) | Chạy thử Groq 2 ca: model dùng được, token, reasoning_effort | ai, groq, 2 ca tune, trần 2048 token, prompt bench-v2 | `309ab2d` | – (–) | – (–) | chưa xem | chưa xem | – | – | 2 |
+| [EXP-011](EXP-011/README.md) | Luật + gpt-oss-120b mức low | hybrid-hint, groq openai/gpt-oss-120b (reasoning low), prompt bench-v2 | `098afb3` | 3.2% (1/31) | 25.0% (8/32) | chưa xem | chưa xem | – | – | 2 |
