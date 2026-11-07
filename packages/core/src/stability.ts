@@ -13,7 +13,8 @@ import type { AnalysisResult, RiskLevel } from './types';
 import { RISK_LEVEL_LABEL, RISK_LEVEL_ORDER } from './types';
 
 export const DOWNGRADE_CONFIRMATIONS = 2;
-export const AI_UPGRADE_CONFIRMATIONS = 2;
+/** AI nâng mức sau 1 lần đánh giá có bằng chứng (Duy duyệt 2026-11-08); trước đây là 2. */
+export const AI_UPGRADE_CONFIRMATIONS = 1;
 
 export interface StabilityState {
   displayed: RiskLevel;
@@ -119,7 +120,7 @@ export function stabilize(prev: StabilityState | undefined, raw: AnalysisResult,
     advice: (() => {
       const safe = safety || raw.safety_priority;
       const { actions, safety_message, support_resources } = buildAdvice(displayed, raw.signals, safe);
-      const { questions, waiting_answer, focus_title, question_reason, answer_assessment } = raw.advice;
+      const { questions, waiting_answer, focus_title, question_reason, answer_assessment, ai_warning, likely_next } = raw.advice;
       return {
         actions,
         questions: safe ? [] : questions,
@@ -129,6 +130,8 @@ export function stabilize(prev: StabilityState | undefined, raw: AnalysisResult,
         ...(focus_title ? { focus_title } : {}),
         ...(!safe && question_reason ? { question_reason } : {}),
         ...(answer_assessment ? { answer_assessment } : {}),
+        ...(ai_warning ? { ai_warning } : {}),
+        ...(likely_next ? { likely_next } : {}),
       };
     })(),
       level_reason: `${raw.level_reason} ${note ?? ''}`.trim(),

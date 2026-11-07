@@ -10,7 +10,7 @@ import { isProtectiveWarning } from './rules/warning';
 import { levelOf, scoreSignals } from './scoring';
 import { deriveStages } from './stages';
 import { canonicalSignalType } from './taxonomy';
-import type { AiNextStep, AnalysisResult, ChatMessage, RiskLevel, Signal } from './types';
+import type { AiInsight, AiNextStep, AnalysisResult, ChatMessage, RiskLevel, Signal } from './types';
 import { RISK_LEVEL_LABEL, RISK_LEVEL_ORDER } from './types';
 
 function quote(m: ChatMessage): string {
@@ -120,6 +120,8 @@ export interface AnalyzeOptions {
   aiDowngrade?: { reason: string; fromLevel: RiskLevel };
   /** Gợi ý bước tiếp theo của AI. Chỉ đổi phần câu hỏi, không ảnh hưởng mức và điểm. */
   aiNextStep?: AiNextStep;
+  /** Nhận định ngữ cảnh của AI. */
+  aiInsight?: AiInsight;
 }
 
 const LEVEL_CEILING: Record<RiskLevel, number> = { low: 24, attention: 59, high: 99, critical: 100 };
@@ -138,18 +140,56 @@ export function analyze(messages: ChatMessage[], opts: AnalyzeOptions = {}): Ana
   const ledger = buildLedger(messages);
 
   let aiSignals: Signal[] = [];
+  const baseSignals = [...ruleSignals, ...ledger.signals];
   if (opts.aiSignals?.length) {
-    // So khớp theo loại chuẩn: AI có thể gọi cùng dấu hiệu bằng tên khác (money_transfer ≈ fee_upfront).
-    const known = new Set([...ruleSignals, ...ledger.signals].map((s) => canonicalSignalType(s.type)));
-    // AI chỉ bổ sung loại tín hiệu mới; bằng chứng phải khớp tin nhắn thật (tin cũ bị cắt khỏi bản nháp → bỏ).
+    // Bằng chứng phải khớp tin nhắn thật (tin cũ bị cắt khỏi bản nháp thì bỏ).
+    const valid = validateEvidence(opts.aiSignals, messages).valid;
+    // Cùng loại với luật: không tính điểm hai lần, nhưng giữ phần AI giải thích theo ngữ cảnh trên tín hiệu của luật.
+    const byCanon = new Map(baseSignals.map((s) => [canonicalSignalType(s.type), s]));
+    const fresh: Signal[] = [];
+    for (const s of valid) {
+      const same = byCanon.get(canonicalSignalType(s.type));
+      if (same) {
+        if (!same.ai_note && s.explanation) same.ai_note = s.explanation.replace(/\s*\(AI: [^)]*\)\s*$/, '').slice(0, 300);
+      } else fresh.push(s);
+    }
     // AI một mình không được kích hoạt chế độ Nghiêm trọng: mức "critical" của AI được hạ xuống "high".
-    aiSignals = validateEvidence(
-      opts.aiSignals.filter((s) => !known.has(canonicalSignalType(s.type))),
-      messages,
-    ).valid.map((s) => (s.severity === 'critical' ? { ...s, severity: 'high' as const, direct_danger: false } : s));
+    // Luật còn Thấp thì AI một mình tối đa Cần chú ý: đo EXP-032 cho thấy AI đẩy ca thường lên Cao khi không có luật đỡ.
+    const ruleLevel = scoreSignals(baseSignals).level;
+    const cap = ruleLevel === 'low' ? 'medium' : 'high';
+    aiSignals = fresh.map((s) =>
+      s.severity === 'critical' || (cap === 'medium' && s.severity === 'high') ? { ...s, severity: cap, direct_danger: false } : s,
+    );
   }
 
-  const signals = [...ruleSignals, ...ledger.signals, ...aiSignals];
+  // AI cùng luật: AI thấy nạn nhân sắp hoặc đã làm theo (trích dẫn khớp tin của người dùng), và luật đã có tín hiệu
+  // từ Cần chú ý. Bằng chứng vẫn là tin của đối phương mà luật đã chỉ ra.
+  const insight = opts.aiInsight;
+  // Chỉ khi luật đã thấy một yêu cầu nguy hiểm thật (mức Cao, nhóm tiền, tài khoản, kỹ thuật, mạo danh). EXP-032: với tín hiệu
+  // mức Cần chú ý, AI đẩy ca thường lên Nghiêm trọng.
+  const DANGER_CATS = new Set(['finance', 'account', 'technical', 'impersonation']);
+  const ruleBacking = baseSignals.filter((s) => !s.mitigation && s.source !== 'ai' && (s.severity === 'high' || s.severity === 'critical') && DANGER_CATS.has(s.category));
+  if (
+    insight?.victim_evidence_ok &&
+    (insight.victim_state === 'about_to_comply' || insight.victim_state === 'complied') &&
+    ruleBacking.length &&
+    !baseSignals.some((s) => s.severity === 'critical')
+  ) {
+    const strongest = [...ruleBacking].sort((a, b) => ({ critical: 3, high: 2, medium: 1, low: 0 })[b.severity] - ({ critical: 3, high: 2, medium: 1, low: 0 })[a.severity])[0]!;
+    aiSignals.push({
+      type: 'ai_victim_compliance',
+      category: 'pressure',
+      severity: 'critical',
+      title: insight.victim_state === 'complied' ? 'AI: bạn có thể đã làm theo yêu cầu của đối phương' : 'AI: bạn đang bị dẫn tới bước làm theo yêu cầu',
+      explanation: `AI đọc ngữ cảnh và thấy bạn ${insight.victim_state === 'complied' ? 'đã làm' : 'sắp làm'} theo yêu cầu, sau dấu hiệu "${strongest.title}" mà bộ luật đã chỉ ra.${insight.happening ? ` ${insight.happening}` : ''}`,
+      evidence_message_ids: strongest.evidence_message_ids,
+      evidence_quotes: strongest.evidence_quotes,
+      recommended_action: 'Dừng lại trước khi làm tiếp. Đọc lại các câu bạn đã hỏi mà chưa được trả lời rõ.',
+      source: 'ai',
+    });
+  }
+
+  const signals = [...baseSignals, ...aiSignals];
   const stages = deriveStages(signals, messages);
   const scored = scoreSignals(signals, stages.bonus);
 
@@ -201,7 +241,12 @@ export function analyze(messages: ChatMessage[], opts: AnalyzeOptions = {}): Ana
     claims: ledger.claims,
     uncertainties: unc.slice(0, 8),
     safety_priority: scored.safety_priority,
-    advice: buildAdvice(level, signals, scored.safety_priority, { messages, nextStep: opts.aiNextStep }),
+    advice: {
+      ...buildAdvice(level, signals, scored.safety_priority, { messages, nextStep: opts.aiNextStep }),
+      ...(insight?.warning ? { ai_warning: insight.warning } : {}),
+      ...(insight?.likely_next ? { likely_next: insight.likely_next } : {}),
+    },
+    ...(insight ? { ai_insight: insight } : {}),
     analyzed_message_count: messages.length,
     links: linkFindings(messages),
     qr: qrFindings(messages),

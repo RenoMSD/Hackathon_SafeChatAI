@@ -12,6 +12,13 @@ import { readJson } from '../lib/request';
 import { maskPii, truncateChars } from '../lib/text';
 import { validateAnalysisRequest } from '../lib/validate';
 
+/** Gửi kèm trích dẫn tin người dùng để client tự xác nhận lại trạng thái nạn nhân, không tin hoàn toàn vào máy chủ. */
+function insightForClient(i: import('@safechat/core/types').AiInsight, messages: { id: string; sender: string; text: string }[]) {
+  const { victim_evidence_ok: _ok, atSeq: _at, ...rest } = i;
+  const self = i.victim_evidence_ok ? [...messages].reverse().find((m) => m.sender === 'self') : undefined;
+  return { ...rest, ...(self ? { victim_message_id: self.id, victim_quote: self.text.slice(0, 160) } : {}) };
+}
+
 export const analysesRoute = new Hono<AppEnv>();
 
 function emptyResponse(req: AnalysisRequest): AnalysisResponse {
@@ -113,6 +120,7 @@ analysesRoute.post('/', async (c) => {
             downgradeReason: parsedSecond.downgradeReason,
             detectedStage: parsedSecond.detectedStage ?? parsed.detectedStage,
             nextStep: parsedSecond.nextStep ?? parsed.nextStep,
+            insight: parsedSecond.insight ?? parsed.insight,
           };
           model = second.model;
           tier = 'large';
@@ -149,6 +157,7 @@ analysesRoute.post('/', async (c) => {
       ...(guarded.downgradeReason ? { downgradeReason: guarded.downgradeReason } : {}),
       ...(guarded.detectedStage ? { detectedStage: guarded.detectedStage } : {}),
       ...(guarded.nextStep ? { nextStep: guarded.nextStep } : {}),
+      ...(guarded.insight ? { insight: insightForClient(guarded.insight, req.messages) } : {}),
       usage: { model, tier, inputTokens, outputTokens, costUsd: Math.round(costUsd * 1e6) / 1e6, latencyMs },
     };
 

@@ -1003,9 +1003,38 @@ function analysisView(s: Session): Node {
           h('li', {}, `Đã phân tích đến: ${ai.lastSeq ? `msg-${String(ai.lastSeq).padStart(3, '0')}` : 'chưa'}`),
         ),
       ai.summary && h('div', {}, h('div', { class: 'muted small' }, 'Tóm tắt do AI viết (đã che dữ liệu cá nhân):'), h('blockquote', {}, ai.summary)),
+      ai.insight &&
+        h(
+          'div',
+          { class: 'small' },
+          ai.insight.happening && h('p', {}, h('b', {}, 'AI thấy: '), ai.insight.happening),
+          ai.insight.tactics.length > 0 && h('p', {}, h('b', {}, 'Chiêu đang dùng: '), ai.insight.tactics.map((t) => TACTIC_TEXT[t] ?? t).join(', ')),
+          ai.insight.victim_state !== 'none' && h('p', {}, h('b', {}, 'Trạng thái của bạn: '), VICTIM_TEXT[ai.insight.victim_state] ?? ''),
+          ai.insight.likely_next && h('p', {}, h('b', {}, 'Bước tiếp theo có thể: '), ai.insight.likely_next),
+          ai.insight.warning && h('p', {}, h('b', {}, 'Cảnh báo của AI: '), ai.insight.warning),
+        ),
     ),
   );
 }
+
+const TACTIC_TEXT: Record<string, string> = {
+  flattery: 'khen, tâng bốc',
+  reassurance: 'trấn an',
+  authority: 'viện công ty, quy trình',
+  urgency: 'giục gấp',
+  minimization: 'nói rủi ro nhỏ',
+  evasion: 'né câu hỏi',
+  bait: 'trả thưởng nhỏ, hứa hẹn',
+  secrecy: 'bảo giữ bí mật',
+  isolation: 'kéo khỏi người thân, sang kênh khác',
+  threat: 'đe dọa',
+};
+const VICTIM_TEXT: Record<string, string> = {
+  doubting: 'đang nghi ngờ, đang hỏi lại',
+  convinced: 'có vẻ đã tin, không hỏi thêm',
+  about_to_comply: 'sắp làm theo yêu cầu',
+  complied: 'có thể đã làm theo yêu cầu',
+};
 
 function seqOf(id: string): number {
   return Number(id.replace(/\D/g, '')) || 0;
@@ -1136,6 +1165,8 @@ function adviceCard(s: Session): Node | null {
           h('b', {}, 'Bạn đã hỏi nhưng chưa được trả lời rõ'),
           ...s.result!.open_questions!.map((q) => h('div', {}, `• ${q}`)),
         ),
+      a.ai_warning && h('p', { class: 'small', style: 'margin:8px 0 0;font-weight:700' }, `AI nhận định: ${a.ai_warning}`),
+      a.likely_next && h('p', { class: 'small', style: 'margin:4px 0 0' }, `Bước tiếp theo có thể: ${a.likely_next}`),
       a.waiting_answer && !s.result?.signals.some((x) => /^user_(complied|intends)_/.test(x.type)) && h('p', { class: 'muted small', style: 'margin:8px 0 0' }, 'Đang chờ đối phương trả lời. Đọc kỹ câu trả lời trước khi làm tiếp.'),
       state.adviceExpanded &&
         a.questions.length > 0 &&
@@ -1219,7 +1250,7 @@ function signalCard(s: Session, sig: Signal): Node {
       'h3',
       {},
       sig.title,
-      h('span', { class: 'tag' }, sig.source === 'ai' ? 'AI' : sig.source === 'ledger' ? 'Đối chiếu' : 'Quy tắc'),
+      h('span', { class: 'tag' }, sig.source === 'ai' ? 'AI' : sig.source === 'ledger' ? 'Đối chiếu' : sig.ai_note ? 'Quy tắc + AI' : 'Quy tắc'),
       sig.ref && h('span', { class: 'tag' }, sig.ref),
       sig.confidence !== undefined && h('span', { class: 'tag' }, `độ chắc ${Math.round(sig.confidence * 100)}%`),
       sig.mitigation && h('span', { class: 'tag ok' }, 'Đã hạ mức theo ngữ cảnh'),

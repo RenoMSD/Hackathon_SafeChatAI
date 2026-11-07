@@ -38,3 +38,5 @@ Tự sinh bằng `npm run bench:experiment -- --ledger`. Không sửa tay. Cách
 | [EXP-029](EXP-029/README.md) | Trục nạn nhân, dấu hiệu giai đoạn cuối, phát hiện vòng vo | rules | `0360ea5+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |
 | [EXP-030](EXP-030/README.md) | Trục nạn nhân, bản sửa báo nhầm mã mẫu | rules | `0360ea5+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |
 | [EXP-031](EXP-031/README.md) | Đổi nhãn chốt 5 ca tune theo trục nạn nhân | rules | `0360ea5+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |
+| [EXP-032](EXP-032/README.md) | Vai trò AI mới: nhận định ngữ cảnh, AI cùng luật | gateway, groq openai/gpt-oss-120b (reasoning low), prompt bench-v7 | `f4f412e+dirty` | 3.2% (1/31) | 21.9% (7/32) | chưa xem | chưa xem | – | – | 2 |
+| [EXP-033](EXP-033/README.md) | AI cùng luật, giới hạn theo mức luật | gateway, groq openai/gpt-oss-120b (reasoning low), prompt bench-v7 | `f4f412e+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | – | – | 2 |

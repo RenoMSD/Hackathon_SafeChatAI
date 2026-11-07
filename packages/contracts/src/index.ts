@@ -65,6 +65,16 @@ export interface AnalysisResponse {
   detectedStage?: ScamStage;
   /** Gợi ý bước tiếp theo, đã qua kiểm tra an toàn. Client kiểm tra lại lần nữa. */
   nextStep?: { question: string | null; reason?: string; assessment: 'answered' | 'evasive' | 'contradictory' | 'not_answered' | 'none' };
+  /** Nhận định ngữ cảnh, đã kiểm tra an toàn. Kèm trích dẫn tin người dùng để client xác nhận lại trạng thái nạn nhân. */
+  insight?: {
+    happening?: string;
+    tactics: string[];
+    victim_state: 'none' | 'doubting' | 'convinced' | 'about_to_comply' | 'complied';
+    victim_message_id?: string;
+    victim_quote?: string;
+    likely_next?: string;
+    warning?: string;
+  };
   usage: AnalysisUsage;
 }
 

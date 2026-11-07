@@ -50,16 +50,15 @@ describe('chống dao động', () => {
   it('tăng ngay khi bằng chứng mạnh từ luật', () => {
     expect(run([fake('low'), fake('high')]).map((x) => x.level)).toEqual(['low', 'high']);
   });
-  it('phần vượt lên chỉ nhờ AI phải chờ 1 lần đánh giá xác nhận', () => {
+  it('phần vượt lên chỉ nhờ AI được nâng ngay ở lần đánh giá có bằng chứng', () => {
     const out = run([fake('low'), fake('high', 'ai'), fake('high', 'ai')]);
-    expect(out.map((x) => x.level)).toEqual(['low', 'low', 'high']);
-    expect(out[1]!.note).toContain('Chờ xác nhận');
+    expect(out.map((x) => x.level)).toEqual(['low', 'high', 'high']);
   });
-  it('AI gợi ý mức cao rồi biến mất → không bao giờ nhảy lên', () => {
+  it('AI gợi ý mức cao có bằng chứng thì nâng ngay; biến mất thì hạ chậm như mức của luật', () => {
     expect(run([fake('attention'), fake('high', 'ai'), fake('attention')]).map((x) => x.level)).toEqual([
       'attention',
-      'attention',
-      'attention',
+      'high',
+      'high',
     ]);
   });
   it('hạ chậm: cần 2 lần đánh giá liên tiếp thấp hơn; giữa chừng tăng lại thì không hạ', () => {

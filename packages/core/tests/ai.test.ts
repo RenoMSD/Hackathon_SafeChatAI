@@ -266,7 +266,8 @@ describe('parseAiResponse', () => {
       source: 'ai',
     };
     const r = analyze(m, { aiSignals: [aiSig] });
-    expect(r.risk_level).toBe('high');
+    // Luật chưa thấy gì nên AI một mình chỉ tới Cần chú ý (EXP-032); không bao giờ Nghiêm trọng.
+    expect(r.risk_level).toBe(analyze(m).risk_level === 'low' ? 'attention' : 'high');
     expect(r.safety_priority).toBe(false);
   });
 });

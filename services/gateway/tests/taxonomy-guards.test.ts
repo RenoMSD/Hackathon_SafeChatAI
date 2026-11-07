@@ -237,7 +237,7 @@ describe('guards', () => {
     expect(r.signals[0]?.evidence_quotes[0]).toBe('call 0912345678 now');
   });
 
-  it('bỏ tín hiệu trùng bộ luật và ghi uncertainty thay vì tính điểm hai lần', () => {
+  it('giữ tín hiệu trùng bộ luật để client gộp phần giải thích, không tự bỏ ở máy chủ', () => {
     const r = applyGuards({
       parsed: parsed({ signals: [sig({ type: 'ai_fee_upfront', severity: 'medium' })] }),
       currentLevel: 'low',
@@ -245,8 +245,8 @@ describe('guards', () => {
       ruleHintTypes: ['money_transfer'],
       cfg,
     });
-    expect(r.signals).toHaveLength(0);
-    expect(r.uncertainties.some((u) => u.includes('trùng với bộ luật'))).toBe(true);
+    expect(r.signals).toHaveLength(1);
+    expect(r.uncertainties.some((u) => u.includes('trùng với bộ luật'))).toBe(false);
   });
 
   it('hạ tín hiệu AI không nguy hiểm theo mức luật và ghi uncertainty', () => {

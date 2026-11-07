@@ -1,9 +1,9 @@
 import type { AiParsed } from '@safechat/core/ai';
-import type { AiNextStep, RiskLevel, ScamStage, Signal } from '@safechat/core/types';
+import type { AiInsight, AiNextStep, RiskLevel, ScamStage, Signal } from '@safechat/core/types';
 import { RISK_LEVEL_ORDER } from '@safechat/core/types';
 import type { GatewayConfig } from './config';
 import { containsPromptLeak, maskPii, truncateChars } from './text';
-import { calibrateSignals, dropBenignWarnings, dropRuleDuplicates, isDangerousType, normalizeSignals } from './taxonomy';
+import { calibrateSignals, dropBenignWarnings, isDangerousType, normalizeSignals } from './taxonomy';
 
 const STAGES: ScamStage[] = ['S0', 'S1', 'S2', 'S3', 'S4'];
 
@@ -27,6 +27,7 @@ export interface GuardResult {
   downgradeReason?: string;
   detectedStage?: ScamStage;
   nextStep?: AiNextStep;
+  insight?: AiInsight;
   promptLeakSuspected: boolean;
 }
 
@@ -58,7 +59,8 @@ export function applyGuards(input: GuardInput): GuardResult {
   const { parsed, currentLevel, clientStage, clientSummary, cfg } = input;
   // Ba lớp hiệu chỉnh: bỏ trùng với bộ luật, hạ mức khi luật còn thấp, bỏ thông báo OTP an toàn.
   const normalized = normalizeSignals(parsed.signals, cfg.aiMaxSignals);
-  const deduped = dropRuleDuplicates(normalized, input.ruleHintTypes ?? []);
+  // Không bỏ tín hiệu trùng với luật nữa: client gộp phần giải thích của AI vào tín hiệu của luật, không tính điểm hai lần.
+  const deduped = { signals: normalized, dropped: 0 };
   const calibrated = input.calibrate === false ? { signals: deduped.signals, calibrated: 0 } : calibrateSignals(deduped.signals, currentLevel);
   const benign = dropBenignWarnings(calibrated.signals, currentLevel);
   // AI một mình không được đẩy lên Nghiêm trọng; giữ cùng bất biến với analyze() trong core.
@@ -122,6 +124,12 @@ export function applyGuards(input: GuardInput): GuardResult {
     ...(detectedStage ? { detectedStage } : {}),
     // Mức Nghiêm trọng tắt câu hỏi thăm dò. Gợi ý có dấu hiệu lặp hướng dẫn hệ thống cũng bỏ.
     ...(parsed.nextStep && currentLevel !== 'critical' && !(parsed.nextStep.question && containsPromptLeak(parsed.nextStep.question)) ? { nextStep: parsed.nextStep } : {}),
+    ...(parsed.insight && !leaks(parsed.insight) ? { insight: parsed.insight } : {}),
     promptLeakSuspected,
   };
+}
+
+/** Nhận định có câu lặp lại hướng dẫn hệ thống thì bỏ cả nhận định. */
+function leaks(i: AiInsight): boolean {
+  return [i.happening, i.warning, i.likely_next].some((x) => !!x && containsPromptLeak(x));
 }

@@ -10,6 +10,7 @@ import {
   maskPii,
   mergeAiSignals,
   parseAiResponse,
+  sanitizeInsight,
   sanitizeNextStep,
   type AiParsed,
   type AiRequest,
@@ -127,6 +128,7 @@ async function step() {
     batchSize: settings.batchSize,
     lastMessageAt: s.lastMessageAt ?? s.startedAt,
     idleFlushMs: settings.idleFlushSec * 1000,
+    urgent: isUrgent(s),
   });
 
   if (!decision.run) {
@@ -199,6 +201,13 @@ async function step() {
   kickAi(1000); // có thể đã có tin mới trong lúc chờ
 }
 
+/** Nạn nhân sắp hoặc đã làm theo, hoặc luật vừa thấy dấu hiệu Nghiêm trọng mà AI chưa đọc. */
+function isUrgent(s: Session): boolean {
+  const lastSeq = s.transcript.messages.at(-1)?.seq ?? 0;
+  if (lastSeq <= s.ai.lastSeq) return false;
+  return (s.result?.signals ?? []).some((x) => x.source !== 'ai' && (/^user_(intends|complied)_/.test(x.type) || x.severity === 'critical'));
+}
+
 /** Thời gian nghỉ (ms) sau lỗi gateway: ưu tiên retryAfterSec do máy chủ báo. */
 function gatewayBackoffMs(e: GatewayError): number {
   if (e.retryAfterSec && e.retryAfterSec > 0) return e.retryAfterSec * 1000;
@@ -256,6 +265,8 @@ function parsedFromGateway(
       downgradeReason: res.downgradeReason ? maskPii(String(res.downgradeReason)).slice(0, 200) : undefined,
       detectedStage: res.detectedStage,
       nextStep: checkedNextStep(res, request),
+      // Kiểm tra lại ở client: trích dẫn tin người dùng phải khớp đúng bản đã gửi.
+      insight: res.insight ? sanitizeInsight(res.insight, request.sent) : undefined,
     },
   };
 }
@@ -277,6 +288,7 @@ async function applyResult(
     cur.ai.downgrade = parsed.downgradeReason ? { reason: parsed.downgradeReason, fromLevel: meta.level } : undefined;
     cur.ai.detectedStage = parsed.detectedStage;
     cur.ai.nextStep = parsed.nextStep ? { ...parsed.nextStep, atSeq: request.upToSeq } : undefined;
+    cur.ai.insight = parsed.insight ? { ...parsed.insight, atSeq: request.upToSeq } : undefined;
     cur.ai.lastSeq = request.upToSeq;
     cur.ai.lastAt = Date.now();
     cur.ai.failures = undefined;

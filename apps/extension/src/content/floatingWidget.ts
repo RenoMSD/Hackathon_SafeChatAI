@@ -1741,6 +1741,16 @@ function segCountFor(r: AnalysisResult, rowLevel: RiskLevel): number {
   return row < cur ? (rowLevel === 'low' ? 1 : 2) : 0;
 }
 
+/** Trạng thái AI ngắn gọn để người dùng biết AI có đang đọc không. */
+function aiChip(s: Session): string | null {
+  const ai = s.ai;
+  if (!ai || ai.status === 'off') return null;
+  if (ai.status === 'running') return 'AI đang đọc ngữ cảnh…';
+  if (ai.status === 'error') return `AI tạm dừng: ${(ai.error ?? 'lỗi kết nối').split('.')[0]}. Vẫn cảnh báo bằng luật.`;
+  if (ai.lastSeq) return `AI đã đọc tới tin ${ai.lastSeq}${ai.lastModel ? ` · ${ai.lastModel}` : ''}`;
+  return 'AI đang chờ đủ tin mới';
+}
+
 const LINK_LEVEL_TEXT: Record<string, string> = {
   high: 'Rất đáng ngờ',
   medium: 'Đáng ngờ',
@@ -2948,7 +2958,9 @@ export function initFloatingWidget(
                     ? `Khung chat "${session.threadLabel}" đã đóng — mở lại hoặc chọn chat khác bên dưới.`
                     : session.readerError
                       ? session.readerError
-                      : r?.safety_priority && r.advice.safety_message
+                      : r?.advice.ai_warning && lv !== 'low'
+                        ? `AI nhận định: ${r.advice.ai_warning}`
+                        : r?.safety_priority && r.advice.safety_message
                         ? r.advice.safety_message
                         : latestSig
                           ? `${r?.advice.focus_title ?? latestSig.title}${topAction ? ` — Gợi ý: ${topAction}` : ''}`
@@ -3035,6 +3047,11 @@ export function initFloatingWidget(
             },
             h('div', {}, suggestionText),
             assessmentText && !session.waiting && h('div', { style: 'margin-top:4px;font-size:11px;font-weight:700;color:#b45309' }, assessmentText),
+            r?.advice.likely_next &&
+              lv !== 'low' &&
+              !session.waiting &&
+              h('div', { style: 'margin-top:4px;font-size:11px;color:#7c2d12' }, `Bước tiếp theo có thể: ${r.advice.likely_next}`),
+            aiChip(session) && h('div', { style: 'margin-top:4px;font-size:10.5px;color:#64748b' }, aiChip(session)!),
             (r?.open_questions?.length ?? 0) > 0 &&
               !session.waiting &&
               h('div', { style: 'margin-top:4px;font-size:11px;font-weight:700;color:#b91c1c' }, `Bạn đã hỏi ${r!.open_questions!.length} câu nhưng chưa được trả lời rõ. Xem ở Chi tiết.`),

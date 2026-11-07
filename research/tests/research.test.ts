@@ -507,7 +507,7 @@ describe('tập tune/check đã khóa', () => {
 describe('cấu hình so sánh', () => {
   const m: ChatMessage[] = [{ id: 'msg-001', seq: 1, sender: 'other', text: 'Ck vô stk 9988776655 giúp mình nhé' }];
   it('prompt AI-only không chứa tín hiệu luật, prompt hint thì có, có schema JSON và đúng PROMPT_VERSION', () => {
-    expect(PROMPT_VERSION).toBe('bench-v6');
+    expect(PROMPT_VERSION).toBe('bench-v7');
     expect(benchRequest(m, false).user).toContain('<rule_signals>[]</rule_signals>');
     expect(benchRequest(m, true).user).toContain('money_transfer');
     expect(benchRequest(m, false).system).toContain('risk_level');

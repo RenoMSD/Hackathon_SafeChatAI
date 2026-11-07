@@ -2,7 +2,7 @@
 import type { AiRequest, AiTier } from '@safechat/core/ai';
 import type { ObservedMessage, TranscriptState } from '@safechat/core/transcript';
 import type { StabilityState } from '@safechat/core/stability';
-import type { AiNextStep, AnalysisResult, RiskLevel, Signal, UserMark } from '@safechat/core/types';
+import type { AiInsight, AiNextStep, AnalysisResult, RiskLevel, Signal, UserMark } from '@safechat/core/types';
 
 export type SessionStatus = 'idle' | 'tracking' | 'paused' | 'stopped';
 export type PauseReason = 'user' | 'tab_closed' | 'thread_changed' | 'page_unsupported';
@@ -34,6 +34,8 @@ export interface AiState {
   detectedStage?: string;
   /** Gợi ý bước tiếp theo của AI ở lượt gần nhất. */
   nextStep?: AiNextStep;
+  /** Nhận định ngữ cảnh của AI ở lượt gần nhất. */
+  insight?: AiInsight;
   calls: number;
   lastProvider?: AiProvider;
   lastTier?: AiTier;

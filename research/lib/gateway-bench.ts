@@ -55,5 +55,6 @@ export function gatewayLevel(messages: ChatMessage[], parsed: AiParsed | null, c
   return analyze(messages, {
     aiSignals: guarded.signals,
     aiDowngrade: guarded.downgradeReason ? { reason: guarded.downgradeReason, fromLevel: rule.risk_level } : undefined,
+    aiInsight: guarded.insight,
   }).risk_level;
 }

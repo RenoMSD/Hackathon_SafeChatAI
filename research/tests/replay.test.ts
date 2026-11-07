@@ -64,14 +64,14 @@ describe('chống dao động trong phát lại', () => {
     ],
     summary: '',
   });
-  it('mức thô nhảy lên ngay khi AI gợi ý; mức hiển thị chờ 1 lần đánh giá xác nhận', async () => {
+  it('luật chưa thấy gì: AI một mình chỉ nâng tới Cần chú ý, mức hiển thị lên cùng lúc với mức thô', async () => {
     const raw = await replayCase(quiet, { callAi: async () => aiHigh, stability: false });
     const stable = await replayCase(quiet, { callAi: async () => aiHigh });
-    const firstHighRaw = raw.turns.findIndex((t) => t.level === 'high');
-    const firstHighStable = stable.turns.findIndex((t) => t.level === 'high');
-    expect(firstHighRaw).toBeGreaterThanOrEqual(0);
-    expect(firstHighStable).toBe(firstHighRaw + 1);
-    expect(stable.turns[firstHighRaw]!.rawLevel).toBe('high');
+    expect(raw.turns.some((t) => t.level === 'high')).toBe(false);
+    const firstRaw = raw.turns.findIndex((t) => t.level === 'attention');
+    const firstStable = stable.turns.findIndex((t) => t.level === 'attention');
+    expect(firstRaw).toBeGreaterThanOrEqual(0);
+    expect(firstStable).toBe(firstRaw);
   });
 });
 

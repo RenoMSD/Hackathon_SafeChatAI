@@ -19,6 +19,25 @@ export interface ChatMessage {
   qr?: string[];
 }
 
+export type VictimState = 'none' | 'doubting' | 'convinced' | 'about_to_comply' | 'complied';
+
+/** Nhận định ngữ cảnh của AI, đã qua kiểm tra an toàn. Chỉ để hiển thị và kết hợp với luật. */
+export interface AiInsight {
+  /** Chuyện gì đang xảy ra, một câu. */
+  happening?: string;
+  /** Chiêu thao túng đối phương đang dùng. */
+  tactics: string[];
+  victim_state: VictimState;
+  /** Trích dẫn từ tin của người dùng khớp thật, dùng để xác nhận trạng thái nạn nhân. */
+  victim_evidence_ok: boolean;
+  /** Bước tiếp theo đối phương có thể làm. */
+  likely_next?: string;
+  /** Lời cảnh báo viết riêng cho tình huống, gửi người dùng. */
+  warning?: string;
+  /** seq của tin cuối AI đã đọc. */
+  atSeq?: number;
+}
+
 export type QrKind = 'url' | 'payment' | 'wifi' | 'contact' | 'vcard' | 'install' | 'crypto' | 'text';
 
 /** Kết quả phân tích một mã QR. Số tài khoản đã che, chỉ còn 4 số cuối. */
@@ -87,6 +106,8 @@ export interface Signal {
   mitigation?: string;
   /** Mã luật trong tài liệu kịch bản (vd. R04). */
   ref?: string;
+  /** Phần AI giải thích cho tín hiệu của luật cùng loại, theo ngữ cảnh. */
+  ai_note?: string;
 }
 
 export type ClaimType = 'fee' | 'salary' | 'company' | 'location' | 'contract';
@@ -130,6 +151,10 @@ export interface Advice {
   question_reason?: string;
   /** AI đánh giá câu trả lời vừa rồi. Chỉ để hiển thị, không bao giờ làm hạ mức. */
   answer_assessment?: AnswerAssessment;
+  /** Lời cảnh báo AI viết cho đúng tình huống. Hiện làm dòng chính khi có. */
+  ai_warning?: string;
+  /** Bước tiếp theo đối phương có thể làm, theo AI. */
+  likely_next?: string;
   safety_message?: string;
   support_resources?: string[];
 }
@@ -176,6 +201,8 @@ export interface AnalysisResult {
   qr?: QrFinding[];
   /** Câu người dùng đã hỏi hoặc nghi ngờ mà đối phương chỉ trấn an, chưa trả lời rõ. */
   open_questions?: string[];
+  /** Nhận định ngữ cảnh của AI ở lượt gần nhất. */
+  ai_insight?: AiInsight;
   ai_status: 'off' | 'ok' | 'error' | 'pending';
   ai_error?: string;
 }

@@ -103,7 +103,8 @@ describe('buildGatewayPrompt', () => {
       const r = buildGatewayPrompt(req(msgs(2)), cfg, tier);
       expect(r.request.system).toContain('QUY TRÌNH PHÁN ĐOÁN');
       expect(r.request.system).toContain('KHÔNG tạo lại tín hiệu cùng ý nghĩa');
-      expect(r.request.system.length).toBeLessThan(6500);
+      // 7500 từ khi thêm phần insight (nhận định ngữ cảnh, khoảng 100 token mỗi lượt), trước đó 6500.
+      expect(r.request.system.length).toBeLessThan(7500);
       expect(r.request.system).toContain('suspicious_link');
       expect(r.request.system).toContain('không chia sẻ');
     }
