@@ -30,6 +30,6 @@ Câu đe dọa được nâng mức có 1 câu. Câu bình thường bị nhầm
 Giới hạn:
 
 - File không có cột nhóm. Đã giả định 10 câu đầu là đe dọa, 10 câu sau là bình thường, theo thứ tự trong file.
-- File được đính kèm vào phiên nên người viết luật đã đọc. Số này còn giá trị vì luật được chốt trước khi đọc (bản nháp mã băm \`04f20ac8471b\`). Không được sửa luật theo các câu này rồi đo lại trên chính bộ này.
+- File được đính kèm vào phiên nên người viết luật đã đọc. Số này còn giá trị vì luật được chốt trước khi đọc (bản nháp mã băm `04f20ac8471b`). Không được sửa luật theo các câu này rồi đo lại trên chính bộ này.
 - Mẫu 20 câu, mỗi câu bằng 10% của nhóm.
 - Chưa rõ câu có viết hoàn toàn bằng tay hay không.
