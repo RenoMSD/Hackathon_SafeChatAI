@@ -136,4 +136,6 @@ function getThreadRect(threadId: string): DOMRect | null {
 // Khởi tạo Widget nổi SafeChat AI LIVE (Shadow DOM cô lập) trên trang được hỗ trợ
 if (pickAdapter()) {
   initFloatingWidget(probeLocal, getThreadRect);
+  // Nếu đang có phiên ở tab này, background gửi lại cs_start để đọc tiếp sau khi tải lại trang.
+  send({ kind: 'cs_ready' });
 }

@@ -18,9 +18,17 @@ export async function clearSessionVerified(): Promise<string[]> {
   return Object.keys(left);
 }
 
+// Cài đặt Groq của bản cũ: xóa khỏi máy người dùng đã cài trước đó (đặc biệt là khóa API).
+const LEGACY_KEYS = ['groqEnabled', 'groqApiKey', 'groqSmallModel', 'groqLargeModel'];
+
 export async function loadSettings(): Promise<Settings> {
   const r = await chrome.storage.local.get(SETTINGS_KEY);
-  return { ...DEFAULT_SETTINGS, ...((r[SETTINGS_KEY] as Partial<Settings> | undefined) ?? {}) };
+  const stored = { ...((r[SETTINGS_KEY] as Record<string, unknown> | undefined) ?? {}) };
+  if (LEGACY_KEYS.some((k) => k in stored)) {
+    for (const k of LEGACY_KEYS) delete stored[k];
+    await chrome.storage.local.set({ [SETTINGS_KEY]: stored });
+  }
+  return { ...DEFAULT_SETTINGS, ...stored } as Settings;
 }
 
 export async function saveSettings(s: Settings): Promise<void> {

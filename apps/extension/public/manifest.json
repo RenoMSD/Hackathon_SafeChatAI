@@ -31,7 +31,9 @@
     "http://127.0.0.1/*"
   ],
   "optional_host_permissions": [
-    "https://api.groq.com/*"
+    "https://*.amazonaws.com/*",
+    "https://*.cloudfront.net/*",
+    "https://*.on.aws/*"
   ],
   "content_scripts": [
     {

@@ -6,8 +6,12 @@ import type { AnalysisResult, RiskLevel, Signal, UserMark } from '@safechat/core
 
 export type SessionStatus = 'idle' | 'tracking' | 'paused' | 'stopped';
 export type PauseReason = 'user' | 'tab_closed' | 'thread_changed' | 'page_unsupported';
-export type AiProvider = 'nano' | 'groq';
-export type GroqReasoningEffort = 'low' | 'medium' | 'high';
+export type AiProvider = 'nano' | 'gateway';
+
+// Địa chỉ gateway có thể được "nướng" lúc build bằng VITE_SAFECHAT_GATEWAY_URL.
+// Khi để trống, người dùng tự nhập URL gateway trong Cài đặt (không cần khóa model).
+const BUILD_ENV = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+export const DEFAULT_GATEWAY_URL = BUILD_ENV?.VITE_SAFECHAT_GATEWAY_URL?.trim() ?? '';
 
 export interface AiState {
   status: 'off' | 'idle' | 'running' | 'ok' | 'error';
@@ -16,9 +20,9 @@ export interface AiState {
   summary: string;
   lastSeq: number;
   lastAt: number;
-  /** Số lần Groq lỗi liên tiếp. */
+  /** Số lần máy chủ AI lỗi liên tiếp. */
   failures?: number;
-  /** Đã ngừng thử lại Groq tại tin này, chờ tin mới hoặc người dùng đổi cài đặt. */
+  /** Đã ngừng thử lại máy chủ AI tại tin này, chờ tin mới hoặc người dùng đổi cài đặt. */
   gaveUpAtSeq?: number;
   lastLevel: RiskLevel;
   /** Các loại tín hiệu quy tắc đã biết ở lần gọi trước. */
@@ -31,6 +35,8 @@ export interface AiState {
   calls: number;
   lastProvider?: AiProvider;
   lastTier?: AiTier;
+  /** Model gateway báo đã dùng (chỉ tên model, không có nội dung). */
+  lastModel?: string;
   lastReason?: string;
   /** Yêu cầu đang chờ side panel chạy bằng Gemini Nano. */
   pending?: { id: string; tier: AiTier; request: AiRequest; createdAt: number };
@@ -81,13 +87,11 @@ export interface Settings {
   maxMessages: number;
   /** AI trên máy (Chrome Prompt API / Gemini Nano) — chạy trong side panel. */
   nanoEnabled: boolean;
-  groqEnabled: boolean;
-  groqApiKey: string;
-  groqSmallModel: string;
-  groqLargeModel: string;
-  /** Mức suy luận của model gpt-oss. Không đặt thì dùng mặc định của Groq. Model không hỗ trợ sẽ báo lỗi 400. */
-  groqReasoningEffort?: GroqReasoningEffort;
-  /** Số lượt gọi AI ngoài tối đa mỗi ngày (giữ chi phí/hạn mức). */
+  /** AI qua gateway SafeChat (AWS). Không cần khóa model trong extension. */
+  gatewayEnabled: boolean;
+  /** URL gốc của gateway, ví dụ https://abc.execute-api.ap-northeast-1.amazonaws.com/prod */
+  gatewayUrl: string;
+  /** Số lượt gọi gateway tối đa mỗi ngày trên thiết bị này (giữ chi phí/hạn mức). */
   dailyBudget: number;
   /** Gọi AI khi đủ N tin mới của đối phương. */
   batchSize: number;
@@ -99,10 +103,8 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   maxMessages: 300,
   nanoEnabled: false,
-  groqEnabled: false,
-  groqApiKey: '',
-  groqSmallModel: 'openai/gpt-oss-120b',
-  groqLargeModel: 'openai/gpt-oss-120b',
+  gatewayEnabled: false,
+  gatewayUrl: DEFAULT_GATEWAY_URL,
   dailyBudget: 200,
   batchSize: 5,
   idleFlushSec: 60,
@@ -166,10 +168,14 @@ export interface StopResult {
 }
 
 /** Background → content script */
-export type ContentRequest = { kind: 'cs_probe' } | { kind: 'cs_start'; threadId: string } | { kind: 'cs_stop' };
+export type ContentRequest =
+  | { kind: 'cs_probe' }
+  | { kind: 'cs_start'; threadId: string }
+  | { kind: 'cs_stop' };
 
 /** Content script → background */
 export type ContentEvent =
+  | { kind: 'cs_ready' }
   | { kind: 'cs_messages'; threadId: string; batch: ObservedMessage[]; error?: string }
   /** Khung chat đã chọn bị đóng (waiting=true) hoặc đã mở lại (false). */
   | { kind: 'cs_thread_waiting'; threadId: string; waiting: boolean }

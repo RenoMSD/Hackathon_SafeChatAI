@@ -27,6 +27,7 @@ import {
   type Settings,
   type StopResult,
 } from '../shared/protocol';
+import { gatewayOriginPattern, normalizeGatewayUrl } from '../background/gateway';
 import { downloadNano, nanoStatus, runNano, type NanoStatus } from './nano';
 
 type View = 'overview' | 'analysis' | 'evidence' | 'draft' | 'settings';
@@ -678,12 +679,12 @@ function riskCard(s: Session): Node {
   );
 }
 
-const PROVIDER_LABEL = { nano: 'Gemini Nano trên máy', groq: 'Groq' } as const;
+const PROVIDER_LABEL = { nano: 'Gemini Nano trên máy', gateway: 'Máy chủ SafeChat' } as const;
 
 function aiStatusText(s: Session): string {
   const ai = s.ai;
   const via = ai.lastProvider
-    ? `${PROVIDER_LABEL[ai.lastProvider]}${ai.lastProvider === 'groq' ? ` (${ai.lastTier === 'large' ? 'mô hình lớn' : 'mô hình nhỏ'})` : ''}`
+    ? `${PROVIDER_LABEL[ai.lastProvider]}${ai.lastProvider === 'gateway' && ai.lastModel ? ` (${ai.lastModel})` : ''}`
     : '';
   switch (ai.status) {
     case 'off':
@@ -703,8 +704,8 @@ function aiDisclosure(): string {
   const st = state.settings;
   const parts: string[] = [];
   if (st.nanoEnabled) parts.push('AI trên máy (Gemini Nano) — dữ liệu không rời máy');
-  if (st.groqEnabled && st.groqApiKey)
-    parts.push('Groq — chỉ gửi tin mới kèm vài tin ngữ cảnh và bản tóm tắt, đã che số điện thoại, số tài khoản, email');
+  if (st.gatewayEnabled && st.gatewayUrl)
+    parts.push('Máy chủ SafeChat — chỉ gửi tin mới kèm vài tin ngữ cảnh và bản tóm tắt, đã che số điện thoại, số tài khoản, email');
   return parts.length
     ? `Phân tích AI đang BẬT: ${parts.join('; ')}.`
     : 'Phân tích chạy hoàn toàn trên máy bằng bộ quy tắc. AI đang tắt.';
@@ -825,7 +826,7 @@ function analysisView(s: Session): Node {
           'ul',
           { class: 'small' },
           h('li', {}, `Lượt gọi trong phiên: ${ai.calls}`),
-          h('li', {}, `Lượt Groq hôm nay: ${state.usageToday}/${state.settings.dailyBudget}`),
+          h('li', {}, `Lượt AI qua máy chủ hôm nay: ${state.usageToday}/${state.settings.dailyBudget}`),
           ai.lastReason && h('li', {}, `Lần gọi gần nhất vì: ${ai.lastReason}`),
           h('li', {}, `Đã phân tích đến: ${ai.lastSeq ? `msg-${String(ai.lastSeq).padStart(3, '0')}` : 'chưa'}`),
         ),
@@ -885,7 +886,7 @@ function adviceCard(s: Session): Node | null {
   const a = s.result?.advice;
   if (!a) return null;
   const msgPct = Math.min(100, Math.round((s.transcript.messages.length / Math.max(1, s.maxMessages)) * 100));
-  const aiPct = state.settings.groqEnabled ? Math.min(100, Math.round((state.usageToday / Math.max(1, state.settings.dailyBudget)) * 100)) : 0;
+  const aiPct = state.settings.gatewayEnabled ? Math.min(100, Math.round((state.usageToday / Math.max(1, state.settings.dailyBudget)) * 100)) : 0;
   const usagePct = Math.max(msgPct, aiPct);
   const nearLimit = usagePct >= 80;
 
@@ -1170,81 +1171,58 @@ function settingsCard(): Node {
       'Chạy ngay trong Chrome, dữ liệu không rời máy, không tốn phí hay hạn mức. Cần Chrome máy tính (Windows/macOS/Linux), khoảng 22 GB trống và GPU trên 4 GB hoặc 16 GB RAM. Chỉ chạy khi side panel đang mở. Tiếng Việt chưa được hỗ trợ chính thức nên đây là chế độ thử nghiệm.',
     ),
     nanoControls(st, save),
-    // ----- Tầng 2: Groq -----
-    h('h3', { style: 'margin-top:12px' }, '2. Groq — dự phòng / khi đóng side panel'),
+    // ----- Tầng 2: Máy chủ SafeChat -----
+    h('h3', { style: 'margin-top:12px' }, '2. Máy chủ SafeChat — dự phòng / khi đóng side panel'),
     h(
       'p',
       { class: 'muted small' },
-      'Chỉ gửi tin MỚI kèm 4 tin ngữ cảnh và bản tóm tắt do AI viết, đã che số điện thoại, số tài khoản, email. Mô hình nhỏ chạy mặc định; mô hình lớn chỉ chạy khi mức ≥ Cần chú ý hoặc mô hình nhỏ thấy dấu hiệu nặng. Dữ liệu đã gửi chịu chính sách của Groq; "Dừng và xóa" không xóa được dữ liệu phía Groq. API key lưu trên máy này.',
+      'Không cần khóa API. Chỉ gửi tin MỚI kèm vài tin ngữ cảnh và bản tóm tắt do AI viết, đã che số điện thoại, số tài khoản, email, tới máy chủ SafeChat. Máy chủ giữ khóa mô hình, extension không giữ. "Dừng và xóa" xóa dữ liệu phiên trên máy này nhưng không thu hồi được dữ liệu đã gửi tới máy chủ. Bạn có thể tắt bất cứ lúc nào.',
     ),
     h(
       'div',
       { class: 'field' },
-      h('label', { for: 'key' }, 'Groq API key'),
+      h('label', { for: 'gw' }, 'Địa chỉ máy chủ SafeChat (HTTPS)'),
       h('input', {
-        id: 'key',
-        type: 'password',
-        value: st.groqApiKey,
+        id: 'gw',
+        type: 'url',
+        placeholder: 'https://…',
+        value: st.gatewayUrl,
         autocomplete: 'off',
-        onchange: (e: Event) => void save({ ...st, groqApiKey: (e.target as HTMLInputElement).value.trim() }),
+        onchange: (e: Event) => void save({ ...st, gatewayUrl: (e.target as HTMLInputElement).value.trim() }),
       }),
     ),
     h(
       'div',
-      { class: 'grid2' },
-      h(
-        'div',
-        { class: 'field' },
-        h('label', { for: 'ms' }, 'Mô hình nhỏ'),
-        h('input', {
-          id: 'ms',
-          type: 'text',
-          value: st.groqSmallModel,
-          onchange: (e: Event) => void save({ ...st, groqSmallModel: (e.target as HTMLInputElement).value.trim() || DEFAULT_SETTINGS.groqSmallModel }),
-        }),
-      ),
-      h(
-        'div',
-        { class: 'field' },
-        h('label', { for: 'ml' }, 'Mô hình lớn'),
-        h('input', {
-          id: 'ml',
-          type: 'text',
-          value: st.groqLargeModel,
-          onchange: (e: Event) => void save({ ...st, groqLargeModel: (e.target as HTMLInputElement).value.trim() || DEFAULT_SETTINGS.groqLargeModel }),
-        }),
-      ),
-    ),
-    h(
-      'div',
       { class: 'row' },
-      st.groqEnabled
-        ? h('button', { onclick: () => void save({ ...st, groqEnabled: false }) }, 'Tắt Groq')
+      st.gatewayEnabled
+        ? h('button', { onclick: () => void save({ ...st, gatewayEnabled: false }) }, 'Tắt máy chủ SafeChat')
         : h(
             'button',
             {
-              disabled: !st.groqApiKey,
+              disabled: !st.gatewayUrl,
               onclick: async () => {
-                if (!confirm('Bật Groq: tin nhắn mới (đã che dữ liệu cá nhân) và bản tóm tắt sẽ được gửi tới Groq (bên thứ ba). Bạn đồng ý?')) return;
-                const granted = await chrome.permissions.request({ origins: ['https://api.groq.com/*'] });
-                if (!granted) return setNotice('err', 'Chưa được cấp quyền truy cập api.groq.com.');
-                await save({ ...st, groqEnabled: true });
+                const url = normalizeGatewayUrl(st.gatewayUrl);
+                if (!url) return setNotice('err', 'Địa chỉ máy chủ không hợp lệ (cần dạng https://…).');
+                if (!confirm('Bật máy chủ SafeChat: tin nhắn mới (đã che dữ liệu cá nhân) và bản tóm tắt sẽ được gửi tới máy chủ SafeChat. Bạn đồng ý?')) return;
+                const granted = await chrome.permissions.request({ origins: [gatewayOriginPattern(url)] });
+                if (!granted) return setNotice('err', 'Chưa được cấp quyền truy cập máy chủ SafeChat.');
+                await save({ ...st, gatewayUrl: url, gatewayEnabled: true });
               },
             },
-            'Bật Groq',
+            'Bật máy chủ SafeChat',
           ),
-      h('span', { class: st.groqEnabled ? 'ok small' : 'muted small' }, st.groqEnabled ? 'Đang bật' : 'Đang tắt'),
+      h('span', { class: st.gatewayEnabled ? 'ok small' : 'muted small' }, st.gatewayEnabled ? 'Đang bật' : 'Đang tắt'),
     ),
     // ----- Tiết kiệm lượt gọi -----
     h('h3', { style: 'margin-top:12px' }, 'Tiết kiệm lượt gọi AI'),
     h(
       'div',
       { class: 'grid3' },
-      numField('budget', 'Lượt Groq/ngày', st.dailyBudget, 10, 5000, (v) => save({ ...st, dailyBudget: v })),
+      numField('budget', 'Lượt AI/ngày', st.dailyBudget, 10, 5000, (v) => save({ ...st, dailyBudget: v })),
       numField('batch', 'Gọi khi đủ N tin mới', st.batchSize, 1, 50, (v) => save({ ...st, batchSize: v })),
       numField('gap', 'Cách nhau tối thiểu (giây)', st.minIntervalSec, 3, 600, (v) => save({ ...st, minIntervalSec: v })),
     ),
-    h('p', { class: 'muted small' }, `Đã dùng hôm nay: ${state.usageToday}/${st.dailyBudget} lượt Groq. AI cũng chạy ngay khi mức cảnh báo tăng hoặc có loại tín hiệu mới.`),
+    h('p', { class: 'muted small' }, `Đã dùng hôm nay: ${state.usageToday}/${st.dailyBudget} lượt qua máy chủ SafeChat. Bộ quy tắc cảnh báo sau từng tin. AI chạy khi đủ N tin mới của đối phương, hoặc khi hội thoại dừng ${st.idleFlushSec} giây mà còn tin chưa đọc.`),
   );
 }
 
@@ -1268,7 +1246,7 @@ function nanoControls(st: Settings, save: (s: Settings) => Promise<void>): Node 
   const n = state.nano;
   if (!n) return h('p', { class: 'muted small' }, 'Đang kiểm tra khả năng của trình duyệt…');
   if (!n.supported || !n.lang)
-    return h('p', { class: 'small err' }, 'Trình duyệt/máy này chưa hỗ trợ Prompt API (Gemini Nano). Có thể dùng Groq thay thế.');
+    return h('p', { class: 'small err' }, 'Trình duyệt/máy này chưa hỗ trợ Prompt API (Gemini Nano). Có thể dùng máy chủ SafeChat thay thế.');
   const label: Record<string, string> = {
     available: 'Mô hình đã sẵn sàng',
     downloadable: 'Cần tải mô hình (một lần, vài GB)',

@@ -1,21 +1,23 @@
 // Điều phối AI phân tầng:
 //   quy tắc (luôn chạy, miễn phí)
 //   → Gemini Nano trên máy (nếu bật và side panel báo sẵn sàng; không tốn hạn mức, dữ liệu không rời máy)
-//   → Groq: `openai/gpt-oss-120b` mặc định; leo lên lượt sâu (cùng model, prompt đầy đủ) khi đã có dấu hiệu đáng kể.
+//   → Gateway SafeChat trên AWS (không cần khóa model trong extension).
 // Chỉ gửi DELTA (tin mới + vài tin ngữ cảnh + tóm tắt cuộn), giới hạn số lượt/ngày.
+import type { AnalysisRequest, AnalysisResponse } from '@safechat/contracts';
 import {
   buildAiRequest,
   decideAiRun,
+  maskPii,
   mergeAiSignals,
   parseAiResponse,
-  shouldEscalate,
   type AiParsed,
   type AiRequest,
   type AiTier,
 } from '@safechat/core/ai';
-import type { RiskLevel } from '@safechat/core/types';
+import { validateEvidence } from '@safechat/core/evidence';
+import type { ChatMessage, RiskLevel, Signal } from '@safechat/core/types';
+import { gatewayOriginPattern, GatewayError, callGateway } from './gateway';
 import { USAGE_KEY, type AiProvider, type Session, type Settings } from '../shared/protocol';
-import { callGroq, GroqError } from './groq';
 import { recompute, serial, updateBadge } from './runtime';
 import { loadSession, loadSettings, saveSession } from './store';
 
@@ -23,11 +25,11 @@ const NANO_TIMEOUT_MS = 60_000;
 const PANEL_FRESH_MS = 45_000;
 // Service worker có thể bị tắt khi rảnh nên setTimeout dài không đáng tin; alarm sẽ đánh thức lại.
 export const AI_IDLE_ALARM = 'safechat_ai_idle';
-const MAX_GROQ_FAILURES = 3;
+const MAX_GATEWAY_FAILURES = 3;
 
 let panelNano = { ready: false, at: 0 };
 let nanoFailedUntil = 0;
-let groqBackoffUntil = 0;
+let gatewayBackoffUntil = 0;
 let running = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -39,6 +41,11 @@ export function setPanelNanoStatus(ready: boolean) {
 export function kickAi(delayMs = 0) {
   clearTimeout(timer);
   timer = setTimeout(() => void step(), delayMs);
+}
+
+/** Người dùng vừa đổi cài đặt AI: bỏ thời gian nghỉ của lỗi cũ để thử lại ngay. */
+export function resetGatewayBackoff() {
+  gatewayBackoffUntil = 0;
 }
 
 export function cancelAi() {
@@ -62,15 +69,15 @@ async function addUsage(n: number) {
 async function chooseProvider(settings: Settings): Promise<AiProvider | null> {
   const now = Date.now();
   if (settings.nanoEnabled && panelNano.ready && now - panelNano.at < PANEL_FRESH_MS && now > nanoFailedUntil) return 'nano';
-  if (settings.groqEnabled && settings.groqApiKey && now > groqBackoffUntil) {
-    const granted = await chrome.permissions.contains({ origins: ['https://api.groq.com/*'] });
-    if (granted) return 'groq';
+  if (settings.gatewayEnabled && settings.gatewayUrl && now > gatewayBackoffUntil) {
+    const granted = await chrome.permissions.contains({ origins: [gatewayOriginPattern(settings.gatewayUrl)] });
+    if (granted) return 'gateway';
   }
   return null;
 }
 
 function anyAiConfigured(settings: Settings) {
-  return settings.nanoEnabled || (settings.groqEnabled && !!settings.groqApiKey);
+  return settings.nanoEnabled || (settings.gatewayEnabled && !!settings.gatewayUrl);
 }
 
 // ---------- một bước điều phối ----------
@@ -103,9 +110,9 @@ async function step() {
     return;
   }
 
-  if (provider === 'groq' && s.ai.gaveUpAtSeq === s.transcript.messages.at(-1)?.seq) return;
+  if (provider === 'gateway' && s.ai.gaveUpAtSeq === s.transcript.messages.at(-1)?.seq) return;
 
-  const budget = provider === 'groq' ? settings.dailyBudget - (await usedToday()) : Number.POSITIVE_INFINITY;
+  const budget = provider === 'gateway' ? settings.dailyBudget - (await usedToday()) : Number.POSITIVE_INFINITY;
   const ruleSignals = s.result.signals.filter((x) => x.source !== 'ai');
   const ruleTypes = ruleSignals.map((x) => x.type);
   const decision = decideAiRun({
@@ -149,13 +156,27 @@ async function step() {
   running = true;
   await serial(async () => setStatus('running'));
   try {
-    const parsed = await runGroq(request, decision.tier, settings, budget);
-    await applyResult(meta, request, parsed.result, 'groq', parsed.tier);
+    const body: AnalysisRequest = {
+      client: 'extension',
+      clientVersion: clientVersion(),
+      messages: request.sent,
+      lastAiSeq: s.ai.lastSeq,
+      summary: maskPii(s.ai.summary),
+      ruleHints: ruleSignals.map((x) => ({ type: x.type, title: x.title, evidenceMessageIds: x.evidence_message_ids })),
+      currentLevel: s.result.risk_level,
+      stage: s.result.stage,
+      tier: decision.tier,
+    };
+    const res = await callGateway(settings.gatewayUrl, body);
+    await addUsage(1);
+    const parsed = parsedFromGateway(res, request, s.transcript.messages);
+    await applyResult(meta, request, parsed.result, 'gateway', parsed.tier, res.usage?.model);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (e instanceof GroqError && e.status === 429) {
-      groqBackoffUntil = Date.now() + 60_000;
-      await chrome.alarms.create(AI_IDLE_ALARM, { when: groqBackoffUntil + 1000 });
+    // Mọi lỗi gateway đều tạm nghỉ một lúc; alarm đánh thức lại vì service worker có thể đã tắt.
+    if (e instanceof GatewayError) {
+      gatewayBackoffUntil = Date.now() + gatewayBackoffMs(e);
+      await chrome.alarms.create(AI_IDLE_ALARM, { when: gatewayBackoffUntil + 1000 });
     }
     await serial(async () => {
       const cur = await loadSession();
@@ -164,7 +185,7 @@ async function step() {
       cur.ai.error = msg;
       cur.ai.lastAt = Date.now();
       cur.ai.failures = (cur.ai.failures ?? 0) + 1;
-      if (cur.ai.failures >= MAX_GROQ_FAILURES) {
+      if (cur.ai.failures >= MAX_GATEWAY_FAILURES) {
         cur.ai.gaveUpAtSeq = cur.transcript.messages.at(-1)?.seq;
         cur.ai.error = `${msg}. Đã tạm dừng AI sau ${cur.ai.failures} lần lỗi liên tiếp, vẫn phân tích bằng quy tắc. Sẽ thử lại khi có tin mới hoặc khi đổi cài đặt AI.`;
       }
@@ -177,38 +198,56 @@ async function step() {
   kickAi(1000); // có thể đã có tin mới trong lúc chờ
 }
 
-async function runGroq(
-  request: AiRequest,
-  tier: AiTier,
-  settings: Settings,
-  budget: number,
-): Promise<{ result: AiParsed; tier: AiTier }> {
-  const original = (await loadSession())?.transcript.messages ?? [];
-  const model = tier === 'large' ? settings.groqLargeModel : settings.groqSmallModel;
-  // Tính lượt ngay khi Groq trả lời: phản hồi đọc lỗi vẫn tốn hạn mức
-  const firstContent = await callGroq(request, settings.groqApiKey, model, settings.groqReasoningEffort);
-  await addUsage(1);
-  const first = parseAiResponse(firstContent, request, original, `Groq ${model}`);
-  if (tier === 'small' && shouldEscalate(first.signals, budget - 1)) {
-    // Mô hình nhỏ thấy dấu hiệu nặng → nhờ mô hình lớn xác nhận/phân tích kỹ
-    const large = settings.groqLargeModel;
-    const secondContent = await callGroq(request, settings.groqApiKey, large, settings.groqReasoningEffort);
-    await addUsage(1);
-    const second = parseAiResponse(secondContent, request, original, `Groq ${large}`);
-    return {
-      tier: 'large',
-      result: {
-        signals: mergeAiSignals(first.signals, second.signals),
-        summary: second.summary || first.summary,
-        uncertainties: second.uncertainties,
-        rejected: first.rejected + second.rejected,
-        // Hạ mức chỉ khi mô hình lớn (đánh giá sau cùng) cũng đề nghị
-        downgradeReason: second.downgradeReason,
-        detectedStage: second.detectedStage ?? first.detectedStage,
-      },
-    };
+/** Thời gian nghỉ (ms) sau lỗi gateway: ưu tiên retryAfterSec do máy chủ báo. */
+function gatewayBackoffMs(e: GatewayError): number {
+  if (e.retryAfterSec && e.retryAfterSec > 0) return e.retryAfterSec * 1000;
+  switch (e.code) {
+    case 'QUOTA_EXCEEDED':
+    case 'BUDGET_EXCEEDED':
+      return 10 * 60_000;
+    case 'UNAUTHORIZED':
+    case 'BAD_REQUEST':
+      return 5 * 60_000;
+    default:
+      return e.status === 429 ? 60_000 : 30_000;
   }
-  return { result: first, tier };
+}
+
+function clientVersion(): string {
+  try {
+    return chrome.runtime.getManifest().version || '0.5.0';
+  } catch {
+    return '0.5.0';
+  }
+}
+
+/** Đổi phản hồi gateway sang dạng core dùng, vẫn kiểm tra trích dẫn lần cuối ở client. */
+function parsedFromGateway(
+  res: AnalysisResponse,
+  request: AiRequest,
+  original: ChatMessage[],
+): { result: AiParsed; tier: AiTier } {
+  if (!res || !Array.isArray(res.signals)) throw new GatewayError('Máy chủ trả kết quả không hợp lệ.', 500, 'INTERNAL');
+  const raw: Signal[] = res.signals.map((s) => ({ ...s, source: 'ai' }));
+  const { valid, rejected } = validateEvidence(raw, request.sent);
+  const byId = new Map(original.map((m) => [m.id, m]));
+  const signals = valid.map((s) => ({
+    ...s,
+    evidence_quotes: s.evidence_message_ids.map(
+      (id, i) => byId.get(id)?.text.slice(0, 220) ?? s.evidence_quotes[i] ?? '',
+    ),
+  }));
+  return {
+    tier: res.usage?.tier === 'large' ? 'large' : 'small',
+    result: {
+      signals,
+      summary: maskPii(String(res.summary ?? '')).slice(0, 800),
+      uncertainties: (Array.isArray(res.uncertainties) ? res.uncertainties : []).map(String).slice(0, 5),
+      rejected: (Number.isFinite(res.rejected) ? res.rejected : 0) + rejected.length,
+      downgradeReason: res.downgradeReason ? maskPii(String(res.downgradeReason)).slice(0, 200) : undefined,
+      detectedStage: res.detectedStage,
+    },
+  };
 }
 
 async function applyResult(
@@ -217,6 +256,7 @@ async function applyResult(
   parsed: AiParsed,
   provider: AiProvider,
   tier: AiTier,
+  model?: string,
 ) {
   await serial(async () => {
     const cur = await loadSession();
@@ -237,6 +277,7 @@ async function applyResult(
     cur.ai.error = parsed.rejected ? `Đã loại ${parsed.rejected} tín hiệu AI có trích dẫn không khớp tin gốc` : undefined;
     cur.ai.lastProvider = provider;
     cur.ai.lastTier = tier;
+    cur.ai.lastModel = model;
     cur.ai.lastReason = meta.reason;
     cur.ai.pending = undefined;
     recompute(cur);

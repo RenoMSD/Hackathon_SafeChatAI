@@ -86,48 +86,73 @@ describe('background — vòng đời phiên', () => {
     expect(s.pauseReason).toBe('tab_closed');
   });
 
-  it('Groq phân tầng: gọi mô hình lớn khi mức Cao, chỉ gửi delta, kết quả hợp lệ được gộp', async () => {
-    const calls: { model: string; user: string; maxTokens: number; effort?: string }[] = [];
-    globalThis.fetch = (async (_url: string, init: { body: string }) => {
-      const body = JSON.parse(init.body);
-      calls.push({ model: body.model, user: body.messages[1].content, maxTokens: body.max_completion_tokens, effort: body.reasoning_effort });
-      const content = JSON.stringify({
-        signals: [
-          {
-            type: 'vague_task',
-            category: 'job_terms',
-            severity: 'medium',
-            title: 'Mô tả công việc mơ hồ',
-            explanation: 'Không nói rõ việc phải làm.',
-            evidence_message_ids: ['msg-002'],
-            evidence_quotes: ['đóng phí kích hoạt'],
-          },
-        ],
-        summary: 'Tuyển dụng, có yêu cầu phí.',
-      });
-      return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
+  // ---------- gateway ----------
+  const GW = 'https://gw.test';
+  let tokenSeq = 0;
+  type Stats = { devices: number; analyses: number; bodies: Record<string, any>[]; auth: string[] };
+
+  /** Giả lập gateway: /v1/devices cấp token mới; /v1/analyses do từng test quyết định theo lượt gọi thứ n. */
+  let current: Stats | null = null;
+  const fetchedAnalyses = () => current?.analyses ?? 0;
+
+  function mockGateway(analyses: (n: number) => Response): Stats {
+    const stats: Stats = { devices: 0, analyses: 0, bodies: [], auth: [] };
+    current = stats;
+    globalThis.fetch = (async (url: string, init: { body: string; headers: Record<string, string> }) => {
+      if (url === `${GW}/v1/devices`) {
+        stats.devices++;
+        return new Response(
+          JSON.stringify({ token: `tok-${++tokenSeq}`, expiresAt: new Date(Date.now() + 3_600_000).toISOString() }),
+          { status: 200 },
+        );
+      }
+      if (url === `${GW}/v1/analyses`) {
+        stats.analyses++;
+        stats.bodies.push(JSON.parse(init.body));
+        stats.auth.push(init.headers.Authorization ?? '');
+        return analyses(stats.analyses);
+      }
+      throw new Error(`URL ngoài dự kiến: ${url}`);
     }) as unknown as typeof fetch;
-    (fake.chrome.permissions as { contains: () => Promise<boolean> }).contains = async () => true;
-    await fake.chrome.storage.local.set({
-      safechat_settings: { groqEnabled: true, groqApiKey: 'test-key', minIntervalSec: 3, batchSize: 5, dailyBudget: 50 },
-    });
-    thread = { threadId: 'mock:ai', threadLabel: 'AI' };
+    return stats;
+  }
+
+  const okResponse = (signals: unknown[], summary = 'Tuyển dụng, có yêu cầu phí.') =>
+    new Response(
+      JSON.stringify({ signals, summary, uncertainties: [], rejected: 0, usage: { tier: 'large', model: 'test-model' } }),
+      { status: 200 },
+    );
+  const errResponse = (status: number, code: string) =>
+    new Response(JSON.stringify({ error: { code, message: 'x' } }), { status });
+
+  const goodSignal = {
+    type: 'vague_task',
+    category: 'job_terms',
+    severity: 'medium',
+    title: 'Mô tả công việc mơ hồ',
+    explanation: 'Không nói rõ việc phải làm.',
+    evidence_message_ids: ['msg-002'],
+    evidence_quotes: ['đóng phí kích hoạt'],
+  };
+
+  async function startAiSession(id: string) {
+    const before = fetchedAnalyses();
+    thread = { threadId: id, threadLabel: 'AI' };
     await fake.panel({ kind: 'stop_and_clear' });
     await fake.panel({ kind: 'start', tabId: TAB });
     await fake.content(TAB, {
       kind: 'cs_messages',
-      threadId: 'mock:ai',
+      threadId: id,
       batch: [
         { sender: 'other', text: 'Bên chị hoàn toàn miễn phí, không thu phí gì đâu em.' },
         { sender: 'other', text: 'Giờ em đóng phí kích hoạt 500k, gọi 0912 345 678 nhé.' },
       ],
     });
-    await new Promise((r) => setTimeout(r, 800));
-    expect(calls).toHaveLength(0); // mới 2 tin: luật đã cảnh báo, AI chờ đủ 5 tin
-    expect((await session())!.result?.risk_level).toBe('high');
+    await new Promise((r) => setTimeout(r, 500));
+    expect(fetchedAnalyses()).toBe(before); // mới 2 tin: luật đã cảnh báo, AI chờ đủ 5 tin
     await fake.content(TAB, {
       kind: 'cs_messages',
-      threadId: 'mock:ai',
+      threadId: id,
       batch: [
         { sender: 'other', text: 'Em đóng sớm để giữ chỗ nha.' },
         { sender: 'other', text: 'Việc nhẹ, làm ở nhà thôi.' },
@@ -135,44 +160,105 @@ describe('background — vòng đời phiên', () => {
       ],
     });
     await new Promise((r) => setTimeout(r, 800));
+  }
+
+  it('Gateway: chỉ gửi delta đã che PII kèm token thiết bị; kết quả hợp lệ được gộp', async () => {
+    const gw = mockGateway(() => okResponse([goodSignal]));
+    (fake.chrome.permissions as { contains: () => Promise<boolean> }).contains = async () => true;
+    await fake.chrome.storage.local.set({
+      safechat_settings: { gatewayEnabled: true, gatewayUrl: GW, minIntervalSec: 3, batchSize: 5, dailyBudget: 50 },
+    });
+    await startAiSession('mock:ai');
     const s = (await session())!;
-    expect(calls).toHaveLength(1);
-    expect(calls[0]!.model).toBe('openai/gpt-oss-120b'); // mức Cao → lượt sâu, cùng model
-    expect(calls[0]!.maxTokens).toBe(2048);
-    expect(calls[0]!.effort).toBeUndefined();
-    expect(calls[0]!.user).toContain('[SỐ]');
-    expect(calls[0]!.user).not.toContain('0912 345 678');
+    expect(gw.analyses).toBe(1);
+    expect(gw.devices).toBe(1);
+    expect(gw.auth[0]).toMatch(/^Bearer tok-\d+$/);
+    const body = gw.bodies[0]!;
+    expect(body.client).toBe('extension');
+    expect(body.tier).toBe('large'); // mức Cao → tầng lớn
+    const sent = JSON.stringify(body);
+    expect(sent).toContain('[SỐ]');
+    expect(sent).not.toContain('0912 345 678');
+    expect(sent.toLowerCase()).not.toContain('groq');
     expect(s.ai.status).toBe('ok');
+    expect(s.ai.lastProvider).toBe('gateway');
+    expect(s.ai.lastModel).toBe('test-model');
     expect(s.ai.summary).toBe('Tuyển dụng, có yêu cầu phí.');
-    expect(s.result?.signals.map((x) => x.type)).toContain('ai_vague_task');
+    expect(s.result?.signals.some((x) => x.type.includes('vague_task'))).toBe(true);
     expect(s.timeline.length).toBeGreaterThan(0);
-    const usage = (await fake.chrome.storage.local.get('safechat_ai_usage')) as Record<string, { count: number }>;
-    expect(usage.safechat_ai_usage?.count).toBe(1);
+    const local = (await fake.chrome.storage.local.get(null)) as Record<string, any>;
+    expect(local.safechat_ai_usage?.count).toBe(1);
+    expect(local.safechat_device?.baseUrl).toBe(GW);
+  });
+
+  it('cs_ready: phiên đang theo dõi trên đúng tab → đọc tiếp; tab khác → không làm gì', async () => {
+    contentCalls.length = 0;
+    await fake.content(99, { kind: 'cs_ready' });
+    await tick();
+    expect(contentCalls).not.toContain('cs_start');
+    await fake.content(TAB, { kind: 'cs_ready' });
+    await tick();
+    expect(contentCalls).toContain('cs_start');
+  });
+
+  it('Gateway: 401 → cấp lại token thiết bị đúng một lần rồi gọi lại', async () => {
+    const gw = mockGateway((n) => (n === 1 ? errResponse(401, 'UNAUTHORIZED') : okResponse([goodSignal])));
+    await startAiSession('mock:ai401');
+    const s = (await session())!;
+    expect(gw.analyses).toBe(2);
+    expect(gw.devices).toBe(1);
+    expect(gw.auth[1]).not.toBe(gw.auth[0]);
+    expect(s.ai.status).toBe('ok');
+  });
+
+  it('Gateway: trích dẫn không khớp tin gốc bị loại ở client', async () => {
+    mockGateway(() =>
+      okResponse([{ ...goodSignal, evidence_message_ids: ['msg-001'], evidence_quotes: ['câu này không hề có trong tin nhắn'] }]),
+    );
+    await startAiSession('mock:aibad');
+    const s = (await session())!;
+    expect(s.ai.signals).toHaveLength(0);
+    expect(s.ai.error).toContain('Đã loại');
+  });
+
+  it('Gateway lỗi → báo lỗi tiếng Việt, mức của bộ quy tắc không bị hạ', async () => {
+    mockGateway(() => errResponse(500, 'INTERNAL'));
+    await startAiSession('mock:aierr');
+    const s = (await session())!;
+    expect(s.ai.status).toBe('error');
+    expect(s.ai.error).toContain('Bộ quy tắc vẫn tiếp tục chạy');
+    expect(s.result?.risk_level).toBe('high');
+  });
+
+  it('Cài đặt cũ: khóa Groq bị xóa khỏi storage; tắt gateway thì xóa token thiết bị', async () => {
+    await fake.chrome.storage.local.set({
+      safechat_settings: { groqEnabled: true, groqApiKey: 'old-key', gatewayEnabled: false, gatewayUrl: '' },
+    });
+    expect(await fake.panel({ kind: 'reanalyze' })).toMatchObject({ ok: true });
+    const local = (await fake.chrome.storage.local.get(null)) as Record<string, any>;
+    expect(JSON.stringify(local.safechat_settings)).not.toContain('groq');
+    expect(local.safechat_device).toBeUndefined();
   });
 
   it('chưa đủ 5 tin: đặt alarm, đến giờ thì gọi nốt tin lẻ; dừng phiên thì bỏ alarm', async () => {
     const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    const calls: string[] = [];
-    globalThis.fetch = (async (_url: string, init: { body: string }) => {
-      calls.push(JSON.parse(init.body).reasoning_effort);
-      const content = JSON.stringify({ signals: [], summary: 'Đã đọc tin lẻ.' });
-      return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
-    }) as unknown as typeof fetch;
+    const gw = mockGateway(() => okResponse([], 'Đã đọc tin lẻ.'));
     await fake.chrome.storage.local.set({
-      safechat_settings: { groqEnabled: true, groqApiKey: 'test-key', minIntervalSec: 3, batchSize: 5, idleFlushSec: 1, dailyBudget: 50, groqReasoningEffort: 'low' },
+      safechat_settings: { gatewayEnabled: true, gatewayUrl: GW, minIntervalSec: 3, batchSize: 5, idleFlushSec: 1, dailyBudget: 50 },
     });
     thread = { threadId: 'mock:idle', threadLabel: 'Tin lẻ' };
     await fake.panel({ kind: 'stop_and_clear' });
     await fake.panel({ kind: 'start', tabId: TAB });
+    await fake.panel({ kind: 'reanalyze' }); // bỏ thời gian nghỉ do lỗi ở test trước
     await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:idle', batch: [{ sender: 'other', text: 'Em rảnh không?' }] });
     await wait(500);
-    expect(calls).toHaveLength(0);
+    expect(gw.analyses).toBe(0);
     expect(fake.alarms.has('safechat_ai_idle')).toBe(true);
 
     await wait(700); // đã qua 1 giây kể từ tin cuối
     fake.fireAlarm('safechat_ai_idle');
     await wait(300);
-    expect(calls).toEqual(['low']); // gửi mức suy luận đã đặt
+    expect(gw.analyses).toBe(1);
     expect((await session())!.ai.lastReason).toBe('Hội thoại dừng 1 giây');
 
     await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:idle', batch: [{ sender: 'other', text: 'Em rảnh không?' }, { sender: 'other', text: 'Trả lời chị nhé' }] });
@@ -182,42 +268,36 @@ describe('background — vòng đời phiên', () => {
     expect(fake.alarms.has('safechat_ai_idle')).toBe(false);
   });
 
-  it('Groq lỗi liên tục: dừng sau 3 lần, thử lại khi có tin mới hoặc đổi cài đặt, phản hồi đọc lỗi vẫn tính lượt', async () => {
+  it('Gateway lỗi liên tục: dừng sau 3 lần, thử lại khi có tin mới hoặc đổi cài đặt', async () => {
     const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    let calls = 0;
-    globalThis.fetch = (async () => {
-      calls++;
-      return new Response(JSON.stringify({ choices: [{ message: { content: 'không phải json' } }] }), { status: 200 });
-    }) as unknown as typeof fetch;
+    const fail = () => new Response(JSON.stringify({ error: { code: 'INTERNAL', message: 'x', retryAfterSec: 0.01 } }), { status: 500 });
+    let ok = false;
+    const gw = mockGateway(() => (ok ? okResponse([], 'Đã ổn.') : fail()));
     await fake.chrome.storage.local.set({
-      safechat_settings: { groqEnabled: true, groqApiKey: 'test-key', minIntervalSec: 0.01, batchSize: 5, dailyBudget: 50 },
-      safechat_ai_usage: { date: new Date().toISOString().slice(0, 10), count: 0 },
+      safechat_settings: { gatewayEnabled: true, gatewayUrl: GW, minIntervalSec: 0.01, batchSize: 5, dailyBudget: 50 },
     });
     thread = { threadId: 'mock:fail', threadLabel: 'Lỗi' };
     await fake.panel({ kind: 'stop_and_clear' });
     await fake.panel({ kind: 'start', tabId: TAB });
+    await fake.panel({ kind: 'reanalyze' });
     const batch = ['một', 'hai', 'ba', 'bốn', 'năm'].map((w) => ({ sender: 'other', text: `Tin số ${w}` }));
     await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:fail', batch });
     await wait(4000); // đủ thời gian cho nhiều hơn 3 lần nếu không dừng
-    expect(calls).toBe(3);
+    expect(gw.analyses).toBe(3);
     let s = (await session())!;
     expect(s.ai.status).toBe('error');
     expect(s.ai.error).toContain('Đã tạm dừng AI');
     expect(s.result?.risk_level).toBeDefined(); // luật vẫn có kết quả
-    const usage = async () => ((await fake.chrome.storage.local.get('safechat_ai_usage')) as Record<string, { count: number }>).safechat_ai_usage?.count;
-    expect(await usage()).toBe(3);
 
     await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:fail', batch: [...batch, { sender: 'other', text: 'Tin số sáu' }] });
     await wait(1500);
-    expect(calls).toBe(4); // tin mới: thử đúng 1 lần rồi dừng tiếp
+    expect(gw.analyses).toBe(4); // tin mới: thử đúng 1 lần rồi dừng tiếp
 
-    globalThis.fetch = (async () => {
-      calls++;
-      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ signals: [], summary: 'Đã ổn.' }) } }] }), { status: 200 });
-    }) as unknown as typeof fetch;
+    // Đổi cài đặt: bỏ thời gian nghỉ dù máy chủ vừa yêu cầu nghỉ 10 phút
+    ok = true;
     await fake.panel({ kind: 'reanalyze' });
     await wait(600);
-    expect(calls).toBe(5);
+    expect(gw.analyses).toBe(5);
     s = (await session())!;
     expect(s.ai.status).toBe('ok');
     expect(s.ai.failures).toBeUndefined();

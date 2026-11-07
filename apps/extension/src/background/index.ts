@@ -12,12 +12,14 @@ import {
   type Session,
   type StopResult,
 } from '../shared/protocol';
-import { AI_IDLE_ALARM, cancelAi, handleNanoResult, kickAi, setPanelNanoStatus } from './ai';
+import { AI_IDLE_ALARM, cancelAi, handleNanoResult, kickAi, resetGatewayBackoff, setPanelNanoStatus } from './ai';
+import { clearDevice } from './gateway';
 import { recompute, sendToTab, serial, updateBadge } from './runtime';
 import { clearSessionVerified, loadSession, loadSettings, saveSession } from './store';
-
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+// Widget mèo trong content script đọc phiên trực tiếp để hiện mức, bằng chứng và tóm tắt.
 chrome.storage.session.setAccessLevel?.({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
+
 
 async function probe(tabId: number): Promise<ProbeResult> {
   const r = (await sendToTab(tabId, { kind: 'cs_probe' })) as ProbeResult | undefined;
@@ -171,10 +173,13 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
       const s = await loadSession();
       if (!s) return { ok: false };
       const settings = await loadSettings();
-      if (!settings.nanoEnabled && !(settings.groqEnabled && settings.groqApiKey)) {
+      const gatewayOn = settings.gatewayEnabled && !!settings.gatewayUrl;
+      if (!settings.nanoEnabled && !gatewayOn) {
         s.ai = { ...emptyAiState(), calls: s.ai.calls };
       }
-      // Người dùng có thể vừa sửa khóa hoặc đổi model nên cho thử lại từ đầu
+      if (!gatewayOn) await clearDevice(); // bỏ token cũ khi tắt gateway
+      // Người dùng có thể vừa đổi địa chỉ máy chủ nên cho thử lại từ đầu
+      resetGatewayBackoff();
       s.ai.failures = undefined;
       s.ai.gaveUpAtSeq = undefined;
       recompute(s);
@@ -197,7 +202,14 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
 
 async function handleContent(ev: ContentEvent, tabId: number | undefined): Promise<void> {
   const s = await loadSession();
-  if (!s || tabId !== s.tabId) return;
+  if (!s || tabId !== s.tabId) return; // tab khác hoặc chưa có phiên: không làm gì
+
+  if (ev.kind === 'cs_ready') {
+    if (s.status === 'tracking') {
+      await sendToTab(s.tabId, { kind: 'cs_start', threadId: s.threadId });
+    }
+    return;
+  }
 
   if (ev.kind === 'cs_thread_changed') {
     if (ev.threadId === s.threadId) return;
