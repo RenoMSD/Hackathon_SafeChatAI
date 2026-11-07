@@ -128,7 +128,12 @@ chrome.runtime.onMessage.addListener((req: ContentRequest, _sender, sendResponse
   }
 });
 
+function getThreadRect(threadId: string): DOMRect | null {
+  const adapter = pickAdapter();
+  return adapter?.getThreadRect?.(threadId) ?? null;
+}
+
 // Khởi tạo Widget nổi SafeChat AI LIVE (Shadow DOM cô lập) trên trang được hỗ trợ
 if (pickAdapter()) {
-  initFloatingWidget(probeLocal);
+  initFloatingWidget(probeLocal, getThreadRect);
 }

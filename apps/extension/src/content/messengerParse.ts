@@ -2,7 +2,7 @@
 import type { Sender } from '@safechat/core/types';
 
 /** Tiền tố nhãn ô soạn tin của khung chat: "Viết cho Mạnh Hùng" → "Mạnh Hùng". */
-const COMPOSER_PREFIX = /^(?:viết cho|nhắn tin cho|gửi tin nhắn cho|write to|message)\s+/i;
+const COMPOSER_PREFIX = /^(?:viết cho|nhắn tin cho|gửi tin nhắn cho|nhập tin nhắn tới|trả lời|write to|message|send a message to)\s+/i;
 
 export function labelFromComposer(aria: string | null | undefined): string | null {
   const s = aria?.trim();
@@ -12,12 +12,61 @@ export function labelFromComposer(aria: string | null | undefined): string | nul
 }
 
 /** Nhãn nút phần đầu khung chat (đã đối chiếu DOM thật). */
-export const HEADER_BUTTON_LABELS = ['Cài đặt đoạn chat', 'Chat settings'];
+export const HEADER_BUTTON_LABELS = [
+  'Cài đặt đoạn chat',
+  'Chat settings',
+  'Cài đặt chat',
+];
 
 const FB_HOSTS = new Set(['www.facebook.com', 'web.facebook.com', 'facebook.com', 'www.messenger.com', 'messenger.com']);
 
-/** ID số của người kia từ link hồ sơ ở phần đầu khung chat: /<số>/ hoặc /profile.php?id=<số>. */
+const RESERVED_FB_PATHS = new Set([
+  'profile.php',
+  'home.php',
+  'index.php',
+  'l.php',
+  'groups',
+  'watch',
+  'marketplace',
+  'gaming',
+  'friends',
+  'bookmarks',
+  'notifications',
+  'settings',
+  'photo',
+  'photos',
+  'stories',
+  'events',
+  'pages',
+  'hashtag',
+  'help',
+  'policies',
+  'messages',
+  'reel',
+  'reels',
+  'videos',
+  'share',
+  'sharer',
+  'login',
+  'recover',
+  'ajax',
+  'dialog',
+  'onthisday',
+  'memories',
+  'saved',
+  'feeds',
+  'fundraisers',
+  'climatescienceinfo',
+  'crisisresponse',
+  'search',
+  'ads',
+  'business',
+  'privacy',
+]);
+
+/** ID hoặc định danh của người kia từ link hồ sơ ở phần đầu khung chat: /<số>/, /profile.php?id=<số>, /people/<tên>/<số>/, /messages/t/<id>/ hoặc /<username>/. */
 export function peerIdFromHref(href: string): string | null {
+  if (!href || href.startsWith('#') || href.startsWith('javascript:')) return null;
   let u: URL;
   try {
     u = new URL(href, 'https://www.facebook.com');
@@ -25,9 +74,18 @@ export function peerIdFromHref(href: string): string | null {
     return null;
   }
   if (!FB_HOSTS.has(u.hostname)) return null;
-  const m = /^\/(\d+)\/?$/.exec(u.pathname);
-  if (m) return m[1]!;
+  const mNum = /^\/(\d+)\/?$/.exec(u.pathname);
+  if (mNum) return mNum[1]!;
   if (u.pathname === '/profile.php') return /^\d+$/.exec(u.searchParams.get('id') ?? '')?.[0] ?? null;
+  const mPeople = /^\/people\/[^/]+\/(\d+)\/?$/i.exec(u.pathname);
+  if (mPeople) return mPeople[1]!;
+  const mThread = /^\/(?:messages\/(?:e2ee\/)?t|e2ee\/t|t)\/([a-zA-Z0-9._-]+)\/?$/i.exec(u.pathname);
+  if (mThread) return mThread[1]!;
+  const mSlug = /^\/([a-zA-Z0-9._]{3,100})\/?$/.exec(u.pathname);
+  if (mSlug) {
+    const slug = mSlug[1]!;
+    if (!RESERVED_FB_PATHS.has(slug.toLowerCase()) && !slug.endsWith('.php')) return slug;
+  }
   return null;
 }
 

@@ -35,4 +35,11 @@ export const mockAdapter: ChatAdapter = {
     const c = current();
     return c?.threadId === threadId ? c.el : null;
   },
+
+  getThreadRect(threadId) {
+    const c = current();
+    if (!c || c.threadId !== threadId) return null;
+    const chatBox = c.el.closest<HTMLElement>('.chat') ?? c.el;
+    return chatBox.getBoundingClientRect();
+  },
 };
