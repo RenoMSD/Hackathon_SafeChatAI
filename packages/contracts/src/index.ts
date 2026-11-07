@@ -90,6 +90,8 @@ export interface MetricsSummary {
 export interface HealthResponse {
   status: 'ok';
   version: string;
+  provider?: string;
+  promptVersion?: string;
 }
 
 // ---------- Lỗi ----------

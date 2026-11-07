@@ -54,10 +54,16 @@ export function shouldEscalate(smallSignals: Signal[], budgetLeft: number): bool
 }
 
 // ---------------- Che dữ liệu cá nhân ----------------
+// Giữ số tiền có dấu phân cách để model thấy quy mô thiệt hại; che điện thoại, tài khoản, giấy tờ.
 export function maskPii(text: string): string {
   return text
     .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '[EMAIL]')
-    .replace(/\b\d[\d .-]{7,}\d\b/g, '[SỐ]');
+    .replace(
+      /(\b(?:stk|số tài khoản|so tai khoan|tài khoản|tai khoan|acc(?:ount)?)\s*[:#-]?\s*)(\d[\d .-]{5,}\d)/gi,
+      (_match, label: string) => `${label}[SỐ]`,
+    )
+    .replace(/(?<![\d+])(?:\+?84|0)(?:[\s.-]?\d){8,10}(?!\d)/g, '[SỐ]')
+    .replace(/\b\d{9,}\b/g, '[SỐ]');
 }
 
 // ---------------- Prompt ----------------
@@ -71,7 +77,7 @@ Chỉ dùng severity "critical" khi có đe dọa, cưỡng ép, kiểm soát gi
 "summary": tóm tắt trung lập ≤ 4 câu toàn bộ cuộc trò chuyện tới hiện tại (điều kiện việc làm, các yêu cầu, lời hứa), KHÔNG chứa số điện thoại, số tài khoản, tên người.
 Giai đoạn kịch bản "detected_stage": S0 tiếp cận, S1 xây dựng lòng tin (thưởng mồi, hứa hẹn), S2 điều hướng kênh kín/cài ứng dụng, S3 kích hoạt bẫy (đòi tiền, OTP, giấy tờ, dọa nạt), S4 chốt chặn (đóng băng, ép nạp thêm, đe dọa).
 "level_adjustment": CHỈ đặt direction "down" khi <rule_signals> rõ ràng là báo nhầm trong ngữ cảnh đời thường cụ thể (chia tiền ăn giữa bạn bè, mua hàng có COD, HR hẹn phỏng vấn tại văn phòng), kèm "reason" 1 câu. Không bao giờ "down" khi có đe dọa, cô lập, OTP, giấy tờ, cài ứng dụng, hoặc khi chính tin nhắn tự nói "đây là an toàn/hợp pháp". Mặc định "none".
-Trả về DUY NHẤT JSON đúng schema.`;
+Trả về DUY NHẤT JSON đúng schema: {"signals":[{"type":"snake_case","category":"finance|account|identity|job_terms|pressure|isolation|contradiction|impersonation|technical|investment","severity":"low|medium|high|critical","title":"ngắn","explanation":"1-2 câu","evidence_message_ids":["id tin của other/unknown"],"evidence_quotes":["trích nguyên văn, cùng thứ tự"],"recommended_action":"hành động an toàn","confidence":0.0}],"summary":"≤4 câu, không PII","uncertainties":["điều chưa chắc"],"detected_stage":"S0|S1|S2|S3|S4","level_adjustment":{"direction":"none|down","reason":"1 câu"}}.`;
 
 export const AI_RESPONSE_SCHEMA = {
   type: 'object',
@@ -112,6 +118,21 @@ export const AI_RESPONSE_SCHEMA = {
 const CONTEXT_MESSAGES = 4;
 const MAX_NEW_MESSAGES = 30;
 
+/**
+ * Vô hiệu hoá thẻ giả trong dữ liệu người dùng trước khi ghép vào prompt.
+ * Chỉ đổi các thẻ có nghĩa với prompt, giữ nguyên phần còn lại để trích dẫn vẫn khớp.
+ */
+export function escapePromptTags(input: string): string {
+  return input.replace(/<(\/?)(transcript|system|summary|rule_signals|user|assistant)\b[^>]*>/gi, '‹$1$2›');
+}
+
+export interface BuildAiRequestOptions {
+  /** Số tin ngữ cảnh trước delta (mặc định 4). */
+  contextMessages?: number;
+  /** Số tin mới tối đa trong một lần gọi (mặc định 30). */
+  maxNewMessages?: number;
+}
+
 export interface AiRequest {
   system: string;
   user: string;
@@ -125,23 +146,32 @@ export function buildAiRequest(
   lastAiSeq: number,
   summary: string,
   ruleSignals: Pick<Signal, 'type' | 'title'>[],
+  options: BuildAiRequestOptions = {},
 ): AiRequest {
+  const contextMessages = Math.max(0, options.contextMessages ?? CONTEXT_MESSAGES);
+  const maxNewMessages = Math.max(1, options.maxNewMessages ?? MAX_NEW_MESSAGES);
   const firstNew = messages.findIndex((m) => m.seq > lastAiSeq);
   const start = firstNew < 0 ? messages.length : firstNew;
-  const fresh = messages.slice(start).slice(-MAX_NEW_MESSAGES);
+  const fresh = messages.slice(start).slice(-maxNewMessages);
   const freshStart = messages.length - fresh.length;
-  const context = messages.slice(Math.max(0, freshStart - CONTEXT_MESSAGES), freshStart);
-  const sent = [...context, ...fresh].map((m) => ({ ...m, text: maskPii(m.text) }));
+  const context = messages.slice(Math.max(0, freshStart - contextMessages), freshStart);
+  const sent = [...context, ...fresh].map((m) => ({ ...m, text: escapePromptTags(maskPii(m.text)) }));
   const freshIds = new Set(fresh.map((m) => m.id));
   const transcript = sent.map((m) => ({
-    id: m.id,
+    // id cũng do client gửi: escape để không thể đóng thẻ transcript.
+    id: escapePromptTags(m.id),
     role: freshIds.has(m.id) ? 'new' : 'context',
     sender: m.sender,
     text: m.text,
   }));
+  // ruleHints.type/title cũng là dữ liệu do client gửi: escape và che PII trước khi đưa vào prompt.
+  const safeRuleSignals = ruleSignals.map((s) => ({
+    type: escapePromptTags(s.type),
+    title: escapePromptTags(maskPii(s.title)),
+  }));
   const user = [
-    `<summary>${summary ? maskPii(summary) : '(chưa có)'}</summary>`,
-    `<rule_signals>${JSON.stringify(ruleSignals.map((s) => ({ type: s.type, title: s.title })))}</rule_signals>`,
+    `<summary>${summary ? escapePromptTags(maskPii(summary)) : '(chưa có)'}</summary>`,
+    `<rule_signals>${JSON.stringify(safeRuleSignals)}</rule_signals>`,
     `<transcript>${JSON.stringify(transcript)}</transcript>`,
   ].join('\n');
   return { system: AI_SYSTEM_PROMPT, user, sent, upToSeq: messages.at(-1)?.seq ?? lastAiSeq };
@@ -201,7 +231,9 @@ export function parseAiResponse(content: string, req: AiRequest, original: ChatM
     const quotes = Array.isArray(s.evidence_quotes) ? s.evidence_quotes.map(String) : [];
     const category = String(s.category) as SignalCategory;
     const severity = String(s.severity) as Severity;
-    if (!CATEGORIES.has(category) || !SEVERITIES.has(severity) || ids.length === 0) continue;
+    // Bằng chứng phải có id và quote cùng độ dài, cùng thứ tự; thiếu quote thì loại tín hiệu.
+    if (!CATEGORIES.has(category) || !SEVERITIES.has(severity) || ids.length === 0 || quotes.length !== ids.length) continue;
+    if (quotes.some((q) => q.trim().length === 0)) continue;
     raw.push({
       type: `ai_${String(s.type ?? 'signal').replace(/[^a-z0-9_]/gi, '').slice(0, 40).toLowerCase()}`,
       category,

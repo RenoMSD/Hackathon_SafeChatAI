@@ -58,6 +58,10 @@ describe('buildAiRequest — chỉ gửi delta', () => {
   it('che số điện thoại, số tài khoản, email', () => {
     expect(maskPii('Gọi 0912 345 678 hoặc chuyển STK 1903456789012, mail a.b@x.vn')).toBe('Gọi [SỐ] hoặc chuyển STK [SỐ], mail [EMAIL]');
   });
+  it('giữ số tiền có dấu phân cách', () => {
+    expect(maskPii('đóng 9.600.000đ, cọc 500.000')).toBe('đóng 9.600.000đ, cọc 500.000');
+    expect(maskPii('chuyển 9600000 vào 1903456789012')).toBe('chuyển 9600000 vào [SỐ]');
+  });
 });
 
 describe('parseAiResponse', () => {

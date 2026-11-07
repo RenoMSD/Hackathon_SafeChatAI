@@ -1,201 +1,115 @@
-// @safechat/gateway — AI Gateway trên AWS Lambda (native Node http, không phụ thuộc package ngoài)
-// Phụ trách: Danh, nhánh danh/gateway-aws
-// Hợp đồng API: @safechat/contracts (đã định nghĩa ở packages/contracts/src/index.ts)
+// Điểm vào gateway: AWS Lambda (API Gateway HTTP API v2) + server local.
+// Không lưu nội dung chat ở bất kỳ đâu; chỉ giữ bộ đếm trong DynamoDB.
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { existsSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+import { randomUUID } from 'node:crypto';
+import { handle, type LambdaEvent } from 'hono/aws-lambda';
+import { createApp } from './app';
+import { loadConfig } from './lib/config';
+import { createDeps, type Deps } from './lib/deps';
+import { logEvent } from './lib/log';
 
-const PORT = Number(process.env.PORT) || 3000;
+let depsPromise: Promise<Deps> | undefined;
+let lambdaHandler: ReturnType<typeof handle> | undefined;
 
-type Method = 'GET' | 'POST' | 'OPTIONS';
-type ClientKind = 'extension' | 'android' | 'web';
-type RiskLevel = 'low' | 'attention' | 'high' | 'critical';
-
-interface HealthResponse { status: 'ok'; version: string; }
-interface CreateDeviceResponse { token: string; expiresAt: string; }
-interface ApiError { error: { code: string; message: string; retryAfterSec?: number }; }
-interface MetricsSummary {
-  date: string; calls: number; costUsd: number; latencyP50Ms: number;
-  latencyP95Ms: number; rejectedQuotes: number;
-  byModel: Record<string, { calls: number; costUsd: number }>;
-}
-
-const ERROR_BAD_REQUEST = 400;
-const ERROR_UNAUTHORIZED = 401;
-const ERROR_QUOTA_EXCEEDED = 429;
-const ERROR_BUDGET_EXCEEDED = 503;
-const ERROR_MODEL_UNAVAILABLE = 503;
-const ERROR_TIMEOUT = 504;
-const ERROR_INTERNAL = 500;
-
-const ALLOWED_ORIGINS = new Set([
-  process.env.WEB_ORIGIN ?? '',
-  process.env.ANDROID_ORIGIN ?? '',
-  process.env.EXTENSION_ORIGIN ?? '',
-].filter(Boolean));
-
-function corsHeaders(origin: string | undefined): Record<string, string> {
-  const h: Record<string, string> = {
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Max-Age': '86400',
-    'X-Content-Type-Options': 'nosniff',
-  };
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
-    h['Access-Control-Allow-Origin'] = origin;
-    h['Vary'] = 'Origin';
-  } else {
-    h['Access-Control-Allow-Origin'] = '*';
+async function getDeps(): Promise<Deps> {
+  depsPromise ??= loadConfig().then((cfg) => createDeps(cfg));
+  try {
+    return await depsPromise;
+  } catch (e) {
+    depsPromise = undefined;
+    throw e;
   }
-  return h;
 }
 
-function json(res: ServerResponse, status: number, body: unknown, origin?: string) {
-  const payload = JSON.stringify(body);
-  res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': Buffer.byteLength(payload).toString(),
-    ...corsHeaders(origin),
-  });
-  res.end(payload);
+async function getLambda(): Promise<ReturnType<typeof handle>> {
+  if (!lambdaHandler) lambdaHandler = handle(createApp(await getDeps()));
+  return lambdaHandler;
 }
 
-function readBody(req: IncomingMessage): Promise<unknown> {
+export const handler = async (event: LambdaEvent) => {
+  try {
+    return await (await getLambda())(event);
+  } catch (e) {
+    logEvent({
+      requestId: randomUUID(),
+      route: (event as { rawPath?: string }).rawPath ?? (event as { path?: string }).path ?? 'unknown',
+      status: 500,
+      errorCode: 'INTERNAL',
+      reason: (e as Error)?.name ?? 'Error',
+    });
+    return {
+      statusCode: 500,
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({ error: { code: 'INTERNAL', message: 'Lỗi khởi tạo cấu hình gateway' } }),
+      isBase64Encoded: false,
+    };
+  }
+};
+
+function readAll(req: IncomingMessage, maxBytes: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on('data', (chunk) => chunks.push(chunk));
-    req.on('end', () => {
-      try {
-        const raw = Buffer.concat(chunks).toString('utf8');
-        resolve(raw.length === 0 ? {} : JSON.parse(raw));
-      } catch {
-        reject(new Error('Yêu cầu không hợp lệ'));
+    let total = 0;
+    req.on('data', (chunk: Buffer) => {
+      total += chunk.length;
+      if (total > maxBytes) {
+        req.destroy();
+        reject(new Error('BODY_TOO_LARGE'));
+        return;
       }
+      chunks.push(chunk);
     });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
 }
 
-function isClientKind(v: unknown): v is ClientKind {
-  return v === 'extension' || v === 'android' || v === 'web';
-}
-
-function isRiskLevel(v: unknown): v is RiskLevel {
-  return v === 'low' || v === 'attention' || v === 'high' || v === 'critical';
-}
-
-function isArrayOfString(v: unknown): v is string[] {
-  return Array.isArray(v) && v.every((x) => typeof x === 'string');
-}
-
-function validateCreateDevice(body: unknown): { ok: true; data: { client: ClientKind; clientVersion: string } } | { ok: false; message: string } {
-  if (!body || typeof body !== 'object') return { ok: false, message: 'Yêu cầu không hợp lệ' };
-  const b = body as Record<string, unknown>;
-  if (!isClientKind(b.client)) return { ok: false, message: 'Trường client không hợp lệ' };
-  if (typeof b.clientVersion !== 'string' || b.clientVersion.length === 0) return { ok: false, message: 'Trường clientVersion không hợp lệ' };
-  return { ok: true, data: { client: b.client, clientVersion: b.clientVersion } };
-}
-
-function validateFeedback(body: unknown): { ok: true } | { ok: false; message: string } {
-  if (!body || typeof body !== 'object') return { ok: false, message: 'Yêu cầu không hợp lệ' };
-  const b = body as Record<string, unknown>;
-  if (!isClientKind(b.client)) return { ok: false, message: 'Trường client không hợp lệ' };
-  if (!isRiskLevel(b.level)) return { ok: false, message: 'Trường level không hợp lệ' };
-  if (!isArrayOfString(b.signalTypes)) return { ok: false, message: 'Trường signalTypes không hợp lệ' };
-  if (b.verdict !== 'correct' && b.verdict !== 'false_alarm' && b.verdict !== 'missed') return { ok: false, message: 'Trường verdict không hợp lệ' };
-  return { ok: true };
-}
-
-type Handler = (req: IncomingMessage, res: ServerResponse, body: unknown, origin?: string) => Promise<void> | void;
-
-const routes: Record<string, Partial<Record<Method, Handler>>> = {
-  '/healthz': {
-    GET: (_req, res, _body, origin) => {
-      const health: HealthResponse = { status: 'ok', version: '0.5.0' };
-      json(res, 200, health, origin);
-    },
-  },
-  '/v1/devices': {
-    POST: async (req, res, body, origin) => {
-      const v = validateCreateDevice(body);
-      if (!v.ok) {
-        const err: ApiError = { error: { code: 'BAD_REQUEST', message: v.message } };
-        json(res, ERROR_BAD_REQUEST, err, origin);
-        return;
-      }
-      const token = `sc_${crypto.randomUUID().replace(/-/g, '')}`;
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      const resp: CreateDeviceResponse = { token, expiresAt };
-      json(res, 201, resp, origin);
-    },
-  },
-  '/v1/analyses': {
-    POST: async (_req, res, _body, origin) => {
-      const err: ApiError = { error: { code: 'MODEL_UNAVAILABLE', message: 'Gateway chưa cấu hình model' } };
-      json(res, ERROR_MODEL_UNAVAILABLE, err, origin);
-    },
-  },
-  '/v1/feedback': {
-    POST: async (req, res, body, origin) => {
-      const v = validateFeedback(body);
-      if (!v.ok) {
-        const err: ApiError = { error: { code: 'BAD_REQUEST', message: v.message } };
-        json(res, ERROR_BAD_REQUEST, err, origin);
-        return;
-      }
-      json(res, 200, { ok: true }, origin);
-    },
-  },
-  '/v1/metrics/summary': {
-    GET: (_req, res, _body, origin) => {
-      const summary: MetricsSummary = {
-        date: new Date().toISOString().slice(0, 10), calls: 0, costUsd: 0,
-        latencyP50Ms: 0, latencyP95Ms: 0, rejectedQuotes: 0, byModel: {},
-      };
-      json(res, 200, summary, origin);
-    },
-  },
-};
-
-async function handler(req: IncomingMessage, res: ServerResponse) {
-  const origin = req.headers.origin;
-  const method = (req.method ?? 'GET') as Method;
-  const url = new URL(req.url ?? '', `http://${req.headers.host ?? 'localhost'}`);
-  const path = url.pathname;
-
-  if (method === 'OPTIONS') {
-    res.writeHead(204, corsHeaders(origin));
-    res.end();
-    return;
+async function toWebRequest(req: IncomingMessage, maxBytes: number): Promise<Request> {
+  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const headers = new Headers();
+  for (const [k, v] of Object.entries(req.headers)) {
+    if (v === undefined) continue;
+    headers.set(k, Array.isArray(v) ? v.join(',') : v);
   }
-
-  const route = routes[path]?.[method];
-  if (!route) {
-    const err: ApiError = { error: { code: 'BAD_REQUEST', message: 'Không tìm thấy endpoint' } };
-      json(res, ERROR_BAD_REQUEST, err, origin);
-    return;
-  }
-
-  try {
-    const body = method === 'POST' ? await readBody(req) : {};
-    await route(req, res, body, origin);
-  } catch {
-    const err: ApiError = { error: { code: 'INTERNAL', message: 'Lỗi hệ thống' } };
-    json(res, ERROR_INTERNAL, err, origin);
-  }
+  const method = req.method ?? 'GET';
+  const body = method === 'GET' || method === 'HEAD' ? undefined : await readAll(req, maxBytes);
+  return new Request(url, { method, headers, body, duplex: 'half' } as RequestInit);
 }
 
-const server = createServer(handler);
-
-export function start() {
-  server.listen(PORT, () => {
-    console.log(`Gateway listening on :${PORT}`);
+export async function start(): Promise<void> {
+  const port = Number(process.env.PORT) || 3000;
+  const deps = await getDeps();
+  const app = createApp(deps);
+  const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+    try {
+      const request = await toWebRequest(req, deps.cfg.maxBodyBytes);
+      const response = await app.fetch(request);
+      res.statusCode = response.status;
+      response.headers.forEach((value, key) => res.setHeader(key, value));
+      res.end(Buffer.from(await response.arrayBuffer()));
+    } catch (e) {
+      const tooLarge = (e as Error).message === 'BODY_TOO_LARGE';
+      const status = tooLarge ? 400 : 500;
+      const code = tooLarge ? 'BAD_REQUEST' : 'INTERNAL';
+      const message = tooLarge ? 'Body vượt giới hạn kích thước' : 'Lỗi hệ thống';
+      res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: { code, message } }));
+    }
   });
+  await new Promise<void>((resolve) => server.listen(port, resolve));
+  console.log(JSON.stringify({ level: 'info', message: `Gateway listening on :${port}` }));
 }
 
-export function stop() {
+export function stop(server: ReturnType<typeof createServer>): void {
   server.close();
 }
 
-if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js')) {
-  start();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  // Chỉ local: nạp .env nếu có (root hoặc services/gateway). Lambda dùng biến môi trường/Secrets Manager.
+  const envFile = ['services/gateway/.env', '.env'].find((p) => existsSync(p));
+  if (envFile) process.loadEnvFile(envFile);
+  void start();
 }
