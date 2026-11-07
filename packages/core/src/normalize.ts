@@ -82,8 +82,12 @@ export function stripDiacritics(input: string): string {
 export function normalizeForMatch(input: string): string {
   let s = stripDiacritics(input.toLowerCase());
   s = s.replace(/[\u200b-\u200d\ufeff]/g, '');
+  // Gạch dưới chen trong từ để né lọc: "tj_e_n", "n_h_a". Không đụng từ đứng một mình.
+  s = s.replace(/(?<=[a-z0-9])_(?=[a-z0-9])/g, '');
   s = joinSpacedLetters(s);
   s = unLeet(s);
+  // Tiếng Việt không có "j": "thj", "ch0j", "tjm" là cách viết của "i". Giữ "j" đầu từ vì có "job", "jup".
+  s = s.replace(/(?<=[a-z])j/g, 'i');
   // Đơn vị tiền dính số: 500k, 1.5tr, 8 tr, 10 củ
   s = s.replace(/(\d+(?:[.,]\d+)?)\s*(k|ng|ngan|nghin)\b/g, '$1 nghin');
   s = s.replace(/(\d+(?:[.,]\d+)?)\s*(tr|trieu|cu|m)\b/g, '$1 trieu');

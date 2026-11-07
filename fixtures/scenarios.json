@@ -3002,5 +3002,302 @@
         "upfront_fee"
       ]
     }
+  },
+  {
+    "id": "118_threat_gang_shop",
+    "title": "Dọa kéo người đến phá cửa tiệm → Nghiêm trọng",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tao cho mấy chục thằng xuống quậy nát quán của mày tối nay"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "threat_physical"
+      ]
+    }
+  },
+  {
+    "id": "119_threat_child_school",
+    "title": "Dọa ngầm nhắm vào con cái → Nghiêm trọng",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bé nhà chị mỗi chiều tan học có về nhà an toàn được không thì chị tự nghĩ nhé"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "threat_physical"
+      ]
+    }
+  },
+  {
+    "id": "120_threat_routine_known",
+    "title": "Nói đã biết lịch sinh hoạt của người thân → Nghiêm trọng",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Người nhà anh đi đâu về đâu bên em nắm hết lịch trình rồi đấy"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "threat_physical"
+      ]
+    }
+  },
+  {
+    "id": "121_friends_lunch_group",
+    "title": "Rủ cả nhóm đến chỗ làm đi ăn trưa → Thấp",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Trưa nay tao kéo người đến chỗ làm mày rồi cả đám đi ăn trưa nha"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "122_dont_pay_visit",
+    "title": "Không trả tiền thì đến tận cơ quan → Cao",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Không thanh toán khoản này thì tôi lên tận cơ quan của anh"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "threat_home_visit"
+      ]
+    }
+  },
+  {
+    "id": "123_id_doxx",
+    "title": "Dọa đưa căn cước lên hội nhóm → Cao",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mai mà chưa có tiền thì căn cước với chân dung của em sẽ lên hết các hội nhóm"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "threat_home_visit"
+      ]
+    }
+  },
+  {
+    "id": "124_obfuscated_threat",
+    "title": "Che chữ bằng gạch dưới và thay chữ → vẫn đọc được",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "t ch0 d_a_n e_m qua t_a_n n_h_a m q_u_a_y n_a_t"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "threat_physical"
+      ]
+    }
+  },
+  {
+    "id": "125_bypass_warning",
+    "title": "Xúi bỏ qua cảnh báo bảo mật để cài app → Nghiêm trọng",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Máy báo lỗi thì anh cứ bỏ qua cảnh báo rồi chọn tiếp tục cài đặt nhé"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "malware_apk"
+      ]
+    }
+  },
+  {
+    "id": "126_warn_about_bypass",
+    "title": "Người thân dặn đừng bỏ qua cảnh báo → Thấp",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mẹ nhớ cảnh giác, thấy ai bảo cài ứng dụng lạ thì đừng làm theo nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "127_official_named_apk",
+    "title": "Xưng cán bộ gửi file cài đặt → Nghiêm trọng",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Đồng chí cán bộ sẽ gửi file XacMinh.apk để anh xử lý hồ sơ"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "malware_apk"
+      ]
+    }
+  },
+  {
+    "id": "128_not_on_store_claim",
+    "title": "Bảo app chưa lên kho nên Google hiểu nhầm → Nghiêm trọng",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bản này chưa có trên CH Play nên Google hiểu nhầm, anh cứ chọn tiếp tục cài đặt và bật quyền trợ năng"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "malware_apk"
+      ]
+    }
+  },
+  {
+    "id": "129_install_from_store",
+    "title": "Con nhờ tải app từ kho chính thức → Thấp",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bố lên CH Play tải app ngân hàng về máy giúp con với, tìm đúng tên nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "130_romance_invest",
+    "title": "Dùng tương lai hai đứa để dụ nạp tiền → Cao",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Vì tương lai hai đứa, anh nạp thêm vào dự án này để cứu lệnh đang treo nhé"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "romance_investment"
+      ]
+    }
+  },
+  {
+    "id": "131_couple_savings",
+    "title": "Vợ chồng bàn chuyện tiết kiệm → Thấp",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tiền tiết kiệm năm nay mình để dành sửa nhà nhé anh"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "132_unlock_withdraw",
+    "title": "Đòi phí mở khóa để rút tiền → Nghiêm trọng",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Muốn mở khóa rút tiền gốc thì anh đóng phí trước tối nay, quá hạn là bị tịch thu"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "task_freeze_extortion",
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "133_game_topup",
+    "title": "Nạp tiền mua trang phục trong game → Thấp",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hôm nay tao nạp tiền mua trang phục mới, vào leo rank với tao đi"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "134_shared_netflix",
+    "title": "Góp tiền tài khoản Netflix chung → Thấp",
+    "source": "v0.9: phát hiện khi đọc bộ phát triển luật của nhóm, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Netflix hết hạn rồi, mỗi đứa nạp thêm 25k để gia hạn nha"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "135_official_store_two_messages",
+    "title": "Hướng dẫn tải từ kho ứng dụng chính thức, cơ quan thuế ở tin khác → Thấp",
+    "source": "v0.9: phát hiện khi đo hội thoại dài, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chị cần số liệu để nhập lên phần mềm kê khai của cục thuế"
+      },
+      {
+        "sender": "other",
+        "text": "Chị tự vào kho ứng dụng App Store chính thức, tìm và tải ứng dụng xác thực về máy nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
   }
 ]

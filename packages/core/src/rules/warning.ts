@@ -17,9 +17,12 @@ const REQUEST_TO_RECEIVER = new RegExp(
 
 const HAS_URL = /https?\s*:|www\s*\.|\b[a-z0-9-]+\s*\.\s*(example|com|net|xyz|top|click|info|org)\b/;
 
+/** Xúi bỏ qua cảnh báo của điện thoại là yêu cầu nguy hiểm, không phải tin cảnh báo. */
+const BYPASS_WARNING = /\b(bo qua|tat|phot lo|dung so|ke) (cac |cai |loi )?canh bao\b|\bcanh bao (bao mat|cua (google|dien thoai|may))\b/;
+
 /** `normalized` là văn bản đã qua normalizeForMatch. */
 export function isProtectiveWarning(normalized: string): boolean {
   if (!WARNING_MARKER.test(normalized)) return false;
-  if (SELF_CLAIM.test(normalized) || HAS_URL.test(normalized)) return false;
+  if (SELF_CLAIM.test(normalized) || HAS_URL.test(normalized) || BYPASS_WARNING.test(normalized)) return false;
   return !REQUEST_TO_RECEIVER.test(normalized);
 }

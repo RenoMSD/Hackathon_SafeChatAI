@@ -45,6 +45,8 @@ export const financeRules: Rule[] = [
     explanation:
       'Có dấu hiệu mô hình "làm nhiệm vụ", nạp tiền để nhận hoa hồng hoặc chốt đơn ảo — kiểu lừa đảo việc làm online phổ biến.',
     recommended_action: 'Không nạp tiền để "làm nhiệm vụ". Các khoản hoa hồng ban đầu thường chỉ để tạo lòng tin.',
+    // Nạp tiền trong game hoặc góp tiền tài khoản xem phim dùng chung không phải mô hình làm nhiệm vụ.
+    exclude: [/\b(acc game|choi game|leo rank|trang phuc|netflix|spotify|youtube premium)\b/],
     patterns: [
       // Không tính tin báo "đã được nạp" và nạp tiền điện thoại/thẻ cào/data (phát hiện từ dev SMS)
       /(?<!\b(da|vua|duoc) (duoc )?)\bnap (tien|them|\d+)(?!.{0,25}\b(vao (tkc|tai khoan chinh|thue bao|sim|so dien thoai|dien thoai)|card|the cao|data|goi cuoc|dien thoai)\b)/,
@@ -121,8 +123,8 @@ export const financeRules: Rule[] = [
         /\b(treo|ket) (tien|lenh|so du|don)\b/,
       ],
       [/\b(don (hang )?(kep|lien hoan|combo|phuc loi|cuoi|tiep theo)|nhiem vu (cuoi|tiep theo|phuc loi|dac biet|kep)|chuoi nhiem vu|goi (vip|nhiem vu))\b/],
-      [/\b(nap them|bu (von|tien|so du)|kich hoat (lenh rut|rut tien)|mo khoa (dong bang|tai khoan|lenh)|phi (rut|mo khoa|giai phong))\b/],
-      [/\b(mat (toan bo|het|sach)\b.{0,6}\btien|tin nhiem (bi tru|giam)|han chot|trong (vong )?\d+ (phut|gio)|hoan (ca )?goc (lan|va|kem) lai|qua han)\b/],
+      [/\b(nap them|bu (von|tien|so du)|kich hoat (lenh rut|rut tien)|mo khoa (dong bang|tai khoan|lenh|rut)|phi (rut|mo khoa|giai phong))\b/],
+      [/\b(bi tich thu|mat (toan bo|het|sach)\b.{0,6}\btien|tin nhiem (bi tru|giam)|han chot|trong (vong )?\d+ (phut|gio)|hoan (ca )?goc (lan|va|kem) lai|qua han)\b/],
     ],
   },
   {

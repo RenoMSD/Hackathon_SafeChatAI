@@ -1,5 +1,8 @@
 import type { Rule } from './rule';
 
+/** Câu xã giao, dịch vụ có cùng cách nói với lời đe dọa. "Sửa", "giao hàng" hay "ăn trưa" thì không phải đe dọa. */
+const SOCIAL_OR_SERVICE = /\b(choi|nhau|an (com|uong|trua|toi|sang)|danh bai|da bong|sinh nhat|an mung|giao hang|shipper|sua (may|xe|dien|nuoc|nha)|lap dat|lap mang|bao tri|bao hanh|tho (dien|nuoc|sua)|ky thuat vien|bac si|y ta|don dep|ve sinh|khao sat|do dac|phim|bao noi)\b/;
+
 export const pressureRules: Rule[] = [
   {
     type: 'urgency_pressure',
@@ -42,6 +45,51 @@ export const pressureRules: Rule[] = [
       /\btien doi lay im lang\b/,
       /\bkhong (tra|thanh toan)\b.{0,30}\b(goi|bao|nhan tin)\b.{0,12}\bcho\b.{0,12}\b(nguoi than|dong nghiep|gia dinh|lanh dao)\b/,
     ],
+  },
+  {
+    type: 'threat_physical',
+    category: 'pressure',
+    severity: 'critical',
+    direct_danger: true,
+    title: 'Dọa kéo người đến, nhắm vào gia đình hoặc làm hại',
+    explanation: 'Có lời dọa kéo người đến nhà, chỗ làm, trường học, nhắm vào con cái, người thân hoặc làm hại về thể xác. Đây là cưỡng ép, kể cả khi lời lẽ lịch sự hoặc chỉ nói ngầm.',
+    recommended_action: 'Không chuyển tiền để được yên. Lưu bằng chứng, báo cho người thân, nhà trường nếu liên quan đến con cái, và báo công an.',
+    patterns: [
+      /\b(cho|keo|dan|goi|thue|cu) (nguoi|nguoi cua|anh em|dan em|dan|bon|giang ho)\b.{0,20}\b(den|toi|qua|sang|xuong|ra|len|ghe)\b.{0,10}\b(tan )?(nha|cong ty|cho lam|truong|co quan)\b.{0,30}\b(xu ly|xu|tinh so|noi chuyen|lam viec|doi|day|cho biet)\b/,
+      /\b(tao|tau|t|bon tao) (se )?(cho|keo|dan|goi|thue) (nguoi|anh em|dan em|giang ho)\b.{0,20}\b(den|toi|qua|sang|xuong|ra|len|ghe)\b.{0,10}\b(tan )?(nha|cong ty|cho lam|truong|co quan)\b/,
+      /\b(cho|keo|dan|goi|thue) (nguoi|anh em|dan em|giang ho)\b.{0,20}\b(den|toi|qua|sang|xuong|ra|len|ghe)\b.{0,10}\b(tan )?(nha|cong ty|truong|cho lam) (may|mi)\b/,
+      /\b(den|toi|qua|sang|xuong|ra|len|ghe)\b.{0,10}\b(tan )?(nha|cong ty|cho lam|truong|co quan)\b.{0,20}\bxu( ly)? (em|may|mi|ban|chung may)\b/,
+      /\b(cho|keo|dan) (may chuc |vai chuc |\d+ )?(thang|dan em|anh em)\b.{0,25}\b(den|toi|qua|xuong)\b.{0,15}\b(quay|pha|tim|dap|xu)\b/,
+      /\b(tao|tau|t|bon tao|se|cho nguoi|cho anh em|cho dan em) (danh|dap|cho) (gay|que) (chan|tay)\b/,
+      /\b(chem|giet) (may|em|ban)\b|\b(tat (axit|son|mam tom)|dot nha|pha nha) (may|mi|em|ban)\b|\b(tao|tau|bon tao|se|cho nguoi) (tat axit|tat son|dot nha|pha nha)\b/,
+      /\b(quay nat|pha nat|dap nat|don (luon )?ca nha)\b/,
+      /\b(biet|tim ra|co dia chi) nha (may|mi|em|ban)\b.{0,25}\b(cho do|coi chung|lieu|dung trach|xu ly)\b/,
+      // Nhắm vào gia đình, không cần nói thẳng sẽ làm gì
+      /\b(ve nha|tan hoc|di hoc)\b.{0,20}\ban toan\b.{0,15}\bkhong\b/,
+      /\b(nguoi nha|ca nha|con (may|cua (may|anh|chi|em))|may dua nho)\b.{0,50}\b(nam het|biet het|theo doi)\b.{0,15}\b(lich trinh|duong di)\b/,
+      /\bnam het lich trinh\b/,
+      /\bkhong dam bao\b.{0,15}\ban toan\b.{0,25}\b(cho (anh|chi|em|ban|may)|the xac|tinh mang|than the)\b/,
+      /\bqua tan (truong|nha)\b.{0,10}\btim\b/,
+    ],
+    exclude: [SOCIAL_OR_SERVICE],
+  },
+  {
+    type: 'threat_home_visit',
+    category: 'pressure',
+    severity: 'high',
+    title: 'Gắn yêu cầu trả tiền với việc tìm đến hoặc bêu xấu',
+    explanation: 'Có lời nói nếu không trả tiền, đóng phí hoặc làm theo thì sẽ tìm đến nhà, chỗ làm, hoặc đưa giấy tờ, hình ảnh lên mạng.',
+    recommended_action: 'Không chuyển tiền chỉ vì bị dọa. Kiểm tra khoản tiền qua kênh chính thức, lưu bằng chứng và báo công an nếu bị đe dọa tiếp.',
+    patterns: [
+      /\b(khong|ko) ((tra|dong) (tien|no|phi|du)|chuyen(?! (khoan )?duoc)|nop (tien|phi|du)|thanh toan)\b.{0,30}\b(den|toi|qua|sang|xuong|ra|len|ghe)\b.{0,10}\b(tan )?(nha|cong ty|cho lam|truong|co quan)\b/,
+      /\b(tron no|bung no|bung tien)\b.{0,25}\b(den|toi|qua|sang|xuong|ra|len|ghe)\b.{0,10}\b(tan )?(nha|cong ty|cho lam|truong|co quan)\b/,
+      /\b(khong|ko) (nghe loi|lam theo)\b.{0,20}\b(den|toi|qua|xuong) tan\b/,
+      /\b(khong|ko) (dong|tra|chuyen|nop|thanh toan)\b.{0,25}\b(cho|keo|dan) (nguoi|anh em)\b.{0,15}\b(den|toi|qua|sang|xuong|ra|len|ghe)\b/,
+      /\b(cmnd|can cuoc|cccd|chan dung)\b.{0,40}\b(sang nhat|hoi nhom|khu pho|len mang)\b/,
+      /\bcuong che\b.{0,25}\b(tan nha|niem phong)\b/,
+      /\bdinh ngay mai\b|\bbiet (may|mi) lam o dau\b/,
+    ],
+    exclude: [SOCIAL_OR_SERVICE],
   },
   {
     // Phát hiện từ dev SMS: đòi nợ (thật hoặc giả) bằng đe dọa bêu xấu với danh bạ/người thân hoặc dọa kiện

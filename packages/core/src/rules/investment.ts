@@ -18,9 +18,22 @@ export const investmentRules: Rule[] = [
       [
         /\b(cam ket (bao lo|loi nhuan|lai)|bao lo|lai kep|khong the lo|chac chan (lai|thang)|x\d+ tai khoan)\b/,
         /\bloi nhuan \d+(?:[.,]\d+)? ?%/,
+        /\b(bao thang|song bao thang|khop lenh dep|cau hinh thuat toan)\b/,
       ],
-      [/\b(nap usdt|usdt|san (quoc te|ngoai hoi|forex|crypto|coin)|forex|co phieu noi bo|quyen chon nhi phan|binary option|tien (ao|dien tu|ma hoa)|bitcoin)\b/],
+      [/\b(nap usdt|usdt|san (quoc te|ngoai hoi|forex|crypto|coin)|forex|co phieu noi bo|quyen chon nhi phan|binary option|tien (ao|dien tu|ma hoa)|bitcoin|binance|tai khoan san|san nay|ma eth)\b/],
       [/\b(dong thue\b.{0,20}\brut|phi (xac minh|chong) rua tien|phi bao hiem von|ky quy|(nop|dong) (thue|phi)\b.{0,10}\b(de|moi duoc) rut|nang hang tai khoan)\b/],
+    ],
+  },
+  {
+    type: 'romance_investment',
+    category: 'investment',
+    severity: 'high',
+    title: 'Dùng tình cảm để dụ nạp tiền đầu tư',
+    explanation: 'Đối phương gắn chuyện tình cảm, tương lai chung với yêu cầu nạp tiền hoặc góp vốn vào sàn, dự án. Đây là kiểu "mổ lợn": tạo lòng tin rồi dụ nạp ngày càng nhiều.',
+    recommended_action: 'Không nạp tiền vì tình cảm hay vì sợ mất lòng. Hỏi người thân, kiểm tra sàn qua nguồn chính thức, và thử yêu cầu rút toàn bộ tiền trước khi làm gì thêm.',
+    groups: [
+      [/\b(moi quan he cua|tuong lai hai dua|tuong lai cua (hai dua|tui minh)|mua nha chung|tinh cam cua|em thuong (lam|anh)|anh thuong em|gap mat gia dinh|tin tuong va ton trong)\b/],
+      [/\b(nap (het|them)|gom het von|tien tiet kiem|lenh dang treo|cuu (cai )?lenh|san nay|du an nay|tai khoan san|khop lenh)\b/],
     ],
   },
   {

@@ -36,7 +36,8 @@
     "bench:pair-gap": "tsx research/pair-gap.ts",
     "bench:ai-calls": "tsx research/ai-call-count.ts",
     "bench:long-eval": "tsx research/long-eval.ts",
-    "bench:sentences": "tsx research/sentence-eval.ts"
+    "bench:sentences": "tsx research/sentence-eval.ts",
+    "bench:rules-dev": "tsx research/rules-dev.ts"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",

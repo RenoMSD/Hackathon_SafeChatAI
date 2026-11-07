@@ -5,6 +5,14 @@ import { normalizeForMatch } from '@safechat/core/normalize';
 import { appendObserved, emptyTranscript, mergeOlder } from '@safechat/core/transcript';
 import type { ChatMessage, Signal } from '@safechat/core/types';
 
+describe('normalizeForMatch: chữ bị che', () => {
+  it('gỡ gạch dưới và đổi j thành i, giữ từ bắt đầu bằng j', () => {
+    expect(normalizeForMatch('tj_e_n')).toBe('tien');
+    expect(normalizeForMatch('ch0j t0j')).toBe('choi toi');
+    expect(normalizeForMatch('job')).toBe('job');
+  });
+});
+
 describe('mergeOlder: gộp khi cuộn lên', () => {
   const m = (t: string, domId?: string) => ({ sender: 'other' as const, text: t, domId });
   it('thêm tin cũ vào đầu, không trùng', () => {
