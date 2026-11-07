@@ -7,6 +7,20 @@ const NOT_WARNING = String.raw`(?<!\b(khong|dung|chang|khong bao gio|khong nen|k
 /** Người nhận phía đối phương ("đọc cho chị", "gửi qua anh"). */
 const TO_THEM = String.raw`(anh|em|chi|minh|toi|to|tao|ba|me|con|cau|bac|chu|co|ben (em|minh|anh|chi))`;
 
+/** Yêu cầu đọc, gửi, nhập mã bí mật. Chỉ bắt lời yêu cầu, không bắt tin thông báo mã hay lời dặn "đừng chia sẻ OTP". */
+const SECRET_REQUEST: RegExp[] = [
+  new RegExp(`${NOT_WARNING}\\b(doc|gui|dua|cung cap|nhan tin|chup|noi|xin|chuyen)\\b.{0,45}\\b${SECRET}\\b`),
+  // Dẫn nhập mã vào link/app do đối phương đưa ("bấm vào link… nhập số thẻ với mã xác thực") — khác với
+  // tự nhập OTP trong ứng dụng của mình khi nhận hàng/chuyển tiền
+  new RegExp(`\\b(link|duong link|app|ung dung|trang web)\\b.{0,60}${NOT_WARNING}\\b(nhap|dien)\\b.{0,25}\\b(${SECRET.slice(1, -1)}|ma (do|nay))\\b`),
+  new RegExp(`${NOT_WARNING}\\b(nhap|dien)\\b.{0,25}\\b${SECRET}\\b.{0,20}\\b(vao|tren)\\b.{0,12}\\b(link|duong link|app|ung dung|trang)\\b`),
+  new RegExp(`\\b${SECRET}\\b.{0,30}${NOT_WARNING}\\b(doc|bao|nhan tin|cung cap|dua|gui (lai )?(cho|qua|sang))\\b.{0,12}\\b${TO_THEM}\\b`),
+  new RegExp(`\\b${SECRET}\\b.{0,15}\\b(bao nhieu|so may|may so)\\b`),
+  // Xin mã không gọi tên OTP: "đọc em mã đó", "mã 6 số vừa nhận". Không tính mã đơn hàng, mã giảm giá...
+  new RegExp(`${NOT_WARNING}\\bdoc\\b.{0,20}\\bma\\b(?! (don|van don|khach|giam gia|san pham|nhan vien|so thue|hoc sinh|sinh vien))`),
+  new RegExp(`\\bma \\d so\\b.{0,30}${NOT_WARNING}\\b(doc|gui|cho em|cho minh|bao)\\b`),
+];
+
 export const accountRules: Rule[] = [
   {
     type: 'otp_password_request',
@@ -17,19 +31,31 @@ export const accountRules: Rule[] = [
       'Có yêu cầu đọc, gửi hoặc cung cấp mã OTP, mã xác thực hoặc mật khẩu. Không đơn vị nào (kể cả người quen) cần bạn đọc mã này cho họ.',
     recommended_action: 'Tuyệt đối không chia sẻ OTP, mật khẩu hay mã khôi phục với bất kỳ ai.',
     negatable: true,
-    // Chỉ bắt YÊU CẦU (động từ đọc/gửi/cung cấp + mã), không bắt tin thông báo mã hay lời dặn "đừng chia sẻ OTP"
-    // (phát hiện từ dev dữ liệu ngoài: tin ngân hàng gửi mã, câu kể "quên mật khẩu").
-    patterns: [
-      new RegExp(`${NOT_WARNING}\\b(doc|gui|dua|cung cap|nhan tin|chup|noi|xin|chuyen)\\b.{0,45}\\b${SECRET}\\b`),
-      // Dẫn nhập mã vào link/app do đối phương đưa ("bấm vào link… nhập số thẻ với mã xác thực") — khác với
-      // tự nhập OTP trong ứng dụng của mình khi nhận hàng/chuyển tiền
-      new RegExp(`\\b(link|duong link|app|ung dung|trang web)\\b.{0,60}${NOT_WARNING}\\b(nhap|dien)\\b.{0,25}\\b(${SECRET.slice(1, -1)}|ma (do|nay))\\b`),
-      new RegExp(`${NOT_WARNING}\\b(nhap|dien)\\b.{0,25}\\b${SECRET}\\b.{0,20}\\b(vao|tren)\\b.{0,12}\\b(link|duong link|app|ung dung|trang)\\b`),
-      new RegExp(`\\b${SECRET}\\b.{0,30}${NOT_WARNING}\\b(doc|bao|nhan tin|cung cap|dua|gui (lai )?(cho|qua|sang))\\b.{0,12}\\b${TO_THEM}\\b`),
-      new RegExp(`\\b${SECRET}\\b.{0,15}\\b(bao nhieu|so may|may so)\\b`),
-      // Xin mã không gọi tên OTP: "đọc em mã đó", "mã 6 số vừa nhận". Không tính mã đơn hàng, mã giảm giá...
-      new RegExp(`${NOT_WARNING}\\bdoc\\b.{0,20}\\bma\\b(?! (don|van don|khach|giam gia|san pham|nhan vien|so thue|hoc sinh|sinh vien))`),
-      new RegExp(`\\bma \\d so\\b.{0,30}${NOT_WARNING}\\b(doc|gui|cho em|cho minh|bao)\\b`),
+    // Phát hiện từ dev dữ liệu ngoài: tin ngân hàng gửi mã, câu kể "quên mật khẩu".
+    patterns: SECRET_REQUEST,
+  },
+  {
+    type: 'otp_institution_pressure',
+    category: 'account',
+    severity: 'critical',
+    direct_danger: true,
+    title: 'Tự xưng ngân hàng hoặc dọa khóa tài khoản để xin OTP, mật khẩu',
+    explanation:
+      'Đối phương xin mã OTP hoặc mật khẩu, kèm tự xưng ngân hàng, ví điện tử hoặc dọa khóa tài khoản. Ngân hàng không bao giờ xin các mã này, đưa mã ra có thể mất tiền ngay.',
+    recommended_action:
+      'Không đưa mã. Dừng trò chuyện, tự gọi số tổng đài in trên thẻ của bạn. Nếu đã đưa mã, báo ngân hàng khóa tài khoản ngay.',
+    negatable: true,
+    requireOneOf: [0],
+    // Xin mã một mình vẫn ở mức Cao vì người quen cũng có thể nhờ. Tin của ngân hàng dặn không đưa mã không khớp nhóm 0.
+    exclude: [/\b(mat khau|pass) (wifi|wi fi|mang)\b/],
+    groups: [
+      SECRET_REQUEST,
+      [
+        /\b(nhan vien|tong dai|can bo|ben|bo phan|phong|trung tam)\b.{0,25}\b(ngan hang|vi dien tu|the tin dung|vietcombank|techcombank|bidv|agribank|vietinbank|mbbank|mb bank|vpbank|tpbank|sacombank|momo|zalopay)\b/,
+      ],
+      [
+        /\b(tai khoan|the (cua \S+|ngan hang|atm|tin dung))\b.{0,25}\b(bi|se bi|sap bi)\s+(tam )?(khoa|dong bang|phong toa|vo hieu)\b/,
+      ],
     ],
   },
   {

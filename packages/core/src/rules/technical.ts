@@ -18,7 +18,8 @@ export const technicalRules: Rule[] = [
     // "không cần quyền trợ năng" là lời trấn an đúng, không phải yêu cầu bật
     negatable: true,
     // Chỉ khi hướng dẫn tải từ kho chính thức. "Chưa lên CH Play nên Google hiểu nhầm" là lời trấn an, không được làm tắt luật.
-    exclude: [/\b(tu|tren|vao|o|len) (cua hang |kho ung dung )?(ch play|google play|app store|appstore|cua hang ung dung|kho ung dung)\b(?!.{0,20}\b(chua|khong (co|thay)|nham)\b)/],
+    // "Không có trên CH Play" nói điều ngược lại nên không được loại trừ.
+    exclude: [/(?<!\b(khong co|chua co|khong phai|chua len|chua|khong)\s)\b(tu|tren|vao|o|len) (cua hang |kho ung dung )?(ch play|google play|app store|appstore|cua hang ung dung|kho ung dung)\b(?!.{0,20}\b(chua|khong (co|thay)|nham)\b)/],
     groups: [
       [
         /\bapk\b/,
@@ -32,7 +33,8 @@ export const technicalRules: Rule[] = [
         /\b(van )?tiep tuc cai dat\b|\bcai dat nang cao\b/,
       ],
       [/\b(vneid|dich vu cong|thue dien tu|etax|hoan thue|dien luc|evn|bao hiem xa hoi|bhxh|cuc thue|tong cuc thue|cong an (phuong|xa|khu vuc))\b/],
-      [/\b(quyen tro nang|tro nang|accessibility|nguon khong xac dinh|cap quyen (man hinh|dieu khien|truy cap)|chia se man hinh|dieu khien tu xa|ultraviewer|teamviewer|anydesk|bat (het|tat ca|toan bo) (cac )?quyen|bo qua canh bao|(van )?tiep tuc cai dat|install anyway|cai dat nang cao|ung dung khong ro nguon goc)\b/,
+      [/\b(khong co|chua co|ngoai|chua len)\s+(tren\s+)?(kho ung dung|ch play|google play|app store|appstore)\b/,
+        /\b(quyen tro nang|tro nang|accessibility|nguon khong xac dinh|nguon la|cap quyen (man hinh|dieu khien|truy cap)|chia se man hinh|dieu khien tu xa|ultraviewer|teamviewer|anydesk|bat (het|tat ca|toan bo) (cac )?quyen|bo qua canh bao|(van )?tiep tuc cai dat|install anyway|cai dat nang cao|ung dung khong ro nguon goc)\b/,
         // Giả danh cơ quan và yêu cầu cài đặt phải nằm cùng một tin. Nếu tách nhóm, hai tin không liên quan trong cửa sổ sẽ ghép nhầm.
         /\b(dai uy|thuong ta|dong chi|can bo|bo cong an|chinh phu)\b.{0,100}\b(apk|file cai dat|cai dat)\b/,
         /\b(apk|file cai dat)\b.{0,100}\b(dai uy|thuong ta|dong chi|can bo|bo cong an|chinh phu)\b/],
@@ -66,6 +68,9 @@ export const technicalRules: Rule[] = [
     patterns: [
       /\b(chuyen|qua|sang|vao|add|ket ban|nhan tin|lien he|inbox)\b.{0,12}\b(telegram|whatsapp|signal|line|zalo (rieng|ca nhan)|nhom kin|group kin)\b/,
       /\b(vao|tham gia|add)\b.{0,6}\b(nhom|group)\b.{0,10}\b(telegram|zalo|kin|vip|nhiem vu)\b/,
+      /\b(ket ban|add|nhan tin|lien he|lien lac|inbox|trao doi)\b.{0,30}\b(tren|qua|o)\s+(telegram|whatsapp|signal)\b/,
+      // Zalo rất phổ biến nên chỉ tính khi có ý kéo sang nói riêng, chê chỗ hiện tại bất tiện.
+      /\b(chuyen|qua|sang)\b.{0,8}\bzalo\b.{0,35}\b(rieng|bat tien)\b/,
     ],
   },
   {

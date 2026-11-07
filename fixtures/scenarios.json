@@ -3509,5 +3509,277 @@
         "task_deposit"
       ]
     }
+  },
+  {
+    "id": "148_bank_staff_otp_password",
+    "title": "Tự xưng ngân hàng, xin mật khẩu và OTP, dọa khóa → Nghiêm trọng",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mình là nhân viên ngân hàng, thẻ của bạn sắp bị khóa"
+      },
+      {
+        "sender": "self",
+        "text": "Vậy phải làm sao?"
+      },
+      {
+        "sender": "other",
+        "text": "Bạn gửi mật khẩu và mã OTP cho mình để mở khóa nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Tôi không gửi đâu"
+      },
+      {
+        "sender": "other",
+        "text": "Không gửi thì tài khoản bị khóa vĩnh viễn trong hôm nay"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "otp_password_request",
+        "otp_institution_pressure"
+      ]
+    }
+  },
+  {
+    "id": "149_bank_support_otp",
+    "title": "Bên hỗ trợ ngân hàng xin OTP, không dọa → Nghiêm trọng",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em bên hỗ trợ Vietcombank, tài khoản chị có giao dịch lạ"
+      },
+      {
+        "sender": "other",
+        "text": "Chị đọc giúp em mã OTP vừa gửi về để hủy giao dịch nhé"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "otp_institution_pressure"
+      ]
+    }
+  },
+  {
+    "id": "150_lock_threat_otp",
+    "title": "Không xưng đơn vị, dọa khóa để xin OTP → Nghiêm trọng",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tài khoản của bạn sẽ bị khóa trong 5 phút nữa"
+      },
+      {
+        "sender": "other",
+        "text": "Gửi mã OTP cho mình ngay để giữ lại"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "otp_institution_pressure"
+      ]
+    }
+  },
+  {
+    "id": "151_bank_warning_keep_low",
+    "title": "Tin ngân hàng dặn không đưa OTP, có nhắc khóa → không bị đẩy lên",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Ngân hàng không bao giờ yêu cầu cung cấp mã OTP. Không cung cấp OTP cho ai, tránh để tài khoản bị khóa."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "152_friend_wifi_password",
+    "title": "Xin mật khẩu wifi lúc nhân viên ngân hàng ghé nhà → không Nghiêm trọng",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hôm nay nhân viên ngân hàng tới nhà làm hồ sơ vay"
+      },
+      {
+        "sender": "other",
+        "text": "Gửi mình mật khẩu wifi nhé"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "otp_password_request"
+      ]
+    }
+  },
+  {
+    "id": "153_card_locked_no_request",
+    "title": "Kể chuyện thẻ bị khóa, không xin mã → Thấp",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Thẻ của mẹ bị khóa rồi, mai mẹ ra nhân viên ngân hàng làm lại"
+      },
+      {
+        "sender": "self",
+        "text": "Dạ vậy mai con chở mẹ đi"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "154_apk_not_on_store",
+    "title": "Cài APK, nói rõ không có trên CH Play → Nghiêm trọng",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chào anh, em bên hỗ trợ giao hàng, đơn của anh đang bị giữ lại"
+      },
+      {
+        "sender": "self",
+        "text": "Đơn nào vậy?"
+      },
+      {
+        "sender": "other",
+        "text": "Anh cài file APK này để cập nhật địa chỉ nhé, ứng dụng này không có trên CH Play"
+      },
+      {
+        "sender": "self",
+        "text": "Sao không làm trên app chính được?"
+      },
+      {
+        "sender": "other",
+        "text": "Anh bật cho phép cài từ nguồn không xác định là được"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "malware_apk"
+      ]
+    }
+  },
+  {
+    "id": "155_apk_unknown_source",
+    "title": "Tải APK, bật cài từ nguồn lạ → Nghiêm trọng",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Anh tải file ung-dung.apk em gửi về và cài vào điện thoại nhé"
+      },
+      {
+        "sender": "other",
+        "text": "Bản này ngoài kho ứng dụng, anh bật cho phép cài từ nguồn lạ là được"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "malware_apk"
+      ]
+    }
+  },
+  {
+    "id": "156_app_on_official_store",
+    "title": "Hướng dẫn tải từ kho chính thức → Thấp",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Ứng dụng bên mình có trên CH Play, bạn tải từ CH Play về là dùng được"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "157_telegram_on_friend_manager",
+    "title": "Kết bạn quản lý trên Telegram → Cần chú ý",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em ơi bên chị có việc làm thêm nhẹ nhàng"
+      },
+      {
+        "sender": "other",
+        "text": "Em kết bạn với quản lý trên Telegram để được hướng dẫn nhé"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "channel_migration"
+      ]
+    }
+  },
+  {
+    "id": "158_zalo_private",
+    "title": "Kéo sang Zalo nói riêng → Cần chú ý",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mình thấy hồ sơ của bạn phù hợp một công việc online"
+      },
+      {
+        "sender": "other",
+        "text": "Bạn chuyển sang Zalo số này nói chuyện riêng nhé, ở đây bất tiện"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "channel_migration"
+      ]
+    }
+  },
+  {
+    "id": "159_zalo_normal",
+    "title": "Nhắn Zalo bình thường → Thấp",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tối nay nhắn qua Zalo cho mình địa chỉ quán nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "160_telegram_mention",
+    "title": "Nhắc tới Telegram, không rủ → Thấp",
+    "source": "v0.10: viết mới khi thử bốn mức, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hôm qua mình đọc tin trên Telegram thấy nói trời sắp mưa to"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
   }
 ]

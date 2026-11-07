@@ -19,6 +19,7 @@ const STAGE_OF: Record<string, ScamStage> = {
   money_transfer: 'S3',
   task_deposit: 'S3',
   otp_password_request: 'S3',
+  otp_institution_pressure: 'S3',
   bank_credentials: 'S3',
   id_document_request: 'S3',
   intimate_image_request: 'S3',
