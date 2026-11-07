@@ -10,7 +10,7 @@ import { parseCsv } from './lib/csv';
 import { gatewayBenchRequest, gatewayLevel } from './lib/gateway-bench';
 import { arg, CACHE_DIR, loadEnv, RESULTS_DIR } from './lib/io';
 import { GROQ_LABEL, GROQ_URL } from './providers/groq';
-import { OpenRouterClient } from './providers/openrouter';
+import { DailyCapReached, OpenRouterClient } from './providers/openrouter';
 
 loadEnv();
 const file = arg('file');
@@ -56,6 +56,7 @@ interface Row {
   error?: string;
 }
 const out: Row[] = [];
+let stopped: string | undefined;
 for (const it of items) {
   const rule = analyze(it.messages).risk_level;
   let parsed: AiParsed | null = null;
@@ -67,6 +68,11 @@ for (const it of items) {
     inTok = res.promptTokens; outTok = res.completionTokens;
     parsed = parseAiResponse(res.content, p.request, it.messages, model);
   } catch (e) {
+    // Hết hạn mức không phải kết quả của AI: dừng, không tính các câu chưa chạy là lỗi.
+    if (e instanceof DailyCapReached) {
+      stopped = (e as Error).message.slice(0, 300);
+      break;
+    }
     error = (e as Error).message.slice(0, 160);
   }
   const row = {
@@ -86,7 +92,7 @@ const sum = (key: 'rule' | 'gateway' | 'nocal') => {
   return { threatHigh: `${A.filter((r) => hi(r[key])).length}/${A.length}`, criticalHit: `${C.filter((r) => r[key] === 'critical').length}/${C.length}`, benignHigh: `${B.filter((r) => hi(r[key])).length}/${B.length}`, accuracy: `${out.filter((r) => r[key] === r.gold).length}/${out.length}` };
 };
 const summary = {
-  model, effort, rules: sum('rule'), gateway: sum('gateway'), noCalibrate: sum('nocal'),
+  model, effort, done: `${out.length}/${items.length}`, stopped, rules: sum('rule'), gateway: sum('gateway'), noCalibrate: sum('nocal'),
   aiFlaggedCritical: `${out.filter((r) => r.threat && r.gold === 'critical' && r.aiCritical).length}/${out.filter((r) => r.threat && r.gold === 'critical').length}`,
   aiCriticalOnBenign: `${out.filter((r) => !r.threat && r.aiCritical).length}/${out.filter((r) => !r.threat).length}`,
   errors: out.filter((r) => r.error).length, rejected: out.reduce((n, r) => n + r.rejected, 0),
