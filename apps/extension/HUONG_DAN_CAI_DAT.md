@@ -34,7 +34,7 @@ Trong side panel, chọn **Cài đặt**:
 |---|---|---|
 | Bộ quy tắc | Luôn chạy | Miễn phí, chạy trên máy |
 | Gemini Nano (trên máy) | Bấm **Tải mô hình & bật** | Cần Chrome máy tính, khoảng 22 GB trống, GPU trên 4 GB VRAM hoặc 16 GB RAM. Chỉ chạy khi side panel đang mở. Tiếng Việt chưa được hỗ trợ chính thức, nên đây là chế độ thử nghiệm (`en`). |
-| Groq | Dán API key → **Bật Groq** → cho phép quyền `api.groq.com` | Mô hình nhỏ `llama-3.1-8b-instant` chạy mặc định; mô hình lớn `llama-3.3-70b-versatile` chỉ chạy khi mức ≥ Cần chú ý. Giới hạn lượt gọi mỗi ngày đặt trong Cài đặt. |
+| Groq | Dán API key → **Bật Groq** → cho phép quyền `api.groq.com` | `openai/gpt-oss-120b` chạy mặc định cho cả lượt nhanh và lượt sâu; lượt sâu chỉ chạy khi mức ≥ Cần chú ý. Giới hạn lượt gọi mỗi ngày đặt trong Cài đặt. Khi dùng gateway, extension không cần key. |
 
 **Khi nào AI chạy:** khi mức cảnh báo tăng, khi có loại tín hiệu quy tắc mới, hoặc khi tích đủ N tin mới (mặc định 5). Hai lần gọi cách nhau ít nhất 10 giây.
 

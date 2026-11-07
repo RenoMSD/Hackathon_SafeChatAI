@@ -125,7 +125,7 @@ describe('background — vòng đời phiên', () => {
     await new Promise((r) => setTimeout(r, 800));
     const s = (await session())!;
     expect(calls).toHaveLength(1);
-    expect(calls[0]!.model).toBe('llama-3.3-70b-versatile'); // mức Cao → mô hình lớn
+    expect(calls[0]!.model).toBe('openai/gpt-oss-120b'); // mức Cao → lượt sâu, cùng model
     expect(calls[0]!.user).toContain('[SỐ]');
     expect(calls[0]!.user).not.toContain('0912 345 678');
     expect(s.ai.status).toBe('ok');
