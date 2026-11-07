@@ -25,7 +25,9 @@
     "bench:report": "tsx research/report.ts",
     "bench:archive": "tsx research/archive.ts",
     "bench:external": "tsx research/external.ts",
-    "bench:report-ext": "tsx research/report-ext.ts"
+    "bench:report-ext": "tsx research/report-ext.ts",
+    "bench:analyze-rules": "tsx research/rule-analysis.ts",
+    "bench:notebook": "python research/notebooks/run_notebook.py"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",
