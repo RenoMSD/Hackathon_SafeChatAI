@@ -28,6 +28,9 @@ export function installFakeChrome() {
   /** Phản hồi giả của content script theo tabId. */
   const tabHandlers = new Map<number, (msg: unknown) => unknown>();
   const badge = { text: '' };
+  /** Alarm không tự kêu, test gọi fireAlarm để mô phỏng. */
+  const alarms = new Map<string, number>();
+  const alarmListeners: ((a: { name: string }) => void)[] = [];
 
   const dispatch = (msg: unknown, sender: { tab?: { id: number } }) =>
     new Promise((resolve) => {
@@ -60,6 +63,11 @@ export function installFakeChrome() {
       setBadgeBackgroundColor: async () => {},
     },
     permissions: { contains: async () => false },
+    alarms: {
+      create: async (name: string, info: { when: number }) => void alarms.set(name, info.when),
+      clear: async (name: string) => alarms.delete(name),
+      onAlarm: { addListener: (l: (a: { name: string }) => void) => alarmListeners.push(l) },
+    },
   };
   (globalThis as any).chrome = chromeFake;
 
@@ -72,5 +80,10 @@ export function installFakeChrome() {
     content: (tabId: number, msg: unknown) => dispatch(msg, { tab: { id: tabId } }),
     onTab: (tabId: number, h: (msg: unknown) => unknown) => tabHandlers.set(tabId, h),
     closeTab: (tabId: number) => chromeFake._onRemoved.forEach((l) => l(tabId)),
+    alarms,
+    fireAlarm: (name: string) => {
+      alarms.delete(name);
+      alarmListeners.forEach((l) => l({ name }));
+    },
   };
 }

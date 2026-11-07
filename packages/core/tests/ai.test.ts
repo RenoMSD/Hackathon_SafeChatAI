@@ -11,12 +11,12 @@ const base = (over: Partial<AiPolicyInput> = {}): AiPolicyInput => ({
   messages: msgs([['other', 'a'], ['other', 'b']]),
   lastAiSeq: 0,
   lastAiAt: 0,
-  lastLevel: 'low',
   currentLevel: 'low',
-  newRuleSignal: false,
   budgetLeft: 10,
   minIntervalMs: 10_000,
   batchSize: 5,
+  lastMessageAt: 95_000,
+  idleFlushMs: 60_000,
   ...over,
 });
 
@@ -24,19 +24,47 @@ describe('decideAiRun — chính sách phân tầng', () => {
   it('không có tin mới của đối phương thì không gọi', () => {
     expect(decideAiRun(base({ lastAiSeq: 2 }))).toMatchObject({ run: false, reason: 'no_new' });
   });
-  it('chưa đủ lô và không có thay đổi → chờ', () => {
+  const five = () => msgs(Array.from({ length: 5 }, () => ['other', 'x'] as [ChatMessage['sender'], string]));
+  it('chưa đủ 5 tin mới → chờ, kể cả khi luật đã báo Nghiêm trọng', () => {
     expect(decideAiRun(base())).toMatchObject({ run: false, reason: 'waiting_batch' });
+    expect(decideAiRun(base({ currentLevel: 'critical' }))).toMatchObject({ run: false, reason: 'waiting_batch' });
   });
   it('đủ N tin mới → gọi mô hình nhỏ', () => {
-    const m = msgs(Array.from({ length: 5 }, () => ['other', 'x'] as [ChatMessage['sender'], string]));
-    expect(decideAiRun(base({ messages: m }))).toMatchObject({ run: true, tier: 'small' });
+    expect(decideAiRun(base({ messages: five() }))).toMatchObject({ run: true, tier: 'small', reason: 'Đủ 5 tin mới' });
   });
-  it('mức tăng lên Cao → gọi ngay, dùng mô hình lớn', () => {
-    expect(decideAiRun(base({ currentLevel: 'high' }))).toMatchObject({ run: true, tier: 'large' });
+  it('đủ N tin mới và luật đã báo Cao → dùng mô hình lớn', () => {
+    expect(decideAiRun(base({ messages: five(), currentLevel: 'high' }))).toMatchObject({ run: true, tier: 'large' });
+  });
+  it('chỉ đếm tin của đối phương, không đếm tin của người dùng', () => {
+    const m = msgs([['other', 'a'], ['self', 'b'], ['other', 'c'], ['self', 'd'], ['other', 'e'], ['self', 'f']]);
+    expect(decideAiRun(base({ messages: m }))).toMatchObject({ run: false, reason: 'waiting_batch' });
+  });
+  it('đếm lại từ đầu sau mỗi lần gọi', () => {
+    expect(decideAiRun(base({ messages: five(), lastAiSeq: 1 }))).toMatchObject({ run: false, reason: 'waiting_batch' });
   });
   it('tôn trọng khoảng cách tối thiểu và hạn mức', () => {
-    expect(decideAiRun(base({ newRuleSignal: true, lastAiAt: 95_000 }))).toMatchObject({ run: false, reason: 'throttle', retryInMs: 5000 });
-    expect(decideAiRun(base({ newRuleSignal: true, budgetLeft: 0 }))).toMatchObject({ run: false, reason: 'budget' });
+    expect(decideAiRun(base({ messages: five(), lastAiAt: 95_000 }))).toMatchObject({ run: false, reason: 'throttle', retryInMs: 5000 });
+    expect(decideAiRun(base({ messages: five(), budgetLeft: 0 }))).toMatchObject({ run: false, reason: 'budget' });
+  });
+  it('chưa đủ lô thì không báo hết lượt', () => {
+    expect(decideAiRun(base({ budgetLeft: 0 }))).toMatchObject({ run: false, reason: 'waiting_batch' });
+  });
+  it('chưa đủ lô: báo thời gian còn phải chờ', () => {
+    expect(decideAiRun(base())).toEqual({ run: false, reason: 'waiting_batch', retryInMs: 55_000 });
+  });
+  it('hội thoại dừng đủ 60 giây → gọi nốt tin lẻ', () => {
+    expect(decideAiRun(base({ lastMessageAt: 40_000 }))).toMatchObject({ run: true, tier: 'small', reason: 'Hội thoại dừng 60 giây' });
+    expect(decideAiRun(base({ lastMessageAt: 40_000, currentLevel: 'high' }))).toMatchObject({ run: true, tier: 'large' });
+  });
+  it('gọi nốt vẫn tôn trọng hạn mức và khoảng cách tối thiểu', () => {
+    expect(decideAiRun(base({ lastMessageAt: 40_000, budgetLeft: 0 }))).toMatchObject({ run: false, reason: 'budget' });
+    expect(decideAiRun(base({ lastMessageAt: 40_000, lastAiAt: 95_000 }))).toMatchObject({ run: false, reason: 'throttle' });
+  });
+  it('không có tin mới của đối phương thì dừng bao lâu cũng không gọi', () => {
+    expect(decideAiRun(base({ lastAiSeq: 2, lastMessageAt: 0 }))).toMatchObject({ run: false, reason: 'no_new' });
+  });
+  it('idleFlushMs = 0 thì chỉ gọi khi đủ lô', () => {
+    expect(decideAiRun(base({ lastMessageAt: 0, idleFlushMs: 0 }))).toEqual({ run: false, reason: 'waiting_batch' });
   });
   it('chỉ leo lên mô hình lớn khi mô hình nhỏ thấy dấu hiệu nặng', () => {
     const sig = { severity: 'high' } as Signal;

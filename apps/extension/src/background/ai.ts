@@ -21,6 +21,9 @@ import { loadSession, loadSettings, saveSession } from './store';
 
 const NANO_TIMEOUT_MS = 60_000;
 const PANEL_FRESH_MS = 45_000;
+// Service worker có thể bị tắt khi rảnh nên setTimeout dài không đáng tin; alarm sẽ đánh thức lại.
+export const AI_IDLE_ALARM = 'safechat_ai_idle';
+const MAX_GROQ_FAILURES = 3;
 
 let panelNano = { ready: false, at: 0 };
 let nanoFailedUntil = 0;
@@ -41,6 +44,7 @@ export function kickAi(delayMs = 0) {
 export function cancelAi() {
   clearTimeout(timer);
   timer = undefined;
+  void chrome.alarms.clear(AI_IDLE_ALARM);
 }
 
 // ---------- hạn mức theo ngày ----------
@@ -99,6 +103,8 @@ async function step() {
     return;
   }
 
+  if (provider === 'groq' && s.ai.gaveUpAtSeq === s.transcript.messages.at(-1)?.seq) return;
+
   const budget = provider === 'groq' ? settings.dailyBudget - (await usedToday()) : Number.POSITIVE_INFINITY;
   const ruleSignals = s.result.signals.filter((x) => x.source !== 'ai');
   const ruleTypes = ruleSignals.map((x) => x.type);
@@ -107,16 +113,18 @@ async function step() {
     messages: s.transcript.messages,
     lastAiSeq: s.ai.lastSeq,
     lastAiAt: s.ai.lastAt,
-    lastLevel: s.ai.lastLevel,
     currentLevel: s.result.risk_level,
-    newRuleSignal: ruleTypes.some((t) => !s.ai.lastRuleTypes.includes(t)),
     budgetLeft: budget,
     minIntervalMs: settings.minIntervalSec * 1000,
     batchSize: settings.batchSize,
+    lastMessageAt: s.lastMessageAt ?? s.startedAt,
+    idleFlushMs: settings.idleFlushSec * 1000,
   });
 
   if (!decision.run) {
     if (decision.reason === 'throttle') kickAi(decision.retryInMs ?? 2000);
+    if (decision.reason === 'waiting_batch' && decision.retryInMs !== undefined)
+      await chrome.alarms.create(AI_IDLE_ALARM, { when: Date.now() + decision.retryInMs });
     if (decision.reason === 'budget')
       await serial(async () => setStatus('error', `Đã dùng hết ${settings.dailyBudget} lượt AI hôm nay; vẫn phân tích bằng quy tắc.`));
     if (s.ai.status === 'off') await serial(async () => setStatus('idle'));
@@ -145,13 +153,21 @@ async function step() {
     await applyResult(meta, request, parsed.result, 'groq', parsed.tier);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (e instanceof GroqError && e.status === 429) groqBackoffUntil = Date.now() + 60_000;
+    if (e instanceof GroqError && e.status === 429) {
+      groqBackoffUntil = Date.now() + 60_000;
+      await chrome.alarms.create(AI_IDLE_ALARM, { when: groqBackoffUntil + 1000 });
+    }
     await serial(async () => {
       const cur = await loadSession();
       if (!cur || cur.startedAt !== meta.startedAt) return;
       cur.ai.status = 'error';
       cur.ai.error = msg;
       cur.ai.lastAt = Date.now();
+      cur.ai.failures = (cur.ai.failures ?? 0) + 1;
+      if (cur.ai.failures >= MAX_GROQ_FAILURES) {
+        cur.ai.gaveUpAtSeq = cur.transcript.messages.at(-1)?.seq;
+        cur.ai.error = `${msg}. Đã tạm dừng AI sau ${cur.ai.failures} lần lỗi liên tiếp, vẫn phân tích bằng quy tắc. Sẽ thử lại khi có tin mới hoặc khi đổi cài đặt AI.`;
+      }
       recompute(cur); // giữ nguyên kết quả quy tắc, KHÔNG hạ mức
       await saveSession(cur);
     });
@@ -169,13 +185,16 @@ async function runGroq(
 ): Promise<{ result: AiParsed; tier: AiTier }> {
   const original = (await loadSession())?.transcript.messages ?? [];
   const model = tier === 'large' ? settings.groqLargeModel : settings.groqSmallModel;
-  const first = parseAiResponse(await callGroq(request, settings.groqApiKey, model), request, original, `Groq ${model}`);
+  // Tính lượt ngay khi Groq trả lời: phản hồi đọc lỗi vẫn tốn hạn mức
+  const firstContent = await callGroq(request, settings.groqApiKey, model);
   await addUsage(1);
+  const first = parseAiResponse(firstContent, request, original, `Groq ${model}`);
   if (tier === 'small' && shouldEscalate(first.signals, budget - 1)) {
     // Mô hình nhỏ thấy dấu hiệu nặng → nhờ mô hình lớn xác nhận/phân tích kỹ
     const large = settings.groqLargeModel;
-    const second = parseAiResponse(await callGroq(request, settings.groqApiKey, large), request, original, `Groq ${large}`);
+    const secondContent = await callGroq(request, settings.groqApiKey, large);
     await addUsage(1);
+    const second = parseAiResponse(secondContent, request, original, `Groq ${large}`);
     return {
       tier: 'large',
       result: {
@@ -209,6 +228,8 @@ async function applyResult(
     cur.ai.detectedStage = parsed.detectedStage;
     cur.ai.lastSeq = request.upToSeq;
     cur.ai.lastAt = Date.now();
+    cur.ai.failures = undefined;
+    cur.ai.gaveUpAtSeq = undefined;
     cur.ai.lastLevel = meta.level;
     cur.ai.lastRuleTypes = meta.ruleTypes;
     cur.ai.calls++;

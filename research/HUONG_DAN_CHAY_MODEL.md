@@ -34,11 +34,17 @@ Hết hạn mức ngày thì lệnh tự dừng. Hôm sau chạy lại đúng l�
 5. Ghi vào sổ thí nghiệm (chấm theo `--config hybrid-hint`), rồi tự viết `README.md` của thí nghiệm đó:
 
 ```bash
-npm run bench:experiment-ai -- --id EXP-009 --run groq_8b_tune --model llama-3.1-8b-instant --config hybrid-hint --title "Luật + Groq 8B" --hypothesis "..."
+npm run bench:experiment-ai -- --id EXP-010 --run groq_8b_tune --model llama-3.1-8b-instant --config hybrid-hint --title "Luật + Groq 8B" --hypothesis "..."
 ```
 
 ```bash
 npm run bench:experiment -- --ledger
+```
+
+6. `ai` và `hybrid-hint` đọc cả hội thoại một lần. Sản phẩm thì gom đủ 5 tin của đối phương mới gọi AI và gọi nốt tin lẻ khi hội thoại dừng 60 giây, nên sau khi chọn model phải đo thêm bằng `replay-hybrid`, khoảng 116 lượt trên tune ([EXP-009](experiments/EXP-009/README.md)):
+
+```bash
+npm run bench:run -- --provider groq --dataset set:v2 --split tune --configs replay-rules,replay-hybrid --models <model đã chọn> --interval-ms 15000 --run-id groq_replay_tune
 ```
 
 **Khi đọc số:** luật đã được sửa theo chính tập tune (1/31 bỏ sót), nên trên tune AI gần như không còn chỗ để bắt thêm. Lợi ích nhìn thấy được trên tune chủ yếu là giảm báo nhầm ở `hybrid-hint`, năng lực riêng của model đọc ở `ai`, và bài kiểm tra thật là lần xem check duy nhất sau khi đã chọn model. Check đã xem 2 lần, không xem thêm để chọn giữa các model.
@@ -134,7 +140,7 @@ npm run bench:run -- --dataset set:v2 --split tune --configs replay-rules,replay
 | `ai` | 1 lượt / ca / model |
 | `hybrid`, `hybrid-veto` | Dùng lại phản hồi của `ai`, không tốn thêm |
 | `hybrid-hint` | 1 lượt / ca |
-| `replay-hybrid` | ~3–5 lượt / ca |
+| `replay-hybrid` | Khoảng 2 lượt / ca (mỗi 5 tin của đối phương một lượt, cộng một lượt gọi nốt ở cuối) |
 
 Ví dụ: `set:v2` tập `tune` có 65 ca × 1 cấu hình gọi mạng (`ai` hoặc `hybrid-hint`) = 65 lượt / model.
 

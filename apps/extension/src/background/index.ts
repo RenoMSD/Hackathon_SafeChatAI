@@ -12,7 +12,7 @@ import {
   type Session,
   type StopResult,
 } from '../shared/protocol';
-import { cancelAi, handleNanoResult, kickAi, setPanelNanoStatus } from './ai';
+import { AI_IDLE_ALARM, cancelAi, handleNanoResult, kickAi, setPanelNanoStatus } from './ai';
 import { recompute, sendToTab, serial, updateBadge } from './runtime';
 import { clearSessionVerified, loadSession, loadSettings, saveSession } from './store';
 
@@ -174,6 +174,9 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
       if (!settings.nanoEnabled && !(settings.groqEnabled && settings.groqApiKey)) {
         s.ai = { ...emptyAiState(), calls: s.ai.calls };
       }
+      // Người dùng có thể vừa sửa khóa hoặc đổi model nên cho thử lại từ đầu
+      s.ai.failures = undefined;
+      s.ai.gaveUpAtSeq = undefined;
       recompute(s);
       await saveSession(s);
       await updateBadge(s);
@@ -221,6 +224,7 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
   const before: RiskLevel = s.result?.risk_level ?? 'low';
   const added = appendObserved(s.transcript, ev.batch, s.maxMessages);
   if (added.length === 0) return;
+  s.lastMessageAt = Date.now();
   recompute(s);
   await saveSession(s);
   if (RISK_LEVEL_ORDER[s.result!.risk_level] !== RISK_LEVEL_ORDER[before]) await updateBadge(s);
@@ -251,6 +255,10 @@ chrome.tabs.onRemoved.addListener((tabId) => {
       await saveSession(s);
     }
   });
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === AI_IDLE_ALARM) kickAi();
 });
 
 // Khi SW khởi động lại (trình duyệt vẫn mở), khôi phục badge theo phiên còn trong storage.session

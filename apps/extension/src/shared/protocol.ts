@@ -15,6 +15,10 @@ export interface AiState {
   summary: string;
   lastSeq: number;
   lastAt: number;
+  /** Số lần Groq lỗi liên tiếp. */
+  failures?: number;
+  /** Đã ngừng thử lại Groq tại tin này, chờ tin mới hoặc người dùng đổi cài đặt. */
+  gaveUpAtSeq?: number;
   lastLevel: RiskLevel;
   /** Các loại tín hiệu quy tắc đã biết ở lần gọi trước. */
   lastRuleTypes: string[];
@@ -50,6 +54,8 @@ export interface Session {
   threadLabel: string;
   platform: 'messenger' | 'mock';
   startedAt: number;
+  /** Thời điểm nhận tin gần nhất, để biết hội thoại đã dừng bao lâu. Thiếu thì tính từ startedAt. */
+  lastMessageAt?: number;
   maxMessages: number;
   transcript: TranscriptState;
   result: AnalysisResult | null;
@@ -80,8 +86,10 @@ export interface Settings {
   groqLargeModel: string;
   /** Số lượt gọi AI ngoài tối đa mỗi ngày (giữ chi phí/hạn mức). */
   dailyBudget: number;
-  /** Gọi AI định kỳ khi đủ N tin mới của đối phương. */
+  /** Gọi AI khi đủ N tin mới của đối phương. */
   batchSize: number;
+  /** Hội thoại dừng lâu chừng này thì gọi nốt tin lẻ chưa đủ lô. 0 = tắt. */
+  idleFlushSec: number;
   minIntervalSec: number;
 }
 
@@ -94,6 +102,7 @@ export const DEFAULT_SETTINGS: Settings = {
   groqLargeModel: 'llama-3.3-70b-versatile',
   dailyBudget: 200,
   batchSize: 5,
+  idleFlushSec: 60,
   minIntervalSec: 10,
 };
 

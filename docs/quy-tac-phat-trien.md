@@ -75,7 +75,7 @@ Không vi phạm, kể cả khi làm vậy tiện hơn.
    - Không có key cứng (`gsk_`, `sk-`, `Bearer …`).
    - `fetch` chỉ tới `api.groq.com`, và chỉ khi người dùng đã bật.
 3. **Manifest:**
-   - Quyền tối thiểu (`sidePanel`, `storage`); `api.groq.com` nằm trong `optional_host_permissions`.
+   - Quyền tối thiểu (`alarms`, `sidePanel`, `storage`); `api.groq.com` nằm trong `optional_host_permissions`.
    - `version` đã tăng và khớp với `package.json`.
    - Có đủ icon 16/32/48/128.
 4. **Tài liệu:** bảng "Tình trạng" trong `TAI_LIEU_KY_THUAT.md` và mục Chất lượng / Lộ trình trong `README.md` gốc đúng thực tế; checklist trong `HUONG_DAN_CAI_DAT.md` đúng thao tác UI.

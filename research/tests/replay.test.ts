@@ -124,9 +124,19 @@ describe('phát lại với AI theo chính sách sản phẩm', () => {
     expect(r.aiCalls).toBeGreaterThan(0);
     expect(r.aiCalls).toBeLessThan(job.messages.length);
     expect(reqs.slice(1).every((q) => q.user.includes('tóm tắt'))).toBe(true);
-    expect(r.turns.some((t) => t.aiReason === 'Mức cảnh báo tăng' || t.aiReason === 'Có tín hiệu quy tắc mới')).toBe(true);
+    // 8 tin: gọi ở tin thứ 5, 3 tin lẻ được gọi nốt khi hội thoại dừng
+    expect(r.turns.filter((t) => t.aiCalled).map((t) => [t.dpTurn, t.aiReason])).toEqual([
+      [5, 'Đủ 5 tin mới'],
+      [8, 'Hội thoại dừng 60 giây'],
+    ]);
+    expect(r.turns[4]!.level).toBe('high'); // luật vẫn cảnh báo sau từng tin
+    expect(r.turns[2]!.level).toBe('attention');
     // AI không thêm tín hiệu → mức giữ nguyên như chỉ luật
     expect(r.finalLevel).toBe('critical');
+  });
+  it('idleFlushSec = 0: không gọi nốt tin lẻ', async () => {
+    const r = await replayCase(job, { callAi: async () => okResponse, idleFlushSec: 0 });
+    expect(r.turns.filter((t) => t.aiCalled).map((t) => t.dpTurn)).toEqual([5]);
   });
   it('AI lỗi: đếm lỗi, giữ kết quả luật', async () => {
     const r = await replayCase(job, { callAi: async () => 'không phải json' });

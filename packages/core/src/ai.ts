@@ -14,15 +14,15 @@ export interface AiPolicyInput {
   /** seq của tin cuối cùng đã gửi cho AI (0 nếu chưa gọi). */
   lastAiSeq: number;
   lastAiAt: number;
-  /** Mức cảnh báo tại lần gọi AI trước. */
-  lastLevel: RiskLevel;
   currentLevel: RiskLevel;
-  /** Có loại tín hiệu quy tắc mới xuất hiện sau lần gọi trước. */
-  newRuleSignal: boolean;
   budgetLeft: number;
   minIntervalMs: number;
-  /** Số tin mới của đối phương tích lũy đủ để gọi định kỳ. */
+  /** Số tin mới của đối phương cần gom đủ mới gọi AI một lần. */
   batchSize: number;
+  /** Thời điểm nhận tin gần nhất, kể cả tin của người dùng. */
+  lastMessageAt: number;
+  /** Hội thoại dừng lâu chừng này thì gọi nốt tin lẻ chưa đủ lô. 0 = tắt. */
+  idleFlushMs: number;
 }
 
 export type AiDecision =
@@ -32,19 +32,20 @@ export type AiDecision =
 export function decideAiRun(p: AiPolicyInput): AiDecision {
   const fresh = p.messages.filter((m) => m.seq > p.lastAiSeq && m.sender !== 'self');
   if (fresh.length === 0) return { run: false, reason: 'no_new' };
+  // Luật vẫn chạy và cảnh báo sau từng tin; chỉ AI mới chờ đủ lô hoặc chờ hội thoại dừng.
+  const batchFull = fresh.length >= p.batchSize;
+  if (!batchFull) {
+    if (p.idleFlushMs <= 0) return { run: false, reason: 'waiting_batch' };
+    const idleFor = p.now - p.lastMessageAt;
+    if (idleFor < p.idleFlushMs) return { run: false, reason: 'waiting_batch', retryInMs: p.idleFlushMs - idleFor };
+  }
   if (p.budgetLeft <= 0) return { run: false, reason: 'budget' };
   const since = p.now - p.lastAiAt;
   if (since < p.minIntervalMs) return { run: false, reason: 'throttle', retryInMs: p.minIntervalMs - since };
 
-  const escalated = RISK_LEVEL_ORDER[p.currentLevel] > RISK_LEVEL_ORDER[p.lastLevel];
-  let reason: string | null = null;
-  if (escalated) reason = 'Mức cảnh báo tăng';
-  else if (p.newRuleSignal) reason = 'Có tín hiệu quy tắc mới';
-  else if (fresh.length >= p.batchSize) reason = `Đủ ${p.batchSize} tin mới`;
-  if (!reason) return { run: false, reason: 'waiting_batch' };
-
   // Tầng lớn chỉ khi đã có dấu hiệu đáng kể; còn lại dùng mô hình nhỏ, rẻ, hạn mức cao
   const tier: AiTier = RISK_LEVEL_ORDER[p.currentLevel] >= RISK_LEVEL_ORDER.attention ? 'large' : 'small';
+  const reason = batchFull ? `Đủ ${p.batchSize} tin mới` : `Hội thoại dừng ${Math.round(p.idleFlushMs / 1000)} giây`;
   return { run: true, tier, reason };
 }
 

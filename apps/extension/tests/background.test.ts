@@ -123,6 +123,18 @@ describe('background — vòng đời phiên', () => {
       ],
     });
     await new Promise((r) => setTimeout(r, 800));
+    expect(calls).toHaveLength(0); // mới 2 tin: luật đã cảnh báo, AI chờ đủ 5 tin
+    expect((await session())!.result?.risk_level).toBe('high');
+    await fake.content(TAB, {
+      kind: 'cs_messages',
+      threadId: 'mock:ai',
+      batch: [
+        { sender: 'other', text: 'Em đóng sớm để giữ chỗ nha.' },
+        { sender: 'other', text: 'Việc nhẹ, làm ở nhà thôi.' },
+        { sender: 'other', text: 'Chị chờ em phản hồi.' },
+      ],
+    });
+    await new Promise((r) => setTimeout(r, 800));
     const s = (await session())!;
     expect(calls).toHaveLength(1);
     expect(calls[0]!.model).toBe('llama-3.3-70b-versatile'); // mức Cao → mô hình lớn
@@ -135,6 +147,80 @@ describe('background — vòng đời phiên', () => {
     const usage = (await fake.chrome.storage.local.get('safechat_ai_usage')) as Record<string, { count: number }>;
     expect(usage.safechat_ai_usage?.count).toBe(1);
   });
+
+  it('chưa đủ 5 tin: đặt alarm, đến giờ thì gọi nốt tin lẻ; dừng phiên thì bỏ alarm', async () => {
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const calls: string[] = [];
+    globalThis.fetch = (async (_url: string, init: { body: string }) => {
+      calls.push(JSON.parse(init.body).messages[1].content);
+      const content = JSON.stringify({ signals: [], summary: 'Đã đọc tin lẻ.' });
+      return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    await fake.chrome.storage.local.set({
+      safechat_settings: { groqEnabled: true, groqApiKey: 'test-key', minIntervalSec: 3, batchSize: 5, idleFlushSec: 1, dailyBudget: 50 },
+    });
+    thread = { threadId: 'mock:idle', threadLabel: 'Tin lẻ' };
+    await fake.panel({ kind: 'stop_and_clear' });
+    await fake.panel({ kind: 'start', tabId: TAB });
+    await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:idle', batch: [{ sender: 'other', text: 'Em rảnh không?' }] });
+    await wait(500);
+    expect(calls).toHaveLength(0);
+    expect(fake.alarms.has('safechat_ai_idle')).toBe(true);
+
+    await wait(700); // đã qua 1 giây kể từ tin cuối
+    fake.fireAlarm('safechat_ai_idle');
+    await wait(300);
+    expect(calls).toHaveLength(1);
+    expect((await session())!.ai.lastReason).toBe('Hội thoại dừng 1 giây');
+
+    await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:idle', batch: [{ sender: 'other', text: 'Em rảnh không?' }, { sender: 'other', text: 'Trả lời chị nhé' }] });
+    await wait(500);
+    expect(fake.alarms.has('safechat_ai_idle')).toBe(true);
+    await fake.panel({ kind: 'stop_and_clear' });
+    expect(fake.alarms.has('safechat_ai_idle')).toBe(false);
+  });
+
+  it('Groq lỗi liên tục: dừng sau 3 lần, thử lại khi có tin mới hoặc đổi cài đặt, phản hồi đọc lỗi vẫn tính lượt', async () => {
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls++;
+      return new Response(JSON.stringify({ choices: [{ message: { content: 'không phải json' } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    await fake.chrome.storage.local.set({
+      safechat_settings: { groqEnabled: true, groqApiKey: 'test-key', minIntervalSec: 0.01, batchSize: 5, dailyBudget: 50 },
+      safechat_ai_usage: { date: new Date().toISOString().slice(0, 10), count: 0 },
+    });
+    thread = { threadId: 'mock:fail', threadLabel: 'Lỗi' };
+    await fake.panel({ kind: 'stop_and_clear' });
+    await fake.panel({ kind: 'start', tabId: TAB });
+    const batch = ['một', 'hai', 'ba', 'bốn', 'năm'].map((w) => ({ sender: 'other', text: `Tin số ${w}` }));
+    await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:fail', batch });
+    await wait(4000); // đủ thời gian cho nhiều hơn 3 lần nếu không dừng
+    expect(calls).toBe(3);
+    let s = (await session())!;
+    expect(s.ai.status).toBe('error');
+    expect(s.ai.error).toContain('Đã tạm dừng AI');
+    expect(s.result?.risk_level).toBeDefined(); // luật vẫn có kết quả
+    const usage = async () => ((await fake.chrome.storage.local.get('safechat_ai_usage')) as Record<string, { count: number }>).safechat_ai_usage?.count;
+    expect(await usage()).toBe(3);
+
+    await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:fail', batch: [...batch, { sender: 'other', text: 'Tin số sáu' }] });
+    await wait(1500);
+    expect(calls).toBe(4); // tin mới: thử đúng 1 lần rồi dừng tiếp
+
+    globalThis.fetch = (async () => {
+      calls++;
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ signals: [], summary: 'Đã ổn.' }) } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    await fake.panel({ kind: 'reanalyze' });
+    await wait(600);
+    expect(calls).toBe(5);
+    s = (await session())!;
+    expect(s.ai.status).toBe('ok');
+    expect(s.ai.failures).toBeUndefined();
+    expect(s.ai.gaveUpAtSeq).toBeUndefined();
+  }, 15_000);
 
   it('dừng và xóa → storage.session trống, xác nhận đã xóa', async () => {
     const r = await fake.panel({ kind: 'stop_and_clear' });

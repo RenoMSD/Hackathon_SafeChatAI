@@ -21,6 +21,8 @@ export interface ReplayOptions {
   gapSec?: number;
   minIntervalSec?: number;
   batchSize?: number;
+  /** Hội thoại dừng lâu chừng này thì gọi nốt tin lẻ. Phát lại chỉ có khoảng dừng ở cuối ca. 0 = tắt. */
+  idleFlushSec?: number;
   /** Áp lớp chống dao động như sản phẩm (mặc định true). false = mức thô sau analyze. */
   stability?: boolean;
 }
@@ -47,12 +49,11 @@ export async function replayCase(c: BenchCase, o: ReplayOptions = {}): Promise<R
   const gapMs = (o.gapSec ?? 20) * 1000;
   const minIntervalMs = (o.minIntervalSec ?? DEFAULT_SETTINGS.minIntervalSec) * 1000;
   const batchSize = o.batchSize ?? DEFAULT_SETTINGS.batchSize;
+  const idleFlushMs = (o.idleFlushSec ?? DEFAULT_SETTINGS.idleFlushSec) * 1000;
   const ai = {
     summary: '',
     lastSeq: 0,
     lastAt: -Infinity,
-    lastLevel: 'low' as RiskLevel,
-    lastRuleTypes: [] as string[],
     signals: [] as Signal[],
     downgrade: undefined as { reason: string; fromLevel: RiskLevel } | undefined,
   };
@@ -70,51 +71,46 @@ export async function replayCase(c: BenchCase, o: ReplayOptions = {}): Promise<R
     return out.result.risk_level;
   };
 
+  /** Hỏi chính sách gọi AI; nếu được gọi thì phân tích lại với kết quả AI. */
+  const askAi = async (msgs: ChatMessage[], now: number, lastMessageAt: number) => {
+    let result = analyze(msgs, { aiSignals: ai.signals, aiDowngrade: ai.downgrade });
+    if (!o.callAi) return { result, aiCalled: false, aiReason: undefined };
+    const ruleSignals = result.signals.filter((s) => s.source !== 'ai');
+    const decision = decideAiRun({
+      now,
+      messages: msgs,
+      lastAiSeq: ai.lastSeq,
+      lastAiAt: ai.lastAt,
+      currentLevel: result.risk_level,
+      budgetLeft: Number.POSITIVE_INFINITY,
+      minIntervalMs,
+      batchSize,
+      lastMessageAt,
+      idleFlushMs,
+    });
+    if (!decision.run) return { result, aiCalled: false, aiReason: undefined };
+    aiCalls++;
+    const req = buildAiRequest(msgs, ai.lastSeq, ai.summary, ruleSignals);
+    const levelAtRequest = result.level_before_ai;
+    try {
+      const parsed = parseAiResponse(await o.callAi(req), req, msgs, 'replay');
+      ai.signals = mergeAiSignals(ai.signals, parsed.signals);
+      if (parsed.summary) ai.summary = parsed.summary;
+      ai.downgrade = parsed.downgradeReason ? { reason: parsed.downgradeReason, fromLevel: levelAtRequest } : undefined;
+    } catch (e) {
+      if (e instanceof DailyCapReached) throw e; // hết lượt trong ngày → dừng cả lần chạy, không tính là lỗi AI
+      aiErrors++; // lỗi AI: giữ kết quả luật, không hạ mức (như sản phẩm)
+    }
+    ai.lastSeq = req.upToSeq;
+    ai.lastAt = now;
+    result = analyze(msgs, { aiSignals: ai.signals, aiDowngrade: ai.downgrade });
+    return { result, aiCalled: true, aiReason: decision.reason as string | undefined };
+  };
+
   for (let i = 0; i < c.messages.length; i++) {
     const msgs: ChatMessage[] = c.messages.slice(0, i + 1);
     const now = i * gapMs;
-    let result = analyze(msgs, { aiSignals: ai.signals, aiDowngrade: ai.downgrade });
-    let aiCalled = false;
-    let aiReason: string | undefined;
-
-    if (o.callAi) {
-      const ruleSignals = result.signals.filter((s) => s.source !== 'ai');
-      const ruleTypes = ruleSignals.map((s) => s.type);
-      const decision = decideAiRun({
-        now,
-        messages: msgs,
-        lastAiSeq: ai.lastSeq,
-        lastAiAt: ai.lastAt,
-        lastLevel: ai.lastLevel,
-        currentLevel: result.risk_level,
-        newRuleSignal: ruleTypes.some((t) => !ai.lastRuleTypes.includes(t)),
-        budgetLeft: Number.POSITIVE_INFINITY,
-        minIntervalMs,
-        batchSize,
-      });
-      if (decision.run) {
-        aiCalled = true;
-        aiReason = decision.reason;
-        aiCalls++;
-        const req = buildAiRequest(msgs, ai.lastSeq, ai.summary, ruleSignals);
-        const levelAtRequest = result.level_before_ai;
-        try {
-          const parsed = parseAiResponse(await o.callAi(req), req, msgs, 'replay');
-          ai.signals = mergeAiSignals(ai.signals, parsed.signals);
-          if (parsed.summary) ai.summary = parsed.summary;
-          ai.downgrade = parsed.downgradeReason ? { reason: parsed.downgradeReason, fromLevel: levelAtRequest } : undefined;
-        } catch (e) {
-          if (e instanceof DailyCapReached) throw e; // hết lượt trong ngày → dừng cả lần chạy, không tính là lỗi AI
-          aiErrors++; // lỗi AI: giữ kết quả luật, không hạ mức (như sản phẩm)
-        }
-        ai.lastSeq = req.upToSeq;
-        ai.lastAt = now;
-        ai.lastLevel = levelAtRequest;
-        ai.lastRuleTypes = ruleTypes;
-        result = analyze(msgs, { aiSignals: ai.signals, aiDowngrade: ai.downgrade });
-      }
-    }
-
+    const { result, aiCalled, aiReason } = await askAi(msgs, now, now);
     const shown = display(result, msgs.at(-1)!.seq);
     if (c.messages[i]!.sender === 'other') {
       dp++;
@@ -123,6 +119,17 @@ export async function replayCase(c: BenchCase, o: ReplayOptions = {}): Promise<R
       // Tin của người dùng (vd. đã xác minh) / lượt AI sau đó → cập nhật mức của tin DP gần nhất
       const last = turns[turns.length - 1]!;
       turns[turns.length - 1] = { ...last, level: shown, rawLevel: result.risk_level, aiCalled: last.aiCalled || aiCalled, aiReason: aiReason ?? last.aiReason };
+    }
+  }
+
+  // Hết tin: hội thoại dừng, gọi nốt tin lẻ chưa đủ lô như sản phẩm
+  const last = turns.at(-1);
+  if (last && idleFlushMs > 0) {
+    const lastAt = (c.messages.length - 1) * gapMs;
+    const end = await askAi(c.messages, lastAt + idleFlushMs, lastAt);
+    if (end.aiCalled) {
+      const shown = display(end.result, c.messages.at(-1)!.seq);
+      turns[turns.length - 1] = { ...last, level: shown, rawLevel: end.result.risk_level, aiCalled: true, aiReason: end.aiReason };
     }
   }
   return { turns, finalLevel: turns.at(-1)?.level ?? 'low', aiCalls, aiErrors };

@@ -1,4 +1,4 @@
-// npm run bench:experiment-ai -- --id EXP-009 --run <runId> --model <id> --config hybrid-hint --title "..." --hypothesis "..."
+// npm run bench:experiment-ai -- --id EXP-010 --run <runId> --model <id> --config hybrid-hint --title "..." --hypothesis "..."
 // Ghi kết quả một lần chạy AI (research/run.ts) thành thí nghiệm trong sổ. Chỉ nhận lần chạy trên tune.
 // metrics.json không chứa nội dung chat. Sau khi chạy phải tự viết README.md, phần kết luận cần người đọc.
 import { execSync } from 'node:child_process';
