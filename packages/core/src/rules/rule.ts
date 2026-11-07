@@ -25,6 +25,8 @@ export interface Rule {
   requireOneOf?: number[];
   /** Nếu ngay trước vị trí khớp có từ phủ định (không, miễn, chẳng...) thì bỏ qua lần khớp đó. */
   negatable?: boolean;
+  /** Chế độ `groups`: chỉ xét phủ định ở các nhóm này. Không đặt thì `negatable` áp dụng cho mọi nhóm. */
+  negatableGroups?: number[];
   /** Bỏ qua cả tin nhắn nếu khớp một trong các mẫu này (ngữ cảnh hợp lệ). */
   exclude?: RegExp[];
   direct_danger?: boolean;
@@ -75,7 +77,8 @@ export function matchGroups(rule: Rule, normalized: string): number[] {
   if (!rule.groups || rule.exclude?.some((re) => re.test(normalized))) return [];
   const hit: number[] = [];
   rule.groups.forEach((group, gi) => {
-    if (group.some((re) => firstMatch(re, normalized, !!rule.negatable) >= 0)) hit.push(gi);
+    const negatable = !!rule.negatable && (!rule.negatableGroups || rule.negatableGroups.includes(gi));
+    if (group.some((re) => firstMatch(re, normalized, negatable) >= 0)) hit.push(gi);
   });
   return hit;
 }

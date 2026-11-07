@@ -1,6 +1,81 @@
 import type { Rule } from './rule';
 
+/**
+ * Cách nói đòi thêm tiền, không phụ thuộc số tiền. Đứng một mình chỉ ở mức Cần chú ý vì đời thường cũng dùng,
+ * ghép với ngữ cảnh mới lên mức cao hơn. "cọc" không dấu trùng "cốc" nên phải đi kèm từ khác.
+ */
+const MONEY_REQUEST: RegExp[] = [
+  /\bnap (lai|du|von|vao (vi|tai khoan|san|he thong))\b/,
+  /\b(vao|bom) (them )?von\b/,
+  /\b(dong|nop|gop|bu) them\b(?! y kien)/,
+  /\b(chuyen|gui|tra|chuyen khoan) them\b(?! (anh|hinh|file|thong tin|tai lieu|tin|video|link|hang|do|mau|cau|loi))/,
+  /\bbu (tien|von|phi|khoan)\b/,
+  /(?<!\b(kiem|lam|co|duoc|nhan) )\bthem (tien|phi|khoan (tien|phi|nua))\b/,
+  // "tiền cọc" đứng một mình thường là kể lại ("chủ trọ trả lại tiền cọc"); đòi đóng cọc đã có ở upfront_fee.
+  /\b(coc giu (cho|hang|suat|phong)|coc (giup|di|ngay|nhe|luon)|coc nha\s*[.!]?$)\b/,
+  /\b(ky quy|the chan|tien bao lanh|tien giu cho)\b/,
+  /\bung truoc\b(?! (tien )?luong)/,
+  /\b(dong|nop|chuyen|thanh toan|tra)\b.{0,15}\bphi (rut|mo khoa|giai ngan|hai quan|chuyen doi|giai phong)\b/,
+  /\b(dong|nop|chuyen)\b.{0,10}\b(thue|le phi)\b.{0,30}\b(nhan|rut|lanh)\b/,
+];
+/** Việc thường ngày có cùng cách nói: tin nhà mạng, phí ship, mua thêm hàng, thẻ xe, công ty đóng bảo hiểm cho nhân viên. */
+const MONEY_REQUEST_EXCLUDE = [
+  /\b(dien thoai|the cao|the nap|nap the|vien thong|thue bao|data|goi cuoc|tra sau)\b/,
+  /\bky hop dong\b.{0,20}\b(tai|truc tiep)\b/,
+  /\b(phi ship|phi van chuyen|phi giao hang|mua them|the xe|xe buyt|the gui xe)\b/,
+  /\bcong ty (se )?(dong|tra|chuyen) them\b/,
+];
+/** Lý do hợp thức cho việc đòi tiền thì lên mức Cao. */
+const MONEY_CONTEXT: RegExp[] = [
+  // Việc làm, nhiệm vụ
+  /\b(nhiem vu|hoa hong|cong tac vien|tuyen (dung|nhan vien)|nhan viec|viec lam|lam them|don ao|chot don|giat don)\b/,
+  // Hứa trả lại
+  /\b(hoan (lai|tien|von)|rut (duoc|tien|het)|nhan lai|lay lai|duoc tra lai|gap doi)\b/,
+  // Giục gấp. "gấp" và "ngày" không dấu trùng từ khác nên phải đi cụm.
+  /\b(han cuoi|mat suat|het suat|het cho|chi con|sap het|trong hom nay|ngay lap tuc|ngay bay gio|can gap|chuyen gap)\b/,
+  // Giá trị hứa hẹn quá cao
+  /\b(cam ket (loi nhuan|lai|khong lo)|lai \d+ ?%|khong lo|trung thuong|nhan thuong|loi nhuan)\b/,
+];
+const MONEY_THREAT = [/\b(dong bang|bi tich thu|mat (het|toan bo|sach)|bi khoa vinh vien|khong rut duoc)\b/];
+
 export const financeRules: Rule[] = [
+  {
+    type: 'money_request_phrase',
+    category: 'finance',
+    severity: 'medium',
+    title: 'Đề nghị đóng, nạp hoặc chuyển thêm tiền',
+    explanation: 'Đối phương đề nghị đóng thêm, nạp thêm, đặt cọc hoặc một khoản tiền trước. Chưa thấy lý do rõ ràng cho khoản này.',
+    recommended_action: 'Hỏi rõ khoản tiền này để làm gì và kiểm tra người nhận trước khi chuyển.',
+    negatable: true,
+    exclude: MONEY_REQUEST_EXCLUDE,
+    patterns: MONEY_REQUEST,
+  },
+  {
+    type: 'money_request_context',
+    category: 'finance',
+    severity: 'high',
+    title: 'Đòi thêm tiền kèm lời hứa, việc làm hoặc giục gấp',
+    explanation: 'Đối phương đòi thêm tiền và gắn với công việc, lời hứa hoàn tiền, lợi nhuận cao hoặc hạn gấp. Đây là cách thường gặp để khiến người nhận chuyển tiền trước khi kịp kiểm tra.',
+    recommended_action: 'Không chuyển tiền chỉ vì lời hứa hay hạn gấp. Dừng lại, kiểm tra đơn vị qua kênh độc lập.',
+    negatable: true,
+    negatableGroups: [0],
+    exclude: MONEY_REQUEST_EXCLUDE,
+    requireOneOf: [0],
+    groups: [MONEY_REQUEST, MONEY_CONTEXT],
+  },
+  {
+    type: 'money_request_threat',
+    category: 'finance',
+    severity: 'critical',
+    title: 'Đòi thêm tiền kèm dọa mất tiền đã nạp',
+    explanation: 'Đối phương đòi thêm tiền và dọa đóng băng hoặc mất số tiền đã có. Nạp thêm thường không lấy lại được tiền cũ.',
+    recommended_action: 'Dừng ngay, không chuyển thêm. Lưu bằng chứng, báo ngân hàng và trình báo công an.',
+    negatable: true,
+    negatableGroups: [0],
+    exclude: MONEY_REQUEST_EXCLUDE,
+    requireOneOf: [0],
+    groups: [MONEY_REQUEST, MONEY_THREAT],
+  },
   {
     type: 'upfront_fee',
     category: 'finance',
@@ -10,6 +85,8 @@ export const financeRules: Rule[] = [
       'Có yêu cầu đóng phí, đặt cọc hoặc nộp tiền để được nhận việc. Đơn vị tuyển dụng hợp pháp thường không thu phí của ứng viên.',
     recommended_action: 'Không chuyển tiền trước khi xác minh độc lập đơn vị tuyển dụng và có văn bản nêu rõ khoản phí.',
     negatable: true,
+    // Đặt qua kênh chính thức là giao dịch thường. Tin có kèm link thì không loại, vì link có thể là trang giả.
+    exclude: [/^(?!.*(https?|www|\.\s*[a-z]{2,}\s*\/)).*\b(qua|tren) (website|trang web|ung dung|app) chinh thuc\b/],
     patterns: [
       // "có tiện tham gia" sau khi bỏ dấu thành "co tien tham gia", không phải tiền tham gia
       /(?<!\bco )\b(phi|le phi|tien) (ho so|kich hoat|dang ky|dao tao|dong phuc|giu cho|bao hiem|the chan|xu ly|mo tai khoan|nhan viec|tham gia|giu suat|lam the|xac minh|bao dam|dam bao|thu tuc|giu viec)\b/,
@@ -45,6 +122,8 @@ export const financeRules: Rule[] = [
     explanation:
       'Có dấu hiệu mô hình "làm nhiệm vụ", nạp tiền để nhận hoa hồng hoặc chốt đơn ảo — kiểu lừa đảo việc làm online phổ biến.',
     recommended_action: 'Không nạp tiền để "làm nhiệm vụ". Các khoản hoa hồng ban đầu thường chỉ để tạo lòng tin.',
+    // "không cần nạp thêm" là lời trấn an, không phải yêu cầu.
+    negatable: true,
     // Nạp tiền trong game hoặc góp tiền tài khoản xem phim dùng chung không phải mô hình làm nhiệm vụ.
     exclude: [/\b(acc game|choi game|leo rank|trang phuc|netflix|spotify|youtube premium)\b/],
     patterns: [
@@ -78,7 +157,6 @@ export const financeRules: Rule[] = [
     requireOneOf: [0],
     groups: [
       [
-        /\b(nap|dong)\b.{0,15}\d+(?:[.,]\d+)? trieu\b.{0,40}\b(hoan|thuong|hoa hong|rut)\b/,
         /\bnap cang nhieu\b|\bdon cang to\b/,
         /\b(gom tien|muon ban be|muon them|vay them)\b.{0,50}\bnap\b/,
       ],

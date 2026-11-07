@@ -1,5 +1,5 @@
 import { buildAdvice } from './advice';
-import { applyContextMitigations, applyVerificationMitigation, entitySignals } from './context';
+import { applyContextMitigations, applyVerificationMitigation, entitySignals, repeatedMoneySignals } from './context';
 import { validateEvidence } from './evidence';
 import { buildLedger } from './ledger';
 import { normalizeForMatch } from './normalize';
@@ -72,6 +72,9 @@ export function runRules(messages: ChatMessage[]): Signal[] {
     if (s.type === 'task_deposit' && types.has('task_freeze_extortion')) return false;
     // R06 (nghi tài khoản bị chiếm) cụ thể hơn lời nhờ mượn tiền chung chung
     if (s.type === 'borrow_request' && types.has('account_takeover_borrow')) return false;
+    // Cùng một lời đòi tiền: giữ mức ghép ngữ cảnh nặng nhất
+    if (s.type === 'money_request_phrase' && (types.has('money_request_context') || types.has('money_request_threat'))) return false;
+    if (s.type === 'money_request_context' && types.has('money_request_threat')) return false;
     return true;
   });
 }
@@ -111,10 +114,11 @@ const LEVEL_CEILING: Record<RiskLevel, number> = { low: 24, attention: 59, high:
 const LOWER: Record<RiskLevel, RiskLevel> = { low: 'low', attention: 'low', high: 'attention', critical: 'critical' };
 
 export function analyze(messages: ChatMessage[], opts: AnalyzeOptions = {}): AnalysisResult {
-  const ruleSignals = applyVerificationMitigation(
+  const mitigated = applyVerificationMitigation(
     applyContextMitigations([...runRules(messages), ...entitySignals(messages)], messages),
     messages,
   );
+  const ruleSignals = [...mitigated, ...repeatedMoneySignals(mitigated, messages)];
   const ledger = buildLedger(messages);
 
   let aiSignals: Signal[] = [];

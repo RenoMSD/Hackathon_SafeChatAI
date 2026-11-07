@@ -27,3 +27,6 @@ Tự sinh bằng `npm run bench:experiment -- --ledger`. Không sửa tay. Cách
 | [EXP-018](EXP-018/README.md) | Gợi ý Hỏi thử theo diễn biến và bước tiếp theo của AI | rules+ai | `xem-git-log` | – (–) | – (–) | chưa xem | chưa xem | – | – | 2 |
 | [EXP-019](EXP-019/README.md) | Xin OTP kèm tự xưng ngân hàng hoặc dọa khóa | rules | `93b9e3a+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |
 | [EXP-020](EXP-020/README.md) | Sửa bỏ sót APK ngoài kho, thêm cách rủ đổi kênh | rules | `93b9e3a+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |
+| [EXP-021](EXP-021/README.md) | Cảnh báo đòi tiền theo từ ngữ và ngữ cảnh, bỏ ngưỡng số tiền | rules | `49e9962+dirty` | 3.2% (1/31) | 12.5% (4/32) | chưa xem | chưa xem | 3.6% | 33.5% | 2 |
+| [EXP-022](EXP-022/README.md) | Siết từ khóa đòi tiền sau lần đo EXP-021 | rules | `49e9962+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |
+| [EXP-023](EXP-023/README.md) | Cảnh báo đòi tiền theo ngữ cảnh, bản chốt | rules | `49e9962+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |

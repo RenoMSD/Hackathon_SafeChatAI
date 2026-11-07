@@ -2711,7 +2711,7 @@
   },
   {
     "id": "114_long_fee_near_big_amount",
-    "title": "Tiền cơm kèm số tiền lớn ngay cạnh → không hạ",
+    "title": "Tiền cơm kèm khoản tiền hàng ngay cạnh → không hạ",
     "source": "v0.8: hội thoại dài khi quét ban đầu 50 tin",
     "messages": [
       {
@@ -3780,6 +3780,428 @@
     "expected": {
       "level": "low",
       "signals": []
+    }
+  },
+  {
+    "id": "161_coc_giu_cho",
+    "title": "Cọc giữ chỗ, không kèm số tiền → Cần chú ý",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Cọc giữ chỗ giúp chị nha"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "money_request_phrase"
+      ]
+    }
+  },
+  {
+    "id": "162_ky_quy",
+    "title": "Ký quỹ, chưa có ngữ cảnh → Cần chú ý",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Anh cần ký quỹ để mở tài khoản"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "money_request_phrase"
+      ]
+    }
+  },
+  {
+    "id": "163_chuyen_them_de_rut",
+    "title": "Chuyển thêm kèm hứa rút được → Cao",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hoa hồng đã về tài khoản rồi"
+      },
+      {
+        "sender": "other",
+        "text": "Em chuyển thêm cho đủ thì rút được"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "money_request_context"
+      ]
+    }
+  },
+  {
+    "id": "164_coc_ep_han",
+    "title": "Cọc kèm giục hạn cuối → Cao",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hôm nay là hạn cuối, cọc ngay kẻo mất suất"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "money_request_context"
+      ]
+    }
+  },
+  {
+    "id": "165_thue_nhan_thuong",
+    "title": "Đóng thuế để nhận thưởng → Cao",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Anh đóng thuế và lệ phí để nhận thưởng"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "money_request_context"
+      ]
+    }
+  },
+  {
+    "id": "166_dong_them_doa_mat",
+    "title": "Đóng thêm kèm dọa mất hết → Nghiêm trọng",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em đóng thêm một khoản nữa, không thì mất hết tiền đó"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "money_request_threat"
+      ]
+    }
+  },
+  {
+    "id": "167_nap_tang_dan_nho",
+    "title": "Nạp tăng dần số nhỏ theo nhiệm vụ → Nghiêm trọng",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em nạp 500k để nhận nhiệm vụ"
+      },
+      {
+        "sender": "other",
+        "text": "Giờ nạp 900k nữa để nhận hoa hồng"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "task_deposit",
+        "task_escalating_deposit"
+      ]
+    }
+  },
+  {
+    "id": "168_doi_tien_hai_lan",
+    "title": "Đòi tiền hai lần không kèm số → Cao",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em bù thêm cho đủ nhé"
+      },
+      {
+        "sender": "other",
+        "text": "Em đóng thêm phần còn lại nhé"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "money_request_phrase",
+        "repeated_money_request"
+      ]
+    }
+  },
+  {
+    "id": "169_tien_com_khong_nguong",
+    "title": "Tiền cơm số lớn hơn ngưỡng cũ vẫn là đời thường → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tiền cơm hôm qua 600k, đặt cọc giúp mình nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "170_khong_thu_coc",
+    "title": "Phủ định: không thu cọc, không cần nạp thêm → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên mình không thu cọc và không cần nạp thêm gì"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "171_ke_chuyen_bi_lua",
+    "title": "Kể chuyện người khác bị lừa → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hôm qua bạn mình bị lừa đặt cọc mất tiền"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "172_coc_kenh_chinh_thuc",
+    "title": "Đặt cọc qua kênh chính thức → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên khách sạn cần đặt cọc qua website chính thức khi đặt phòng"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "173_gui_them_anh",
+    "title": "Gửi thêm ảnh, kiếm thêm tiền không phải đòi tiền → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mình gửi thêm ảnh cho bạn xem nhé"
+      },
+      {
+        "sender": "other",
+        "text": "Cuối tuần mình đi làm thêm kiếm thêm tiền"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "174_coc_o_trang_com",
+    "title": "Đuôi .com không được coi là tiền cơm → Cao",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Đặt cọc 5 triệu ở abc.com nhé"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "175_bi_lua_van_doi_phi",
+    "title": "Người gian nói bạn bị lừa rồi đòi phí vẫn phải bắt → Cao",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bạn mình bị lừa rồi, nhưng em đặt cọc cho bên chị nhé"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "176_coc_trang_gia_co_link",
+    "title": "Tự nói kênh chính thức nhưng kèm link → Cao",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Đặt cọc qua website chính thức https://dat-phong.top/coc nhé"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee",
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "177_tien_hoc",
+    "title": "Đóng thêm tiền học cho con → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tháng này đóng thêm tiền học cho con nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "178_tra_lai_coc",
+    "title": "Kể chủ trọ trả lại tiền cọc → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tiền cọc nhà chủ trọ trả lại rồi nha"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "179_mua_them",
+    "title": "Mua thêm thì trả thêm → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mua thêm thì trả thêm 20k nha"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "180_phi_ship",
+    "title": "Thêm phí ship → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Đơn này thêm phí ship 15k nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "181_the_xe",
+    "title": "Nạp đủ tiền vào thẻ xe buýt → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Nhớ nạp đủ tiền vào thẻ xe buýt nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "182_quy_lop",
+    "title": "Góp thêm mua quà cho cô → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Lớp mình góp thêm 50k mua quà cho cô nha"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "183_cong_ty_dong",
+    "title": "Công ty đóng thêm bảo hiểm cho nhân viên → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Công ty đóng thêm bảo hiểm cho em từ tháng sau"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "184_tin_nha_mang",
+    "title": "Tin nhà mạng nhắc nạp thẻ → Thấp",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tặng 20% giá trị thẻ nạp vào tài khoản viễn thông hôm nay"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "185_tien_com_kem_hua_rut",
+    "title": "Chèn tiền cơm cạnh lời hứa rút được vẫn phải bắt → Cao",
+    "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tiền cơm hôm nay nhé"
+      },
+      {
+        "sender": "other",
+        "text": "Em chuyển thêm cho đủ thì rút được"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "money_request_context"
+      ]
     }
   }
 ]

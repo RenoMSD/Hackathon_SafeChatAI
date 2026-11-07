@@ -3,7 +3,7 @@
 // Kẻ gian có thể chèn câu cảnh báo để né luật, vì vậy chỉ bỏ qua khi tin KHÔNG xưng danh và KHÔNG yêu cầu hành động.
 
 const WARNING_MARKER =
-  /\b(canh giac|canh bao|chieu (lua dao|tro|gia danh)|thu doan|vu gia danh|chung no|ke gian|bon lua dao|khong bao gio (lam viec|doi|yeu cau)|tuyet doi khong (chup|doc|cung cap|chia se|gui))\b/;
+  /\b((ban (minh|toi|tao)|nguoi quen|hang xom|dong nghiep|nhieu nguoi|co nguoi) (da |vua |cung )?bi (lua|gat) (dat coc|coc|nap|chuyen|dong|mat)|canh giac|canh bao|chieu (lua dao|tro|gia danh)|thu doan|vu gia danh|chung no|ke gian|bon lua dao|khong bao gio (lam viec|doi|yeu cau)|tuyet doi khong (chup|doc|cung cap|chia se|gui))\b/;
 
 /** Xưng danh: "tôi là…", "em là…", "bên mình là…". Kẻ gian thường tự giới thiệu ngay sau câu cảnh báo. */
 const SELF_CLAIM = /\b(toi|minh|anh|em|chi|ben (em|minh)) la\b/;
@@ -12,7 +12,7 @@ const SELF_CLAIM = /\b(toi|minh|anh|em|chi|ben (em|minh)) la\b/;
 const NOT_A_REQUEST = String.raw`(?<!\b(doi|bat|ep|yeu cau|bao|khong|dung|neu|chung no|ke gian)\s+(\S+\s+){0,2})`;
 
 const REQUEST_TO_RECEIVER = new RegExp(
-  `${NOT_A_REQUEST}\\b(chuyen khoan|chuyen tien|chuyen toan bo|nap|dong|gui|doc|cung cap|cai|tai|bam|nhap|quet)\\b.{0,40}\\b(cho (toi|em|anh|chi|minh|ben|tao)|vao (so tai khoan|tai khoan|link|day)|qua (so tai khoan|link)|tai khoan (an toan|nay)|so tai khoan \\d|link nay)\\b`,
+  `${NOT_A_REQUEST}\\b(chuyen khoan|chuyen tien|chuyen toan bo|dat coc|nap|dong|gui|doc|cung cap|cai|tai|bam|nhap|quet)\\b.{0,40}\\b(cho (toi|em|anh|chi|minh|ben|tao)|vao (so tai khoan|tai khoan|link|day)|qua (so tai khoan|link)|tai khoan (an toan|nay)|so tai khoan \\d|link nay)\\b`,
 );
 
 const HAS_URL = /https?\s*:|www\s*\.|\b[a-z0-9-]+\s*\.\s*(example|com|net|xyz|top|click|info|org)\b/;

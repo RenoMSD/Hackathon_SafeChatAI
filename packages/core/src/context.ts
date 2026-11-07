@@ -76,12 +76,14 @@ export function parseAmounts(n: string): number[] {
   return out;
 }
 
-const SMALL_AMOUNT = 500_000;
 const JOB_CONTEXT = /\b(tuyen|viec lam|cong viec|ung tuyen|nhan viec|luong|cong tac vien|nhiem vu|hoa hong|phong van|trung tuyen)\b/;
-const EVERYDAY = /\b(com|an (trua|toi|sang)|tra sua|cafe|ca phe|nhau|bill|tien (an|com|nuoc|xang|dien|nha|phong)|chia (tien|bill)|gop tien|sinh nhat|di cho)\b/;
+// Không dùng "com", "nhau" đứng một mình: trùng đuôi .com và "gặp nhau", dễ hạ nhầm cảnh báo.
+const EVERYDAY = /\b(tien com|an com|com (trua|toi|sang)|an (trua|toi|sang)|tra sua|cafe|ca phe|an nhau|di nhau|bill|tien hoc|hoc phi|quy lop|mua qua|tien (an|com|nuoc|xang|dien|nha|phong)|chia (tien|bill)|gop tien|sinh nhat|di cho)\b/;
+/** Có khoản tiền cho mục đích khác đi kèm thì không phải chia tiền sinh hoạt ("tiền cơm 50k với 30 triệu tiền hàng"). */
+const NOT_EVERYDAY_PURPOSE = /\b(tien hang|tien no|tra no|tien vay|khoan vay|dau tu|tien von|gop von|hop dong|rut (duoc|tien|het)|hoan (lai|tien|von)|loi nhuan|lai \d+ ?%)\b/;
 const SHOP = /\b(shop|cua hang|don (hang|dat)|dat hang|size|ship|shipper|giao hang)\b/;
 const SHOP_SAFE = /\b(cod|thanh toan khi nhan|nhan hang\b.{0,15}\b(kiem tra|roi|moi)|kiem tra hang)\b/;
-const MITIGABLE = new Set(['money_transfer', 'upfront_fee']);
+const MITIGABLE = new Set(['money_transfer', 'upfront_fee', 'money_request_phrase', 'money_request_context']);
 const RISKY_CATEGORIES = new Set(['isolation', 'impersonation', 'technical', 'investment', 'account', 'contradiction', 'pressure']);
 
 /** Số tin xét trước và sau bằng chứng khi quyết định có phải giao dịch đời thường không. */
@@ -96,11 +98,10 @@ function everydayReason(window: ChatMessage[], signals: Signal[]): string | null
   );
   const others = window.filter((m) => m.sender !== 'self').map((m) => normalizeForMatch(m.text));
   const all = others.join(' \n ');
-  if (otherRisk || JOB_CONTEXT.test(all)) return null;
-  const amounts = others.flatMap(parseAmounts);
-  if (!amounts.length || Math.max(...amounts) > SMALL_AMOUNT) return null;
-  if (EVERYDAY.test(all)) return 'Ngữ cảnh chia tiền sinh hoạt với số tiền nhỏ';
-  if (SHOP.test(all) && SHOP_SAFE.test(all)) return 'Ngữ cảnh mua hàng có kiểm tra hàng/COD, số tiền nhỏ';
+  if (otherRisk || JOB_CONTEXT.test(all) || NOT_EVERYDAY_PURPOSE.test(all)) return null;
+  // Quyết định theo ngữ cảnh, không theo số tiền. Số tiền chỉ để hiển thị.
+  if (EVERYDAY.test(all)) return 'Ngữ cảnh chia tiền sinh hoạt';
+  if (SHOP.test(all) && SHOP_SAFE.test(all)) return 'Ngữ cảnh mua hàng có kiểm tra hàng/COD';
   return null;
 }
 
@@ -124,11 +125,55 @@ export function applyContextMitigations(signals: Signal[], messages: ChatMessage
       severity: 'low' as const,
       mitigation: reason,
       // Tiêu đề/lời khuyên gốc nói về phí tuyển dụng — thay bằng nội dung trung lập hợp ngữ cảnh
-      title: s.type === 'upfront_fee' ? 'Đặt cọc trong giao dịch thông thường' : 'Chuyển khoản trong giao dịch thông thường',
+      title: s.type === 'money_transfer' ? 'Chuyển khoản trong giao dịch thông thường' : 'Đặt cọc hoặc đóng tiền trong giao dịch thông thường',
       explanation: `Có đề nghị chuyển tiền/đặt cọc nhưng thuộc ${reason.toLowerCase()}, nên được hạ xuống mức Thấp.`,
       recommended_action: 'Kiểm tra đúng người nhận/uy tín cửa hàng; ưu tiên thanh toán khi nhận hàng và không chuyển thêm nếu bị hối thúc.',
     };
   });
+}
+
+// ---------------------------------------------------------------- đòi tiền lặp lại
+const MONEY_DEMANDS = new Set(['upfront_fee', 'task_deposit', 'money_request_phrase', 'money_request_context']);
+const TASK_CONTEXT = /\b(nhiem vu|hoa hong|don si|don vip|don hang|he thong phan phoi|chot don|giat don|hoan \d)\b/;
+const HIGH_OR_MORE = new Set(['high', 'critical']);
+
+/**
+ * So tương đối trong chính đoạn chat, không dùng ngưỡng số tiền cố định:
+ *  - số tiền yêu cầu sau cao hơn trước, trong bối cảnh nhiệm vụ: nạp leo thang;
+ *  - đòi tiền từ 2 tin trở lên mà chưa có tín hiệu nặng: lên mức Cao.
+ */
+export function repeatedMoneySignals(signals: Signal[], messages: ChatMessage[]): Signal[] {
+  const ids = new Set(signals.filter((s) => MONEY_DEMANDS.has(s.type) && !s.mitigation).flatMap((s) => s.evidence_message_ids));
+  const demands = messages.filter((m) => ids.has(m.id) && m.sender !== 'self');
+  if (demands.length < 2) return [];
+  const base = {
+    category: 'finance' as const,
+    evidence_message_ids: demands.map((m) => m.id),
+    evidence_quotes: demands.map(quote),
+    source: 'rule' as const,
+  };
+  const firstAmounts = demands.map((m) => parseAmounts(normalizeForMatch(m.text))[0]).filter((a): a is number => a !== undefined);
+  const rising = firstAmounts.length >= 2 && firstAmounts.at(-1)! > firstAmounts[0]!;
+  const task = messages.some((m) => m.sender !== 'self' && TASK_CONTEXT.test(normalizeForMatch(m.text)));
+  if (rising && task && !signals.some((s) => s.type === 'task_escalating_deposit')) {
+    return [{
+      ...base,
+      type: 'task_escalating_deposit',
+      severity: 'critical',
+      title: 'Số tiền phải nạp tăng dần theo nhiệm vụ',
+      explanation: 'Khoản phải nạp sau cao hơn khoản trước và gắn với nhiệm vụ, hoa hồng. Đây là bước giam tiền: nạp càng nhiều càng khó lấy lại.',
+      recommended_action: 'Dừng ngay, không nạp thêm và không vay mượn để nạp. Lưu bằng chứng, báo ngân hàng và trình báo công an.',
+    }];
+  }
+  if (signals.some((s) => !s.mitigation && HIGH_OR_MORE.has(s.severity))) return [];
+  return [{
+    ...base,
+    type: 'repeated_money_request',
+    severity: 'high',
+    title: rising ? 'Số tiền đòi tăng dần' : 'Đòi tiền nhiều lần',
+    explanation: 'Đối phương đề nghị đóng hoặc chuyển tiền từ hai lần trở lên trong cùng đoạn chat.',
+    recommended_action: 'Không chuyển thêm. Hỏi rõ tổng số tiền phải trả, và kiểm tra người nhận qua kênh độc lập.',
+  }];
 }
 
 // ---------------------------------------------------------------- người dùng đã tự xác minh

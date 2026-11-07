@@ -21,7 +21,7 @@ describe('hạ mức theo ngữ cảnh gần bằng chứng', () => {
     expect(r.signals.find((s) => s.type === 'money_transfer')?.mitigation).toBeTruthy();
     expect(r.risk_level).toBe('low');
   });
-  it('số tiền lớn ngay gần thì không hạ', () => {
+  it('khoản tiền cho mục đích khác ngay gần thì không hạ', () => {
     const r = analyze(chat([...talk, 'Tiền cơm 50k với 30 triệu tiền hàng', 'Chuyển khoản cho t nha']));
     expect(r.signals.find((s) => s.type === 'money_transfer')?.mitigation).toBeUndefined();
   });
@@ -100,9 +100,9 @@ describe('luật ngữ cảnh giảm cảnh báo nhầm', () => {
     expect(r.signals.find((x) => x.type === 'upfront_fee')?.mitigation).toBeUndefined();
     expect(r.risk_level).toBe('high');
   });
-  it('không hạ mức khi số tiền lớn', () => {
+  it('hạ mức theo ngữ cảnh, không phụ thuộc số tiền', () => {
     const r = analyze(msgs('Tiền cơm tháng này 2 triệu, ck vô stk 9988776655 nha'));
-    expect(r.signals.find((x) => x.type === 'money_transfer')?.mitigation).toBeUndefined();
+    expect(r.signals.find((x) => x.type === 'money_transfer')?.mitigation).toBe('Ngữ cảnh chia tiền sinh hoạt');
   });
   it('không hạ mức khi có dấu hiệu rủi ro khác', () => {
     const r = analyze(msgs('Tiền cơm 65k ck vô stk này nha, gửi mình mã OTP luôn'));
