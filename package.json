@@ -10,12 +10,14 @@
     "services/*"
   ],
   "scripts": {
-    "check": "tsc --noEmit && vitest run && tsx scripts/eval.ts --check && node apps/extension/scripts/build.mjs",
+    "check": "tsc --noEmit && vitest run --no-file-parallelism && tsx scripts/eval.ts --check && node apps/extension/scripts/build.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --no-file-parallelism",
     "test:watch": "vitest",
     "eval": "tsx scripts/eval.ts",
     "build:extension": "node apps/extension/scripts/build.mjs",
+    "build:gateway": "node services/gateway/build.mjs",
+    "dev:gateway": "tsx services/gateway/src/index.ts",
     "dev:extension": "vite apps/extension --port 5178",
     "icons": "node apps/extension/scripts/icons.mjs",
     "bench:import": "tsx research/import.ts",

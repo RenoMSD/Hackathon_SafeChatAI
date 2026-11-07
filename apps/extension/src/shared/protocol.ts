@@ -101,7 +101,7 @@ export const DEFAULT_SETTINGS: Settings = {
   nanoEnabled: false,
   groqEnabled: false,
   groqApiKey: '',
-  groqSmallModel: 'openai/gpt-oss-20b',
+  groqSmallModel: 'openai/gpt-oss-120b',
   groqLargeModel: 'openai/gpt-oss-120b',
   dailyBudget: 200,
   batchSize: 5,

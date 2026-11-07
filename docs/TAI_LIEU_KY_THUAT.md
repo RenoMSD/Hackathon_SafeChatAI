@@ -52,11 +52,11 @@ src/core/        logic thuần (không gọi chrome.*), test được bằng Vit
   transcript.ts  bản nháp tạm: khử trùng lặp theo cửa sổ DOM, giữ tối đa 300 tin
   export.ts      báo cáo HTML/JSON (escape HTML)
 src/content/     content script thụ động cho tới khi người dùng bấm bắt đầu; adapter riêng cho Messenger và chat giả lập
-src/background/  state machine của phiên, chrome.storage.session, Groq (tùy chọn)
+src/background/  state machine của phiên, chrome.storage.session, Groq qua gateway (tùy chọn)
 src/sidepanel/   giao diện (TypeScript thuần, chỉ dùng textContent)
 ```
 
-**Dữ liệu:** phiên nằm trong `chrome.storage.session` (chỉ trong bộ nhớ, tự mất khi đóng trình duyệt). Dừng và xóa sẽ xóa dữ liệu rồi đọc lại để xác nhận. Cài đặt và Groq API key nằm trong `chrome.storage.local`. Không có backend.
+**Dữ liệu:** phiên nằm trong `chrome.storage.session` (chỉ trong bộ nhớ, tự mất khi đóng trình duyệt). Dừng và xóa sẽ xóa dữ liệu rồi đọc lại để xác nhận. Cài đặt nằm trong `chrome.storage.local`; khi dùng gateway thì extension không giữ khóa model. Gateway local (`services/gateway`) giữ khóa Groq trong `.env` và **không lưu nội dung chat**; xem [README gateway](../services/gateway/README.md). Bản demo hiện chạy local-first, chưa dùng AWS thật.
 
 **AI phân tầng (tùy chọn)** — `src/core/ai.ts`, `src/background/ai.ts`, `src/sidepanel/nano.ts`:
 
@@ -64,8 +64,9 @@ src/sidepanel/   giao diện (TypeScript thuần, chỉ dùng textContent)
 Bộ quy tắc (luôn chạy, miễn phí)
   └─ khi đủ N tin mới của đối phương (mặc định 5) hoặc hội thoại dừng 60 giây mà còn tin lẻ, cách nhau ≥ X giây:
        1. Gemini Nano trên máy (nếu bật + side panel đang mở) — không tốn lượt, dữ liệu không rời máy
-       2. Groq mô hình nhỏ (gpt-oss-20b) — mặc định
-            └─ leo lên mô hình lớn (gpt-oss-120b) khi mức ≥ Cần chú ý, hoặc mô hình nhỏ thấy dấu hiệu nặng
+       2. Groq `openai/gpt-oss-120b` qua gateway — mặc định, lượt nhanh
+            └─ leo lên lượt sâu (cùng model, prompt đầy đủ, ngân sách lớn hơn) khi mức ≥ Cần chú ý,
+               hoặc lượt nhanh thấy dấu hiệu nặng
 ```
 
 - **Gửi phần chênh lệch (delta):** mỗi lần chỉ gửi tin mới, kèm 4 tin ngữ cảnh và bản tóm tắt cuộn do AI viết lần trước. Số điện thoại, số tài khoản và email được che trước khi gửi.
@@ -83,7 +84,7 @@ Bộ quy tắc (luôn chạy, miễn phí)
 | Khung Vite/MV3, chat giả lập, 15 tình huống | Xong |
 | Lõi phân tích (rules, ledger, scoring, advice) + test | Xong — 15/15 tình huống đúng mức |
 | Extension: phiên, side panel, xuất, chuyển chat, đóng tab, dừng và xóa | Xong, đã test logic background bằng chrome giả |
-| AI phân tầng (Nano + Groq 8B/70B, delta, hạn mức) | Xong, đã test bằng `fetch` giả — **chưa chạy với API/mô hình thật** |
+| AI phân tầng (Nano + Groq `gpt-oss-120b`, delta, hạn mức) | Xong, đã test bằng `fetch` giả — **chưa chạy với API/mô hình thật** |
 | Phân tích chi tiết, diễn biến, icon, hướng dẫn cài đặt | Xong |
 | Bộ đọc khung chat Messenger trên facebook.com | Đã dò trên giao diện thật: xác định cuộc bằng ID tài khoản người kia, chọn 1 trong nhiều khung, đóng khung thì chờ mở lại — cần kiểm thử tay thêm |
 | v0.3 — 7 nhóm kịch bản (tonghopkichban.md): R01–R10, ANY_2, thực thể, giai đoạn S0–S4, luật ngữ cảnh, AI hạ ≤ 1 bậc | Xong — 40/40 tình huống (5 ca TC của tài liệu + 20 ca cặp lừa đảo/bình thường), 0/17 cảnh báo nhầm |

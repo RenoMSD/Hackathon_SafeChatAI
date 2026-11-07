@@ -21,8 +21,8 @@ Ngoài ra, trả thêm trường "risk_level" — đánh giá TỔNG THỂ của
 Giao dịch đời thường rõ ràng (chia tiền ăn, mua hàng có COD, HR hẹn phỏng vấn tại văn phòng) là "low".`;
 
 export const BENCH_SYSTEM_PROMPT = AI_SYSTEM_PROMPT.replace(
-  'Trả về DUY NHẤT JSON đúng schema.',
-  `${LEVEL_INSTRUCTION.trim()}\nTrả về DUY NHẤT JSON đúng schema (thêm "risk_level": "low"|"attention"|"high"|"critical").`,
+  'Trả về DUY NHẤT JSON đúng schema:',
+  `${LEVEL_INSTRUCTION.trim()}\nTrả về DUY NHẤT JSON đúng schema (thêm "risk_level": "low"|"attention"|"high"|"critical"):`,
 );
 
 export function benchRequest(messages: ChatMessage[], withRuleHints: boolean): AiRequest {

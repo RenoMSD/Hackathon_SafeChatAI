@@ -1,7 +1,7 @@
 // Điều phối AI phân tầng:
 //   quy tắc (luôn chạy, miễn phí)
 //   → Gemini Nano trên máy (nếu bật và side panel báo sẵn sàng; không tốn hạn mức, dữ liệu không rời máy)
-//   → Groq: mô hình nhỏ (gpt-oss-20b) mặc định, chỉ leo lên mô hình lớn (gpt-oss-120b) khi đã có dấu hiệu đáng kể.
+//   → Groq: `openai/gpt-oss-120b` mặc định; leo lên lượt sâu (cùng model, prompt đầy đủ) khi đã có dấu hiệu đáng kể.
 // Chỉ gửi DELTA (tin mới + vài tin ngữ cảnh + tóm tắt cuộn), giới hạn số lượt/ngày.
 import {
   buildAiRequest,

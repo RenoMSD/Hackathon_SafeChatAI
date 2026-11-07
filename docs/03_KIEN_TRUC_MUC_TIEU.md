@@ -1,6 +1,8 @@
-# 03. Kiến trúc mục tiêu (AWS)
+# 03. Kiến trúc mục tiêu
 
 Đã chốt 2026-11-07: **hạ tầng triển khai trên AWS, model chạy qua Groq.** Nhóm dừng ở Tầng 1.
+
+Gateway chạy được cả ở máy (`npm run dev:gateway`) lẫn trên Lambda. CI chỉ deploy khi đặt `vars.DEPLOY_AWS=true`. Môi trường dùng cho bản demo chưa chốt.
 
 | Tầng | Thành phần | Trạng thái |
 |---|---|---|
@@ -12,7 +14,7 @@ Không huấn luyện model trên Bedrock: chỉ có 53 ca lừa đảo, nhãn t
 
 ## 1. Quyết định trung tâm
 
-**Thêm một AI Gateway không lưu nội dung trên AWS Lambda. Luật vẫn chạy trên máy.**
+**Thêm một AI Gateway không lưu nội dung, chạy local trước và có thể đóng gói lên AWS Lambda. Luật vẫn chạy trên máy.**
 
 Bản trước không có backend nên giữ được quyền riêng tư, nhưng thiếu kiểm soát chi phí và buộc người dùng tự có khóa. Gateway giữ nguyên lời hứa cốt lõi và bổ sung lợi ích thật:
 
@@ -65,7 +67,8 @@ flowchart LR
     APIGW["API Gateway HTTP API<br/>Giới hạn tốc độ"]
     GW["Lambda: gateway<br/>Xác thực, kiểm tra, che PII, hạn mức"]
     DB[("DynamoDB<br/>Chỉ số liệu, không có nội dung")]
-    SM["Secrets Manager<br/>Khóa ký token, khóa Groq"]
+    SM["Secrets Manager<br/>Khóa ký token"]
+    LLM["Groq API<br/>gpt-oss-120b"]
     STATIC["S3 + CloudFront<br/>Bản web"]
     APIGW --> GW
     GW --> DB
@@ -90,7 +93,7 @@ Hkth_safechatAI/
   apps/extension/       chuyển từ src/{content,background,sidepanel,shared}, public/
   apps/web/             kiểm tra đoạn chat, trang kịch bản, dashboard (Vite, TypeScript)
   apps/mobile/          Capacitor bọc apps/web thành app Android, nhận share intent
-  services/gateway/     Hono + TypeScript trên Lambda
+  services/gateway/     Hono + TypeScript, chạy local trước; đóng gói được lên Lambda
   infra/                template AWS SAM cho staging và production
   research/             khung đánh giá, giữ nguyên quy tắc dev/test
   fixtures/  tests/
@@ -111,7 +114,7 @@ Phần gọi model viết sau một interface nhỏ, để đổi model hoặc n
 | POST | `/v1/analyses` | Phân tích delta đã che PII, trả tín hiệu đã kiểm tra trích dẫn |
 | POST | `/v1/screenshots:extract` | (P1) Đọc chữ và người gửi từ ảnh, cần đồng ý riêng, không lưu ảnh, không dùng model miễn phí |
 | POST | `/v1/feedback` | Ghi "đúng" hoặc "báo nhầm" kèm mã luật và mức, **không có nội dung** |
-| GET | `/v1/metrics/summary` | Số liệu tổng hợp công khai: lượt gọi, chi phí, độ trễ |
+| GET | `/v1/metrics/summary` | Số liệu tổng hợp ẩn danh; **cần admin token** qua `Authorization: Bearer` |
 | GET | `/healthz` · `/readyz` | Kiểm tra sống và sẵn sàng |
 
 **Luồng `POST /v1/analyses`:**
@@ -130,9 +133,11 @@ Một bảng `safechat-<môi trường>`, tính phí theo lượt, có thuộc t
 
 | Loại bản ghi | Khóa chính (PK / SK) | Trường | Hạn lưu |
 |---|---|---|---|
-| Hạn mức | `QUOTA#{hash thiết bị}` / `{ngày}` | số lượt | TTL 2 ngày |
-| Chi tiêu | `USAGE#{ngày}` / `{model}` | lượt, token vào/ra, chi phí, tổng độ trễ, số trích dẫn bị loại | Dài hạn |
-| Phản hồi | `FEEDBACK#{ngày}` / `{mã ngẫu nhiên}` | mức, mã luật, đúng/nhầm | TTL 90 ngày |
+| Hạn mức thiết bị | `DEV#{hash thiết bị}` / `DAY#{ngày}` | số lượt | TTL 2 ngày |
+| Hạn mức cấp token | `IP#{hash IP}` / `ISSUE#{phút}` | số lượt | TTL 2 phút |
+| Ngân sách toàn cục | `GLOBAL` / `DAY#{ngày}` | số lượt, token vào | TTL 2 ngày |
+| Số liệu | `METRIC#{ngày}#{shard}` / `COUNTER`; `METRIC#{ngày}` / `MODEL#{model}#{tier}` | lượt, token vào/ra, lỗi, histogram độ trễ, số trích dẫn bị loại | TTL 90 ngày |
+| Phản hồi | `FEEDBACK#{ngày}` / `V#{verdict}` hoặc `TYPE#{mã luật}` | bộ đếm đúng/nhầm, mã luật | TTL 90 ngày |
 
 - Mọi truy cập đi theo khóa, không dùng Scan.
 - Bộ đếm cộng nguyên tử bằng `UpdateItem ... ADD`, tổng chi tiêu hôm nay là cơ sở của trần ngân sách.
@@ -141,21 +146,22 @@ Một bảng `safechat-<môi trường>`, tính phí theo lượt, có thuộc t
 
 ## 8. Triển khai và bảo mật
 
+Mục này mô tả cấu hình **khi bật AWS**. Giai đoạn hiện tại chạy gateway local (`npm run dev:gateway`), dùng store trong bộ nhớ và `.env`; các bước deploy bên dưới chỉ áp dụng khi nhóm chuyển sang AWS.
+
 | Hạng mục | Lựa chọn |
 |---|---|
 | Vùng | `ap-northeast-1` (Tokyo). CloudFront là dịch vụ toàn cầu |
 | Môi trường | Stack `safechat-staging`, `safechat-prod` |
-| Quy mô | Lambda tính theo lượt gọi. `reserved concurrency` thấp để chặn chi phí. Làm nóng trước demo |
-| Không dùng | Bedrock trong Tầng 1. App Runner (đã đóng với khách hàng mới), ECS + Load Balancer (có khả năng tốn hơn khi rảnh; chưa kiểm tra giá) |
-| CI | Mọi PR: ESLint, typecheck, test, eval so mốc, build, gitleaks |
-| CD | Merge `main` → staging + smoke test; tag `v*` → production, đóng gói extension thành zip trong GitHub Release. Job riêng build APK debug thành artifact nội bộ, không đưa vào Release công khai |
+| Quy mô | Lambda tính theo lượt gọi. `ReservedConcurrentExecutions=5`, API Gateway throttling 20 req/s (burst 40) để chặn chi phí. Làm nóng trước demo |
+| Không dùng | App Runner (đã đóng với khách hàng mới), ECS + Load Balancer (có khả năng tốn hơn khi rảnh; chưa kiểm tra giá) |
+| CI | Mọi PR: gitleaks, typecheck, test, eval so mốc, build extension, build gateway (chưa cấu hình ESLint nên không chạy lint giả) |
+| CD | Chỉ chạy khi `vars.DEPLOY_AWS=true`. Merge `main` → staging + smoke test; tag `v*` → production, đóng gói extension thành zip trong GitHub Release. Job riêng build APK debug thành artifact nội bộ, không đưa vào Release công khai |
 | Xác thực deploy | GitHub OIDC, role chỉ tin đúng repo và nhánh, không có access key dài hạn |
-| Bí mật | Secrets Manager cho khóa ký token và khóa Groq. IAM role cho Lambda với quyền tối thiểu, chỉ đọc đúng các secret này. Bỏ quyền `bedrock:InvokeModel` |
+| Bí mật | Secrets Manager cho khóa ký token và Groq API key. IAM role cho Lambda với quyền tối thiểu; local dùng `.env` không commit |
 | Tài khoản | Bật MFA cho root, không tạo access key cho root, dùng IAM cho việc hằng ngày |
 | Mạng | HTTPS sẵn có của API Gateway và CloudFront, S3 không public, CORS chỉ cho web, origin của app Capacitor và ID extension cố định, security header, giới hạn tốc độ theo route và theo thiết bị |
-| Log | CloudWatch chỉ ghi số liệu kỹ thuật, giữ 7 ngày. Lỗi từ Groq không được ghi nguyên văn nếu có thể chứa nội dung gửi đi |
-| Ngân sách | AWS Budgets cảnh báo 25/50/75%. Trần token mỗi ngày tự ngắt trong code, thấp hơn hạn mức Groq |
-| Hạn mức Groq | Dùng chung cho mọi người dùng, nên cần giới hạn theo thiết bị. Hết hạn mức thì client giữ kết quả luật |
+| Log | CloudWatch chỉ ghi số liệu kỹ thuật, giữ 7 ngày; không ghi prompt, tin nhắn, trích dẫn hay `detail` lỗi parse. **Không bật log nội dung của nhà cung cấp model** |
+| Ngân sách | AWS Budgets (tùy chọn, cảnh báo 80% chi phí tháng) + trần lượt/token tự ngắt trong code |
 
 **Sửa extension:**
 - Extension không gọi thẳng Groq nữa. Thay `api.groq.com` bằng gateway trong `optional_host_permissions`. Màn hình đồng ý nêu rõ dữ liệu đi qua gateway rồi đến Groq.
@@ -194,5 +200,7 @@ Tự huấn luyện hoặc fine-tune mô hình · RAG · iOS · viết app nativ
 - [AWS Free Tier](https://aws.amazon.com/free/) · [Free Tier FAQs](https://aws.amazon.com/free/free-tier-faqs/)
 - [So sánh các kiểu đăng ký AWS](https://docs.aws.amazon.com/accounts/latest/reference/sign-up-for-aws.html)
 - [Dịch vụ hỗ trợ khi đăng ký kiểu new](https://docs.aws.amazon.com/accounts/latest/reference/supported-services-sign-up-new.html) · [Vùng của project](https://docs.aws.amazon.com/accounts/latest/reference/project-regions.html)
+- [Groq — Models](https://console.groq.com/docs/models) · [Chat Completions](https://console.groq.com/docs/api-reference#chat-create) · [JSON mode](https://console.groq.com/docs/structured-outputs) · [Rate limits](https://console.groq.com/docs/rate-limits)
+- [Groq — Privacy Policy](https://groq.com/privacy-policy/) · [GroqCloud Terms](https://groq.com/terms-of-use/)
 - [Thay đổi về App Runner](https://docs.aws.amazon.com/apprunner/latest/dg/apprunner-availability-change.html)
 - [GitHub OIDC với AWS](https://docs.github.com/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services) · [SAM Pipelines và OIDC](https://aws.amazon.com/blogs/compute/securing-ci-cd-pipelines-with-aws-sam-pipelines-and-oidc/)

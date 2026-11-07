@@ -7,6 +7,7 @@ import { ALL_RULES, GROUP_WINDOW, groupsSatisfied, matchGroups, matchRule, type 
 import { isProtectiveWarning } from './rules/warning';
 import { levelOf, scoreSignals } from './scoring';
 import { deriveStages } from './stages';
+import { canonicalSignalType } from './taxonomy';
 import type { AnalysisResult, ChatMessage, RiskLevel, Signal } from './types';
 import { RISK_LEVEL_LABEL, RISK_LEVEL_ORDER } from './types';
 
@@ -116,11 +117,12 @@ export function analyze(messages: ChatMessage[], opts: AnalyzeOptions = {}): Ana
 
   let aiSignals: Signal[] = [];
   if (opts.aiSignals?.length) {
-    const known = new Set([...ruleSignals, ...ledger.signals].map((s) => s.type));
+    // So khớp theo loại chuẩn: AI có thể gọi cùng dấu hiệu bằng tên khác (money_transfer ≈ fee_upfront).
+    const known = new Set([...ruleSignals, ...ledger.signals].map((s) => canonicalSignalType(s.type)));
     // AI chỉ bổ sung loại tín hiệu mới; bằng chứng phải khớp tin nhắn thật (tin cũ bị cắt khỏi bản nháp → bỏ).
     // AI một mình không được kích hoạt chế độ Nghiêm trọng: mức "critical" của AI được hạ xuống "high".
     aiSignals = validateEvidence(
-      opts.aiSignals.filter((s) => !known.has(s.type)),
+      opts.aiSignals.filter((s) => !known.has(canonicalSignalType(s.type))),
       messages,
     ).valid.map((s) => (s.severity === 'critical' ? { ...s, severity: 'high' as const, direct_danger: false } : s));
   }

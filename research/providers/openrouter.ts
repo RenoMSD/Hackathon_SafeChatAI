@@ -125,7 +125,7 @@ export class OpenRouterClient {
         },
         body: JSON.stringify({
           model: req.model,
-          temperature: 0.1, // giống cấu hình sản phẩm (background/groq.ts)
+          temperature: 0, // giống cấu hình sản phẩm (services/gateway/src/lib/providers/groq.ts)
           ...(this.o.maxCompletionTokens ? { max_completion_tokens: this.o.maxCompletionTokens } : {}),
           ...(this.o.reasoningEffort ? { reasoning_effort: this.o.reasoningEffort } : {}),
           ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),

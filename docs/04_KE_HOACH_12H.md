@@ -47,7 +47,7 @@ Phân vai có thể đổi nếu nhóm muốn, miễn đổi cả cột.
 | **M1: H3** | Xong vòng đo đầu trên tune | Staging `/healthz` công khai qua CI | APK khung cài được lên máy Duy | Đều xanh trên `main` |
 | **M2: H6** | Xong vòng 1, chọn được model tạm | `/v1/analyses` chạy thật trên staging | App kiểm tra đoạn chat bằng luật, client chạy với mock | Gọi thật từ app tới staging |
 | **Đóng băng: H7.5** | **Đóng băng luật, prompt, model** | Cấu hình model đã chọn | | Không gia hạn |
-| **M3: H8.5** | Xong test cuối một lần | Production chạy | Extension và app trỏ tới production | Chạy trọn luồng demo |
+| **M3: H8.5** | Xong test cuối một lần | Gateway local ổn định; AWS chỉ deploy nếu còn thời gian | Extension và app trỏ tới gateway | Chạy trọn luồng demo |
 | **H10** | | | | **Đóng băng code**, chỉ sửa lỗi chặn demo |
 | **H12** | | | | Nộp bài. Dừng nhận thay đổi ở H11.5 |
 
@@ -94,9 +94,9 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 - [ ] Nhận credit GDP.
 
 **H1–H3**
-- [ ] Gateway Hono trên Lambda với `GET /healthz`, template AWS SAM trong `infra/`.
-- [ ] Mở rộng `ci.yml`: thêm ESLint, gitleaks. Thêm `deploy.yml` qua GitHub OIDC tới stack staging, kèm smoke test.
-- [ ] Ghi URL staging vào mục 6 của file này. **Đạt cần URL này ở M2.**
+- [ ] Gateway Hono local với `GET /healthz` và `GET /readyz`; template AWS SAM trong `infra/` giữ sẵn cho giai đoạn sau.
+- [ ] `ci.yml`: gitleaks, typecheck, test, build (không bật ESLint khi chưa cấu hình).
+- [ ] Ghi URL gateway local vào mục 6 của file này. **Đạt cần URL này ở M2.**
 
 **H3–H6**
 - [ ] `POST /v1/devices` và `POST /v1/analyses` đúng hợp đồng: kiểm tra schema, che PII lần hai, gọi Groq qua interface `AI_PROVIDER`, khóa đọc từ Secrets Manager, kiểm tra trích dẫn bằng core.
@@ -104,9 +104,9 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 - [ ] Không log nội dung chat. Có test cho việc này.
 
 **H6–H8.5**
-- [ ] `POST /v1/feedback`, `GET /v1/metrics/summary`.
-- [ ] S3 + CloudFront cho bản web của Đạt.
-- [ ] Stack production, tag `v0.5.0`, zip extension trong Release.
+- [ ] `POST /v1/feedback`, `GET /v1/metrics/summary` (yêu cầu quyền admin).
+- [ ] S3 + CloudFront cho bản web của Đạt (chỉ khi bật AWS).
+- [ ] Nếu còn thời gian: deploy staging qua OIDC, tag `v0.5.0`, zip extension trong Release.
 - [ ] Đo nhanh p50/p95 phần overhead của gateway.
 
 **H8.5–H12**
@@ -134,7 +134,7 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 - [ ] Thử mục 28–30 của `apps/extension/HUONG_DAN_CAI_DAT.md` trên Facebook thật **với AI tắt**, ghi lại kết quả.
 
 **H8.5–H12**
-- [ ] APK bản demo trỏ tới production. Duy cài lại trên máy demo, giữ một file dự phòng.
+- [ ] APK bản demo trỏ tới gateway của nhóm. Duy cài lại trên máy demo, giữ một file dự phòng.
 - [ ] Quay video demo gồm extension và điện thoại.
 - [ ] (P1) Dòng thời gian mức cảnh báo. Trang "7 kịch bản lừa đảo" có nguồn.
 - [ ] (P1) Thử với 3–5 sinh viên, ghi độ dễ hiểu, xin đồng ý trước khi trích phản hồi.
@@ -157,7 +157,7 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 | Dashboard chạy thật | Dùng trang tĩnh |
 | Tách `sidepanel/main.ts` | Không tăng giá trị demo |
 
-**Không được cắt:** AWS production, CI/CD, số AI thật, ít nhất 1 vòng model, APK chạy được với dán văn bản, báo cáo mô hình trung thực, video dự phòng.
+**Không được cắt:** gateway thật gọi Groq, CI/CD, số AI thật, ít nhất 1 vòng model, APK chạy được với dán văn bản, báo cáo mô hình trung thực, video dự phòng. AWS production **đã hoãn** sang giai đoạn sau, không còn là điều kiện của bản demo hiện tại.
 
 **Nếu chậm:**
 
@@ -196,8 +196,8 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 |---|---|
 | Hạn nộp | Chưa xác nhận |
 | H0 | Chưa bắt đầu |
-| URL staging | |
-| URL production | |
+| URL gateway local | |
+| URL staging (AWS, hoãn) | |
 | URL bản web | |
 | Hạn mức Groq thật | |
 | Model đã chọn | |

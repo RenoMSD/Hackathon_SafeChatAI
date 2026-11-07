@@ -86,6 +86,29 @@ describe('buildAiRequest — chỉ gửi delta', () => {
   it('che số điện thoại, số tài khoản, email', () => {
     expect(maskPii('Gọi 0912 345 678 hoặc chuyển STK 1903456789012, mail a.b@x.vn')).toBe('Gọi [SỐ] hoặc chuyển STK [SỐ], mail [EMAIL]');
   });
+  it('giữ số tiền có dấu phân cách', () => {
+    expect(maskPii('đóng 9.600.000đ, cọc 500.000')).toBe('đóng 9.600.000đ, cọc 500.000');
+    expect(maskPii('chuyển 9600000 vào 1903456789012')).toBe('chuyển 9600000 vào [SỐ]');
+  });
+  it('che số không có nhãn và có dấu cách, giữ số tiền', () => {
+    const cases: [string, string][] = [
+      ['chuyển vào 1903 4567 8901 nhé', 'chuyển vào [SỐ] nhé'],
+      ['1903-4567-8901 Techcombank', '[SỐ] Techcombank'],
+      ['stk: 1903 4567 8901', 'stk: [SỐ]'],
+      ['+84 912 345 678', '[SỐ]'],
+      ['090.123.456', '[SỐ]'],
+      ['CCCD 012345678901', 'CCCD [SỐ]'],
+      ['căn cước 012 345 678 901', 'căn cước [SỐ]'],
+      ['CMND 123 456 789', 'CMND [SỐ]'],
+      ['CMND: 123.456.789', 'CMND: [SỐ]'],
+      ['123 456 789 nhé', '[SỐ] nhé'],
+      ['hộ chiếu C1234567', 'hộ chiếu [SỐ]'],
+      ['chuyển 2.500.000 đồng', 'chuyển 2.500.000 đồng'],
+      ['chuyển 10 000 000 đồng', 'chuyển 10 000 000 đồng'],
+      ['cọc 1,500,000', 'cọc 1,500,000'],
+    ];
+    for (const [input, output] of cases) expect(maskPii(input)).toBe(output);
+  });
 });
 
 describe('parseAiResponse', () => {
@@ -157,5 +180,22 @@ describe('phân tích chi tiết', () => {
     expect(r.score).toBe(66);
     expect(r.level_reason).toContain('25%');
     expect(r.category_counts.finance).toBe(2);
+  });
+
+  it('bỏ tín hiệu AI trùng loại chuẩn với bộ luật (khác tên)', () => {
+    const m = msgs([['other', 'ck vô stk 9988776655 MB Bank của tao đi, nội dung ghi tên mày']]);
+    const aiDup: Signal = {
+      type: 'fee_upfront',
+      category: 'finance',
+      severity: 'high',
+      title: 'Yêu cầu chuyển khoản',
+      explanation: '',
+      evidence_message_ids: ['msg-001'],
+      evidence_quotes: ['ck vô stk 9988776655 MB Bank của tao đi'],
+      recommended_action: '',
+      source: 'ai',
+    };
+    const r = analyze(m, { aiSignals: [aiDup] });
+    expect(r.signals.some((s) => s.source === 'ai')).toBe(false);
   });
 });

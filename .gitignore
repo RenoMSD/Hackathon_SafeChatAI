@@ -55,3 +55,6 @@ apps/mobile/android/.gradle/
 apps/mobile/android/local.properties
 *.apk
 *.aab
+
+# Bundle gateway copy cho SAM
+infra/gateway-dist/
