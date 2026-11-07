@@ -144,7 +144,7 @@ export function parseSnapshot(json: string): SessionSnapshot {
     if (!SENDERS.has(o.sender as Sender)) throw new SnapshotError('Người gửi không hợp lệ');
     const id = str(o.id, 20);
     if (!/^msg-\d{3,}$/.test(id)) throw new SnapshotError('Mã tin nhắn không hợp lệ');
-    return { id, seq: num(o.seq), sender: o.sender as Sender, text: str(o.text), timestamp: typeof o.timestamp === 'string' ? str(o.timestamp, 40) : undefined };
+    return { id, seq: num(o.seq), sender: o.sender as Sender, text: str(o.text), timestamp: typeof o.timestamp === 'string' ? str(o.timestamp, 40) : undefined, ...(Array.isArray(o.links) ? { links: o.links.slice(0, 10).map((l) => str(l, 2048)) } : {}) };
   });
   const keys = arr(t.keys, MAX_MESSAGES).map((k) => str(k, MAX_TEXT + 40));
   if (keys.length !== messages.length) throw new SnapshotError('Bản nháp không nhất quán');

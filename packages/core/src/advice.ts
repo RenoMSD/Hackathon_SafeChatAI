@@ -47,6 +47,8 @@ const QUESTIONS: Record<string, string> = {
   card_cash_service: 'Cho em xin tên ngân hàng; em sẽ tự đổi hạn mức trên ứng dụng chính thức ạ.',
   parcel_fee_scam: 'Cho em xin mã vận đơn, em tự tra trên ứng dụng của đơn vị vận chuyển ạ.',
   debt_collection_threat: 'Cho em xin số hợp đồng và tên công ty cho vay để em tự kiểm tra qua kênh chính thức ạ.',
+  claim_link_mismatch: 'Trang chính thức của đơn vị là gì ạ? Em sẽ tự vào từ ứng dụng chính thức, không qua link này.',
+  link_with_pressure: 'Em sẽ tự kiểm tra trong ứng dụng chính thức trước, không qua link này được không ạ?',
   suspicious_link: 'Đây là trang chính thức của đơn vị nào ạ? Em sẽ tự truy cập từ website/ứng dụng chính thức.',
   channel_migration: 'Mình trao đổi tiếp ở đây được không ạ? Em muốn giữ lại nội dung để đối chiếu.',
 };
@@ -103,8 +105,30 @@ const CRITICAL_FINANCIAL_ACTIONS = [
   'Lưu lại bằng chứng (ảnh chụp màn hình, báo cáo xuất) và trình báo công an nơi cư trú.',
 ];
 
+/** Việc cần làm ngay khi người dùng đã làm theo yêu cầu. */
+const INCIDENT_STEPS: Record<string, string[]> = {
+  user_complied_money: [
+    'Gọi ngay tổng đài ngân hàng theo số in trên thẻ để đề nghị tra soát khoản vừa chuyển.',
+    'Lưu biên lai, số tài khoản nhận và ảnh chụp đoạn chat, rồi trình báo công an nơi cư trú.',
+    'Không chuyển thêm dù được hứa lấy lại tiền.',
+  ],
+  user_complied_otp: [
+    'Gọi ngay tổng đài ngân hàng theo số in trên thẻ để khóa thẻ hoặc tài khoản.',
+    'Đổi mật khẩu trên ứng dụng chính thức, và kiểm tra các giao dịch gần đây.',
+  ],
+  user_complied_app: [
+    'Ngắt mạng thiết bị ngay, gỡ ứng dụng vừa cài và tắt các quyền đã cấp.',
+    'Dùng thiết bị khác để đổi mật khẩu ngân hàng, và gọi tổng đài ngân hàng theo số in trên thẻ.',
+  ],
+  user_complied_login: [
+    'Đổi ngay mật khẩu trên trang hoặc ứng dụng chính thức, và đổi cả ở nơi dùng chung mật khẩu đó.',
+    'Bật xác thực hai lớp và đăng xuất các phiên đăng nhập lạ.',
+  ],
+};
+
 export function buildAdvice(level: RiskLevel, signals: Signal[], safetyPriority: boolean, ctx?: AdviceContext): Advice {
-  const actions = [...LEVEL_ACTIONS[level]];
+  const steps = signals.flatMap((s) => INCIDENT_STEPS[s.type] ?? []);
+  const actions = [...new Set([...steps, ...LEVEL_ACTIONS[level]])];
   for (const s of signals) {
     if (!actions.includes(s.recommended_action)) actions.push(s.recommended_action);
   }
@@ -115,11 +139,13 @@ export function buildAdvice(level: RiskLevel, signals: Signal[], safetyPriority:
       (s) => s.direct_danger && (PHYSICAL.has(s.category) || s.type === 'intimate_image_request'),
     );
     if (!physical) {
-      const fin = [...CRITICAL_FINANCIAL_ACTIONS, ...actions.slice(LEVEL_ACTIONS.critical.length)];
+      const fin = [...new Set([...steps, ...CRITICAL_FINANCIAL_ACTIONS, ...actions.slice(steps.length + LEVEL_ACTIONS.critical.length)])];
       return { actions: fin, questions: [], safety_message: FINANCIAL_SAFETY_MESSAGE, support_resources: SUPPORT_RESOURCES };
     }
     return { actions, questions: [], safety_message: SAFETY_MESSAGE, support_resources: SUPPORT_RESOURCES };
   }
+  // Đã làm theo yêu cầu thì việc gấp là xử lý hậu quả, không phải hỏi thêm đối phương.
+  if (steps.length) return { actions, questions: [] };
   if (!ctx) {
     const questions: string[] = [];
     for (const s of signals) {

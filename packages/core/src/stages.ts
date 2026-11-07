@@ -8,6 +8,8 @@ const STAGE_OF: Record<string, ScamStage> = {
   task_recruitment: 'S1',
   channel_migration: 'S2',
   suspicious_link: 'S2',
+  claim_link_mismatch: 'S3',
+  link_with_pressure: 'S3',
   loan_offer_app: 'S2',
   refund_link_info: 'S3',
   bank_alert_callback: 'S3',

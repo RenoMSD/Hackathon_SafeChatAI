@@ -20,6 +20,17 @@ const HAS_URL = /https?\s*:|www\s*\.|\b[a-z0-9-]+\s*\.\s*(example|com|net|xyz|to
 /** Xúi bỏ qua cảnh báo của điện thoại là yêu cầu nguy hiểm, không phải tin cảnh báo. */
 const BYPASS_WARNING = /\b(bo qua|tat|phot lo|dung so|ke) (cac |cai |loi )?canh bao\b|\bcanh bao (bao mat|cua (google|dien thoai|may))\b/;
 
+const LINK_WARNING = /\b(dung|khong nen|tranh) (bam|click|mo|truy cap|nhan)( vao)?\b|\b(dung|khong nen|tranh) vao\b/;
+const LINK_WARNING_TOPIC = /\b(lua dao|canh bao|gia mao|doc hai)\b/;
+const ASKS_TO_OPEN = /\b(bam|vao|click|mo|truy cap|nhan|dang nhap|nhap)\b/;
+
+/** Tin nhắc đừng bấm vào link lừa đảo. Vẫn còn lời bảo bấm ở phần khác của tin thì không tính. */
+export function isLinkWarning(normalized: string): boolean {
+  if (!LINK_WARNING.test(normalized) || !LINK_WARNING_TOPIC.test(normalized) || SELF_CLAIM.test(normalized)) return false;
+  const rest = normalized.replace(new RegExp(LINK_WARNING.source, 'g'), ' ');
+  return !ASKS_TO_OPEN.test(rest);
+}
+
 /** `normalized` là văn bản đã qua normalizeForMatch. */
 export function isProtectiveWarning(normalized: string): boolean {
   if (!WARNING_MARKER.test(normalized)) return false;

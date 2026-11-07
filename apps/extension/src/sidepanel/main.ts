@@ -1054,6 +1054,27 @@ function saveSnapshotFile(s: Session) {
 }
 
 // ---------- Khối 4 & 5: Hộp Gợi ý làm rõ ý định (Blue Card) + Hộp Giới hạn quét & Tải ngay (Amber Card) ----------
+const LINK_LEVEL_TEXT: Record<string, string> = { high: 'Rất đáng ngờ', medium: 'Đáng ngờ', weak: 'Cần xem kỹ', none: 'Chưa thấy dấu hiệu' };
+
+function linksCard(s: Session): Node | null {
+  const links = s.result?.links;
+  if (!links?.length) return null;
+  return h(
+    'section',
+    { class: 'card' },
+    h('h2', {}, 'Link trong đoạn chat'),
+    h('p', { class: 'muted small', style: 'margin:4px 0 8px' }, 'Phân tích ngay trên máy, không mở link. Chỉ hiện tên miền, không bấm được.'),
+    ...links.map((l) =>
+      h(
+        'div',
+        { style: 'padding:6px 0;border-top:1px solid #e2e8f0' },
+        h('div', { class: 'small', style: 'display:flex;justify-content:space-between;gap:8px' }, h('b', { style: 'word-break:break-all' }, l.domain ?? l.url), h('span', {}, LINK_LEVEL_TEXT[l.level] ?? '')),
+        ...l.reasons.map((reason) => h('div', { class: 'muted small' }, reason)),
+      ),
+    ),
+  );
+}
+
 function adviceCard(s: Session): Node | null {
   const a = s.result?.advice;
   if (!a) return null;
@@ -1088,7 +1109,7 @@ function adviceCard(s: Session): Node | null {
       ),
       a.answer_assessment === 'evasive' && h('p', { class: 'small', style: 'margin:8px 0 0;font-weight:700' }, 'AI: câu trả lời còn né tránh, chung chung.'),
       a.answer_assessment === 'contradictory' && h('p', { class: 'small', style: 'margin:8px 0 0;font-weight:700' }, 'AI: câu trả lời mâu thuẫn với điều đã nói trước đó.'),
-      a.waiting_answer && h('p', { class: 'muted small', style: 'margin:8px 0 0' }, 'Đang chờ đối phương trả lời. Đọc kỹ câu trả lời trước khi làm tiếp.'),
+      a.waiting_answer && !s.result?.signals.some((x) => x.type.startsWith('user_complied_')) && h('p', { class: 'muted small', style: 'margin:8px 0 0' }, 'Đang chờ đối phương trả lời. Đọc kỹ câu trả lời trước khi làm tiếp.'),
       state.adviceExpanded &&
         a.questions.length > 0 &&
         h(
@@ -1594,6 +1615,7 @@ function render() {
               ? draftView(s)
               : settingsCard(),
     );
+    if (state.view === 'overview') nodes.push(linksCard(s));
   }
   app.replaceChildren(...nodes.filter((n): n is Node | string => !!n));
 }

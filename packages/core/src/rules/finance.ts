@@ -20,7 +20,7 @@ const MONEY_REQUEST: RegExp[] = [
 ];
 /** Việc thường ngày có cùng cách nói: tin nhà mạng, phí ship, mua thêm hàng, thẻ xe, công ty đóng bảo hiểm cho nhân viên. */
 const MONEY_REQUEST_EXCLUDE = [
-  /\b(dien thoai|the cao|the nap|nap the|vien thong|thue bao|data|goi cuoc|tra sau)\b/,
+  /\b(dien thoai|the cao|the nap|nap the|vien thong|thue bao|data|goi cuoc|dang ky goi|tra sau)\b/,
   /\bky hop dong\b.{0,20}\b(tai|truc tiep)\b/,
   /\b(phi ship|phi van chuyen|phi giao hang|mua them|the xe|xe buyt|the gui xe)\b/,
   /\bcong ty (se )?(dong|tra|chuyen) them\b/,

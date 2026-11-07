@@ -1741,6 +1741,13 @@ function segCountFor(r: AnalysisResult, rowLevel: RiskLevel): number {
   return row < cur ? (rowLevel === 'low' ? 1 : 2) : 0;
 }
 
+const LINK_LEVEL_TEXT: Record<string, string> = {
+  high: 'Rất đáng ngờ',
+  medium: 'Đáng ngờ',
+  weak: 'Cần xem kỹ',
+  none: 'Chưa thấy dấu hiệu',
+};
+
 const ASSESSMENT_TEXT: Record<string, string | undefined> = {
   evasive: 'AI: câu trả lời còn né tránh, chung chung.',
   contradictory: 'AI: câu trả lời mâu thuẫn với điều đã nói trước đó.',
@@ -2560,6 +2567,21 @@ export function initFloatingWidget(
           ),
         ),
       ),
+      r?.links?.length
+        ? h(
+            'div',
+            {},
+            h('div', { style: 'font-weight:700;font-size:12px;color:#0f172a;margin-top:6px' }, 'Link trong đoạn chat'),
+            ...r.links.map((l) =>
+              h(
+                'div',
+                { style: 'margin-top:4px;padding:6px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:11.5px;color:#334155' },
+                h('div', { style: 'display:flex;justify-content:space-between;gap:6px' }, h('b', { style: 'word-break:break-all' }, l.domain ?? l.url), h('span', { style: 'flex:none;font-weight:700' }, LINK_LEVEL_TEXT[l.level])),
+                ...l.reasons.map((reason) => h('div', { style: 'margin-top:2px;font-size:10.5px;color:#64748b' }, reason)),
+              ),
+            ),
+          )
+        : null,
       h('div', { style: 'font-weight:700;font-size:12px;color:#0f172a;margin-top:6px' }, 'Tổng hợp dấu hiệu theo mức độ'),
       !r || r.score_breakdown.length === 0
         ? h('div', { class: 'reason-strip' }, 'Chưa ghi nhận dấu hiệu rủi ro nào.')
@@ -2972,6 +2994,7 @@ export function initFloatingWidget(
             h('div', {}, suggestionText),
             assessmentText && !session.waiting && h('div', { style: 'margin-top:4px;font-size:11px;font-weight:700;color:#b45309' }, assessmentText),
             r?.advice.waiting_answer &&
+              !r.signals.some((s) => s.type.startsWith('user_complied_')) &&
               !session.waiting &&
               h('div', { style: 'margin-top:4px;font-size:11px;color:#64748b' }, 'Đang chờ đối phương trả lời. Đọc kỹ câu trả lời trước khi làm tiếp.'),
             topQuestion &&

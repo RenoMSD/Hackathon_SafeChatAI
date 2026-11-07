@@ -130,6 +130,8 @@ const SYNONYMS: Record<string, CanonicalType> = {
   malware_apk: 'remote_access_request',
   phishing_vote_qr: 'remote_access_request',
   phishing_link: 'suspicious_link',
+  claim_link_mismatch: 'suspicious_link',
+  link_with_pressure: 'suspicious_link',
   fake_link: 'suspicious_link',
   unknown_link: 'suspicious_link',
   mule: 'mule_account',

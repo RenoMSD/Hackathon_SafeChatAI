@@ -215,7 +215,8 @@ export function buildAiRequest(
   const fresh = messages.slice(start).slice(-maxNewMessages);
   const freshStart = messages.length - fresh.length;
   const context = messages.slice(Math.max(0, freshStart - contextMessages), freshStart);
-  const sent = [...context, ...fresh].map((m) => ({ ...m, text: escapePromptTags(maskPii(m.text)).replace(/\s*[\r\n]+\s*/g, ' ') }));
+  // Không gửi `links`: địa chỉ thật có thể chứa token, chỉ phân tích trên máy.
+  const sent = [...context, ...fresh].map(({ links: _links, ...m }) => ({ ...m, text: escapePromptTags(maskPii(m.text)).replace(/\s*[\r\n]+\s*/g, ' ') }));
   const maxChars = options.maxTranscriptChars ?? MAX_TRANSCRIPT_CHARS;
   let chars = sent.reduce((n, m) => n + m.text.length, 0);
   while (chars > maxChars && sent.length > 1) chars -= sent.shift()!.text.length;

@@ -9,6 +9,8 @@ export interface ObservedMessage {
   /** ID ổn định từ DOM nếu có (ví dụ data-id). */
   domId?: string;
   timestamp?: string;
+  /** Địa chỉ thật của các link trong tin. */
+  links?: string[];
 }
 
 export interface TranscriptState {
@@ -99,6 +101,7 @@ export function appendObserved(
       text: clean(o.text),
       seq: state.nextSeq,
       timestamp: o.timestamp,
+      ...(o.links?.length ? { links: o.links } : {}),
     };
     state.nextSeq++;
     state.messages.push(msg);

@@ -30,3 +30,6 @@ Tự sinh bằng `npm run bench:experiment -- --ledger`. Không sửa tay. Cách
 | [EXP-021](EXP-021/README.md) | Cảnh báo đòi tiền theo từ ngữ và ngữ cảnh, bỏ ngưỡng số tiền | rules | `49e9962+dirty` | 3.2% (1/31) | 12.5% (4/32) | chưa xem | chưa xem | 3.6% | 33.5% | 2 |
 | [EXP-022](EXP-022/README.md) | Siết từ khóa đòi tiền sau lần đo EXP-021 | rules | `49e9962+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |
 | [EXP-023](EXP-023/README.md) | Cảnh báo đòi tiền theo ngữ cảnh, bản chốt | rules | `49e9962+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |
+| [EXP-024](EXP-024/README.md) | Phân tích link trên máy, ghép ngữ cảnh, nhận biết người dùng đã làm theo | rules | `a7e518c+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.1% | 33.9% | 2 |
+| [EXP-025](EXP-025/README.md) | Tách đuôi tên miền bị lạm dụng khỏi đuôi phổ biến | rules | `a7e518c+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.1% | 33.9% | 2 |
+| [EXP-026](EXP-026/README.md) | Phân tích link trên máy, bản chốt | rules | `a7e518c+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |

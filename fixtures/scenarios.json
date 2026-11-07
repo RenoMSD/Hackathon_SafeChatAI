@@ -4203,5 +4203,526 @@
         "money_request_context"
       ]
     }
+  },
+  {
+    "id": "186_gia_ngan_hang_store",
+    "title": "Tên miền giả ngân hàng đuôi lạ → Cao",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "https://vietcombank-xacthuc.store/login"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "187_link_dia_chi_so",
+    "title": "Link dùng địa chỉ số → Cần chú ý",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Xem ở http://103.45.67.89/login nhé"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "188_gia_truoc_dau_a",
+    "title": "Giả tên ngân hàng trước dấu @ → Cao",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "https://vietcombank.com.vn@evil-site.top/login"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "189_duoi_ru_xac_minh",
+    "title": "Đuôi lạ kèm từ xác minh → Cần chú ý",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Vào đây nhé https://ho-tro-tai-khoan.ru/verify"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "190_tu_xung_nh_link_la",
+    "title": "Tự xưng ngân hàng, link lạ → Cao",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em là nhân viên Vietcombank, thẻ anh có giao dịch lạ"
+      },
+      {
+        "sender": "other",
+        "text": "Anh vào hotro-giaodich.com đăng nhập để hủy nhé"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "claim_link_mismatch"
+      ]
+    }
+  },
+  {
+    "id": "191_tu_xung_shopee_link_la",
+    "title": "Tự xưng Shopee, link lạ → Cao",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên em là Shopee, đơn hàng của chị được hoàn tiền"
+      },
+      {
+        "sender": "other",
+        "text": "Chị vào hoan-tien-don.net nhập thông tin nhé"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "claim_link_mismatch"
+      ]
+    }
+  },
+  {
+    "id": "192_doa_khoa_rut_gon",
+    "title": "Dọa khóa kèm link rút gọn → Cao",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tài khoản của bạn sắp bị khóa, xác minh ngay trong hôm nay"
+      },
+      {
+        "sender": "other",
+        "text": "Vào bit.ly/xacminh123 để giữ tài khoản"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "link_with_pressure",
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "193_doa_khoa_link_la",
+    "title": "Dọa khóa kèm link trông bình thường → Cao",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tài khoản của bạn sắp bị khóa"
+      },
+      {
+        "sender": "other",
+        "text": "Vào hotro-khachhang.com để xử lý"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "link_with_pressure"
+      ]
+    }
+  },
+  {
+    "id": "194_da_doc_otp",
+    "title": "Đã đọc OTP → giữ Cao, chuyển hướng dẫn",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em đọc giúp chị mã OTP nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Em đọc rồi, mã là 482913"
+      },
+      {
+        "sender": "other",
+        "text": "Ok em chờ nhé"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "otp_password_request",
+        "user_complied_otp"
+      ]
+    }
+  },
+  {
+    "id": "195_da_chuyen_tien",
+    "title": "Đã chuyển tiền → giữ Cao",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em đóng phí kích hoạt 500k nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Em chuyển rồi đó chị"
+      },
+      {
+        "sender": "other",
+        "text": "Ok em"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee",
+        "user_complied_money"
+      ]
+    }
+  },
+  {
+    "id": "196_da_cai_app",
+    "title": "Đã cài ứng dụng lạ → Nghiêm trọng",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Anh tải file apk về rồi mở lên là được, ngoài kho ứng dụng"
+      },
+      {
+        "sender": "self",
+        "text": "Tôi cài xong rồi"
+      },
+      {
+        "sender": "other",
+        "text": "Giờ anh mở lên nhé"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "malware_apk",
+        "user_complied_app"
+      ]
+    }
+  },
+  {
+    "id": "197_da_dang_nhap",
+    "title": "Đã đăng nhập qua link rút gọn → Cao",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Vào bit.ly/abc123 đăng nhập nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Mình đăng nhập rồi nha"
+      },
+      {
+        "sender": "other",
+        "text": "Cảm ơn bạn"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "suspicious_link",
+        "user_complied_login"
+      ]
+    }
+  },
+  {
+    "id": "198_shop_duoi_shop",
+    "title": "Shop đuôi .shop bình thường → Thấp",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên mình bán áo, xem mẫu ở https://aothun.shop nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "199_duoi_live",
+    "title": "Trang đuôi .live → Thấp",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Xem trực tiếp ở https://bongda.live tối nay nha"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "200_canh_bao_co_link",
+    "title": "Cảnh báo đừng bấm link lừa đảo → Thấp",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mọi người cảnh báo trang bit.ly/luadao123 là lừa đảo, đừng bấm vào nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "201_gia_canh_bao_van_bao_bam",
+    "title": "Giả cảnh báo nhưng vẫn bảo bấm → Cần chú ý",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Cảnh báo lừa đảo, đừng bấm link lạ, bấm vào bit.ly/antoan123 để kiểm tra"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "202_link_rut_gon_mot_minh",
+    "title": "Link rút gọn một mình, không ngữ cảnh → Cần chú ý",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Ảnh hôm qua đây bit.ly/anhhomqua"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "203_trang_chinh_thuc",
+    "title": "Tự xưng ngân hàng, link đúng trang chính thức → Thấp",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em là nhân viên Vietcombank"
+      },
+      {
+        "sender": "other",
+        "text": "Anh xem biểu phí ở https://portal.vietcombank.com.vn/bieu-phi nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "204_ke_mua_shopee",
+    "title": "Kể mua trên Shopee, gửi link quán → Thấp",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tao mua trên Shopee rẻ lắm"
+      },
+      {
+        "sender": "other",
+        "text": "Quán này ngon nè nhahang.vn/menu"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "205_tu_xung_gui_youtube",
+    "title": "Tự xưng đơn vị, gửi video YouTube → Thấp",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em là nhân viên Viettel"
+      },
+      {
+        "sender": "other",
+        "text": "Anh xem hướng dẫn ở youtube.com/watch nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "206_noi_chua_chuyen",
+    "title": "Nói chưa chuyển, không tính đã làm theo",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em đóng phí kích hoạt 500k nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Em chưa chuyển đâu"
+      },
+      {
+        "sender": "other",
+        "text": "Ok em"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "207_hoi_chuyen_roi_a",
+    "title": "Hỏi \"chuyển rồi à\" không tính đã làm theo",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em đóng phí kích hoạt 500k nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Bên chị chuyển rồi à?"
+      },
+      {
+        "sender": "other",
+        "text": "Ok em"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "208_chuyen_truoc_khi_co_yeu_cau",
+    "title": "Đã chuyển nhưng trước đó không có yêu cầu → Thấp",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "self",
+        "text": "Mình chuyển tiền cơm cho bạn rồi nha"
+      },
+      {
+        "sender": "other",
+        "text": "Ok cảm ơn"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "209_ke_chuyen_doi_thuong",
+    "title": "Đóng tiền đời thường rồi kể lại không tính",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tiền cơm hôm qua 300k, đặt cọc giúp mình nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Mình chuyển rồi nha"
+      },
+      {
+        "sender": "other",
+        "text": "Ok"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "210_dan_khong_chia_se_otp",
+    "title": "Tin dặn không chia sẻ OTP, kể cả nhân viên đơn vị → Thấp",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Lazada: không chia sẻ OTP với bất kỳ ai, bao gồm cả nhân viên Lazada. Tìm hiểu thêm tại lzd.co/safetips"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "211_duoi_bi_lam_dung",
+    "title": "Đuôi tên miền hay bị lạm dụng → Cần chú ý",
+    "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Nhận quà tại khuyenmai.vip nhé"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "suspicious_link"
+      ]
+    }
   }
 ]

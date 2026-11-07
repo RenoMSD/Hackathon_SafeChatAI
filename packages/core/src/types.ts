@@ -13,6 +13,22 @@ export interface ChatMessage {
   seq: number;
   /** Thời điểm hiển thị nếu đọc được đáng tin cậy từ giao diện. */
   timestamp?: string;
+  /** Địa chỉ thật của các link trong tin. Chỉ phân tích trên máy, không gửi cho AI. */
+  links?: string[];
+}
+
+export type LinkLevel = 'none' | 'weak' | 'medium' | 'high';
+
+/** Kết quả phân tích một đường link. `url` đã bỏ query và thông tin đăng nhập. */
+export interface LinkFinding {
+  url: string;
+  host: string;
+  domain: string | null;
+  level: LinkLevel;
+  reasons: string[];
+  official: boolean;
+  shortener: boolean;
+  brand?: string;
 }
 
 export type RiskLevel = 'low' | 'attention' | 'high' | 'critical';
@@ -138,6 +154,8 @@ export interface AnalysisResult {
   safety_priority: boolean;
   advice: Advice;
   analyzed_message_count: number;
+  /** Các link của đối phương, nặng nhất trước. */
+  links?: LinkFinding[];
   ai_status: 'off' | 'ok' | 'error' | 'pending';
   ai_error?: string;
 }

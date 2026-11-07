@@ -9,6 +9,7 @@ import type { ThreadInfo } from '../shared/protocol';
 import type { ChatAdapter } from './adapter';
 import { collectHistory } from './history';
 import {
+  externalLinks,
   HEADER_BUTTON_LABELS,
   labelFromComposer,
   messageIdMatchesPeer,
@@ -16,6 +17,8 @@ import {
   senderFromAria,
   senderFromPosition,
 } from './messengerParse';
+
+const linksIn = (el: HTMLElement) => externalLinks([...el.querySelectorAll('a[href]')].map((a) => (a as HTMLAnchorElement).href));
 
 const SELECTORS = {
   log: '[role="log"]',
@@ -221,7 +224,8 @@ export const messengerAdapter: ChatAdapter = {
         const sender =
           senderFromAria(row.getAttribute('aria-label') ?? findAriaLabelNear(row, t.log), parts[parts.length - 1]!) ??
           senderFromPosition(els[els.length - 1]!.getBoundingClientRect(), listRect);
-        out.push({ sender, text, domId: row.dataset.messageId });
+        const links = linksIn(row);
+        out.push({ sender, text, domId: row.dataset.messageId, ...(links.length ? { links } : {}) });
       }
       if (out.length > 0) return { messages: out };
     }
@@ -245,7 +249,8 @@ export const messengerAdapter: ChatAdapter = {
         const sender =
           senderFromAria(aria, parts[parts.length - 1]!) ??
           senderFromPosition(els[els.length - 1]!.getBoundingClientRect(), listRect);
-        out.push({ sender, text });
+        const links = linksIn(row);
+        out.push({ sender, text, ...(links.length ? { links } : {}) });
       }
       if (out.length > 0) return { messages: out };
     }
@@ -262,7 +267,8 @@ export const messengerAdapter: ChatAdapter = {
       const aria = findAriaLabelNear(el, t.log);
       const sender = senderFromAria(aria, text) ?? senderFromPosition(el.getBoundingClientRect(), listRect);
       if (sender === 'unknown' && !aria) continue;
-      out.push({ sender, text });
+      const links = linksIn(el);
+      out.push({ sender, text, ...(links.length ? { links } : {}) });
     }
     return { messages: out };
   },

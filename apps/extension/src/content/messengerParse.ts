@@ -1,5 +1,6 @@
 // Phần thuần (không DOM) của adapter Messenger — tách riêng để test bằng Vitest.
 import type { Sender } from '@safechat/core/types';
+import { unwrapFacebookLink } from '@safechat/core/linkUnwrap';
 
 /** Tiền tố nhãn ô soạn tin của khung chat: "Viết cho Mạnh Hùng" → "Mạnh Hùng". */
 const COMPOSER_PREFIX = /^(?:viết cho|nhắn tin cho|gửi tin nhắn cho|nhập tin nhắn tới|trả lời|write to|message|send a message to)\s+/i;
@@ -63,6 +64,22 @@ const RESERVED_FB_PATHS = new Set([
   'business',
   'privacy',
 ]);
+
+/** Địa chỉ link ra ngoài từ các thẻ a trong tin: gỡ link bọc, bỏ link nội bộ của Facebook như hồ sơ, ảnh đại diện. */
+export function externalLinks(hrefs: string[]): string[] {
+  const out = new Set<string>();
+  for (const href of hrefs) {
+    const real = unwrapFacebookLink(href);
+    try {
+      const u = new URL(real, 'https://www.facebook.com');
+      if (!FB_HOSTS.has(u.hostname) && !/^javascript:/i.test(u.href)) out.add(u.href);
+    } catch {
+      // bỏ qua địa chỉ không hợp lệ
+    }
+    if (out.size >= 10) break;
+  }
+  return [...out];
+}
 
 /** ID hoặc định danh của người kia từ link hồ sơ ở phần đầu khung chat: /<số>/, /profile.php?id=<số>, /people/<tên>/<số>/, /messages/t/<id>/ hoặc /<username>/. */
 export function peerIdFromHref(href: string): string | null {

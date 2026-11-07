@@ -5,19 +5,24 @@
 //     dài thường có chuyện khác ở xa. Chốt chặn: tín hiệu nguy hiểm, cô lập, kỹ thuật hoặc lừa việc làm ở BẤT KỲ
 //     ĐÂU trong hội thoại thì không hạ, để kẻ gian không né được bằng cách chèn "tiền cơm" cạnh yêu cầu đóng phí.
 import { extractEntities } from './entities';
+import { isUnrelatedLink, messageLinks } from './link';
 import { normalizeForMatch, stripDiacritics } from './normalize';
-import type { ChatMessage, Signal } from './types';
+import { GROUP_WINDOW } from './rules/rule';
+import { isLinkWarning } from './rules/warning';
+import type { ChatMessage, LinkFinding, LinkLevel, Signal } from './types';
 
 const quote = (m: ChatMessage) => (m.text.length > 220 ? m.text.slice(0, 217) + '…' : m.text.trim());
 
 export function entitySignals(messages: ChatMessage[]): Signal[] {
-  const links: { m: ChatMessage; reason: string; brand: boolean }[] = [];
+  const links: { m: ChatMessage; reason: string; level: LinkLevel }[] = [];
   const wallets: ChatMessage[] = [];
   const channels: ChatMessage[] = [];
   for (const m of messages) {
     if (m.sender === 'self') continue;
     const e = extractEntities(m.text);
-    for (const u of e.suspiciousUrls) links.push({ m, reason: u.reason, brand: u.reason.includes('giống') });
+    if (!isLinkWarning(normalizeForMatch(m.text))) {
+      for (const f of messageLinks(m)) if (f.level !== 'none') links.push({ m, reason: f.reasons[0] ?? '', level: f.level });
+    }
     if (e.cryptoWallets.length) wallets.push(m);
     if (e.channelLinks.length) channels.push(m);
   }
@@ -29,8 +34,8 @@ export function entitySignals(messages: ChatMessage[]): Signal[] {
     out.push({
       type: 'suspicious_link',
       category: 'technical',
-      severity: links.some((l) => l.brand) ? 'high' : 'medium',
-      title: 'Đường link đáng ngờ',
+      severity: links.some((l) => l.level === 'high') ? 'high' : links.some((l) => l.level === 'medium') ? 'medium' : 'low',
+      title: links.some((l) => l.level === 'high' || l.level === 'medium') ? 'Đường link đáng ngờ' : 'Đường link cần xem kỹ',
       explanation: `Tin nhắn chứa link có dấu hiệu bất thường: ${[...new Set(links.map((l) => l.reason))].join('; ')}.`,
       evidence_message_ids: ids(ms),
       evidence_quotes: quotes(ms),
@@ -130,6 +135,131 @@ export function applyContextMitigations(signals: Signal[], messages: ChatMessage
       recommended_action: 'Kiểm tra đúng người nhận/uy tín cửa hàng; ưu tiên thanh toán khi nhận hàng và không chuyển thêm nếu bị hối thúc.',
     };
   });
+}
+
+// ---------------------------------------------------------------- link kèm lời nói
+const BRANDS = 'vietcombank|vcb|techcombank|mb ?bank|agribank|bidv|vietinbank|tp ?bank|acb|sacombank|vp ?bank|shopee|lazada|tiktok|momo|zalopay|viettel|vinaphone|mobifone|dien luc|evn|bhxh|bao hiem xa hoi|ngan hang|cong an|thue|cuc thue';
+const CLAIMS_TO_BE = [
+  new RegExp(`\\b(em|minh|toi|chung toi|ben (em|minh|toi)) (la |ben |tu |thuoc |o )(nhan vien |cskh |tong dai |ho tro |bo phan |dai dien |can bo )*(cua )?(${BRANDS})\\b`),
+  new RegExp(`\\b(nhan vien|cskh|cham soc khach hang|tong dai vien|bo phan ho tro) (cua )?(${BRANDS})\\b`),
+];
+const ACCOUNT_THREAT = /\b(tai khoan|the (cua \S+|ngan hang|atm|tin dung))\b.{0,25}\b(bi|se bi|sap bi)\s+(tam )?(khoa|dinh chi|vo hieu)\b|\b(xac minh|xac thuc|cap nhat) (ngay|gap|trong hom nay)\b|\bgiu tai khoan\b/;
+const URGENT_SIGNAL = 'urgency_pressure';
+/** Tin dặn không đưa mã: nhắc tới "nhân viên" đơn vị nhưng không phải đang tự xưng. */
+const NOTICE_NOT_CLAIM = /\b(khong chia se|khong cung cap|khong tiet lo|bao gom ca)\b/;
+
+/** Ghép link với lời nói trong cùng cửa sổ tin: tự xưng đơn vị mà link lạ, dọa khóa kèm link. Không có link thì không tạo cảnh báo. */
+export function linkContextSignals(signals: Signal[], messages: ChatMessage[]): Signal[] {
+  const others = messages.filter((m) => m.sender !== 'self');
+  const linksOf = new Map<string, LinkFinding[]>(others.map((m) => [m.id, isLinkWarning(normalizeForMatch(m.text)) ? [] : messageLinks(m)]));
+  const texts = others.map((m) => normalizeForMatch(m.text));
+  const urgentIds = new Set(signals.filter((s) => s.type === URGENT_SIGNAL).flatMap((s) => s.evidence_message_ids));
+  const mismatch = new Set<ChatMessage>();
+  const pressured = new Set<ChatMessage>();
+  others.forEach((m, i) => {
+    const found = linksOf.get(m.id)!;
+    if (!found.length) return;
+    const from = Math.max(0, i - GROUP_WINDOW + 1);
+    const to = Math.min(others.length - 1, i + GROUP_WINDOW - 1);
+    for (let j = from; j <= to; j++) {
+      if (found.some(isUnrelatedLink) && !NOTICE_NOT_CLAIM.test(texts[j]!) && CLAIMS_TO_BE.some((re) => re.test(texts[j]!))) {
+        mismatch.add(m);
+        mismatch.add(others[j]!);
+      }
+      const threat = found.some(isUnrelatedLink) && ACCOUNT_THREAT.test(texts[j]!);
+      const urgent = found.some((f) => f.level === 'medium' || f.level === 'high') && urgentIds.has(others[j]!.id);
+      if (threat || urgent) {
+        pressured.add(m);
+        pressured.add(others[j]!);
+      }
+    }
+  });
+  const toSignal = (type: string, title: string, explanation: string, recommended_action: string, set: Set<ChatMessage>): Signal => {
+    const ms = others.filter((m) => set.has(m));
+    return { type, category: 'technical', severity: 'high', title, explanation, recommended_action, evidence_message_ids: ms.map((m) => m.id), evidence_quotes: ms.map(quote), source: 'rule' };
+  };
+  const out: Signal[] = [];
+  if (mismatch.size)
+    out.push(toSignal(
+      'claim_link_mismatch',
+      'Tự xưng đơn vị nhưng link không phải trang của đơn vị',
+      'Đối phương nói mình thuộc một đơn vị, nhưng link gửi kèm không nằm trên tên miền chính thức. Trang giả thường dùng cách này để lấy thông tin đăng nhập.',
+      'Không bấm link. Tự mở ứng dụng hoặc gõ địa chỉ trang chính thức, hoặc gọi số tổng đài in trên thẻ để hỏi lại.',
+      mismatch,
+    ));
+  if (pressured.size)
+    out.push(toSignal(
+      'link_with_pressure',
+      'Gửi link kèm dọa khóa hoặc giục gấp',
+      'Link đi cùng lời dọa khóa tài khoản hoặc giục làm ngay, để bạn bấm trước khi kịp kiểm tra.',
+      'Không bấm link khi đang bị giục. Tự kiểm tra trong ứng dụng chính thức của đơn vị.',
+      pressured,
+    ));
+  return out;
+}
+
+// ---------------------------------------------------------------- người dùng đã làm theo
+const NOT_DONE = /\b(chua|khong|dau co|khoi|dung|neu|co nen)\b|\?/;
+type ComplianceKind = 'money' | 'otp' | 'app' | 'login';
+const COMPLIANCE: Record<ComplianceKind, { requests: string[]; done: RegExp[]; title: string; category: Signal['category'] }> = {
+  money: {
+    requests: ['upfront_fee', 'task_deposit', 'money_request_phrase', 'money_request_context', 'money_request_threat', 'repeated_money_request', 'money_transfer', 'hold_deposit_deadline', 'task_freeze_extortion', 'task_escalating_deposit', 'investment_scam', 'authority_impersonation'],
+    done: [/\b(chuyen khoan|chuyen|dong|nap|coc|gui tien)\b.{0,14}\b(roi|xong)\b/, /\b(da|vua|moi) (chuyen|dong|nap|coc|gui tien)\b/],
+    title: 'Bạn có thể đã chuyển tiền',
+    category: 'finance',
+  },
+  otp: {
+    requests: ['otp_password_request', 'otp_institution_pressure', 'bank_credentials'],
+    done: [/\b(doc|gui|nhap|dua|cung cap)\b.{0,14}\b(roi|xong)\b/, /\b(da|vua|moi) (doc|gui|nhap|dua|cung cap)\b/, /\b(ma|otp|mat khau)\b.{0,10}\b(la|day)\b/, /^\s*\d(?:[ .-]?\d){3,7}\s*$/],
+    title: 'Bạn có thể đã đưa mã hoặc mật khẩu',
+    category: 'account',
+  },
+  app: {
+    requests: ['malware_apk'],
+    done: [/\b(cai|tai|bat)\b.{0,14}\b(roi|xong)\b/, /\b(da|vua|moi) (cai|tai|bat)\b/],
+    title: 'Bạn có thể đã cài ứng dụng lạ',
+    category: 'technical',
+  },
+  login: {
+    requests: ['suspicious_link', 'claim_link_mismatch', 'link_with_pressure', 'phishing_vote_qr', 'refund_link_info'],
+    done: [/\b(dang nhap|nhap|dien|bam|vao)\b.{0,14}\b(roi|xong)\b/, /\b(da|vua|moi) (dang nhap|nhap|dien|bam)\b/],
+    title: 'Bạn có thể đã đăng nhập hoặc nhập thông tin qua link',
+    category: 'account',
+  },
+};
+
+/**
+ * Tin của người dùng cho thấy đã làm theo một yêu cầu nguy hiểm trước đó. Chỉ tính khi đã có yêu cầu tương ứng.
+ * Bằng chứng là lời yêu cầu của đối phương, vì dấu hiệu là hành vi của đối phương; tin người dùng chỉ là ngữ cảnh.
+ */
+export function userCompliedSignals(signals: Signal[], messages: ChatMessage[]): Signal[] {
+  const seqOf = new Map(messages.map((m) => [m.id, m.seq]));
+  const out: Signal[] = [];
+  for (const [kind, c] of Object.entries(COMPLIANCE) as [ComplianceKind, (typeof COMPLIANCE)[ComplianceKind]][]) {
+    const asks = signals.filter((s) => c.requests.includes(s.type) && !s.mitigation && s.severity !== 'low');
+    if (!asks.length) continue;
+    const firstAsk = Math.min(...asks.flatMap((s) => s.evidence_message_ids.map((id) => seqOf.get(id) ?? Infinity)));
+    const done = messages.filter((m) => {
+      if (m.sender !== 'self' || m.seq <= firstAsk) return false;
+      const n = normalizeForMatch(m.text);
+      return !NOT_DONE.test(n) && c.done.some((re) => re.test(n));
+    });
+    if (!done.length) continue;
+    const askIds = new Set(asks.flatMap((s) => s.evidence_message_ids));
+    const askMessages = messages.filter((m) => askIds.has(m.id) && m.sender !== 'self');
+    out.push({
+      type: `user_complied_${kind}`,
+      category: c.category,
+      severity: 'high',
+      title: c.title,
+      explanation: 'Tin nhắn của bạn cho thấy có thể đã làm theo yêu cầu trước đó. Xử lý càng sớm càng dễ giảm thiệt hại.',
+      recommended_action: 'Làm ngay các bước trong phần gợi ý, không cần trả lời đối phương.',
+      evidence_message_ids: askMessages.map((m) => m.id),
+      evidence_quotes: askMessages.map(quote),
+      source: 'rule',
+    });
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------- đòi tiền lặp lại
