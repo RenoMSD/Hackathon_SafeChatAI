@@ -1,6 +1,8 @@
 # Cài đặt và build
 node_modules/
 dist/
+# Bản build extension để cả nhóm nạp thẳng vào Chrome (Load unpacked) mà không cần build. Build lại rồi commit khi đổi code extension.
+!apps/extension/dist/
 .aws-sam/
 cdk.out/
 *.log
