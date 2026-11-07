@@ -2,7 +2,9 @@
 
 Ba người làm độc lập trên 3 nhánh, ghép vào `main` ở 3 mốc cố định. Kiến trúc ở [03_KIEN_TRUC_MUC_TIEU.md](03_KIEN_TRUC_MUC_TIEU.md). Hợp đồng API ở [`packages/contracts`](../packages/contracts/src/index.ts).
 
-**H0** là lúc cả nhóm bắt đầu. Hỗ trợ AI rút ngắn được phần viết code, nhưng **không rút ngắn được** phần đăng ký tài khoản, hạn mức Bedrock, gán nhãn, thử trên điện thoại và luyện demo. Các việc đó phải bắt đầu đúng giờ.
+**H0** là lúc cả nhóm bắt đầu. Hỗ trợ AI rút ngắn được phần viết code, nhưng **không rút ngắn được** phần tạo khóa Groq, kiểm tra hạn mức, gán nhãn, thử trên điện thoại và luyện demo. Các việc đó phải bắt đầu đúng giờ.
+
+Giai đoạn hiện tại chạy **local-first + Groq `openai/gpt-oss-120b`**, chưa dùng AWS thật. Hạ tầng SAM giữ sẵn cho giai đoạn sau.
 
 ## Phạm vi: đây là bài thi
 
@@ -15,7 +17,7 @@ Chỉ làm những gì phục vụ **bảo mật** và **tiêu chí chấm**. De
 | Trích dẫn khớp tin gốc, giải thích được quyết định của AI | Hạn chế phát APK. Có thể gửi APK cho ban giám khảo nếu cần |
 | Số liệu trung thực, tái lập được, nêu nguồn dữ liệu | Quy định phát hành sau cuộc thi |
 
-Vùng Tokyo vẫn là mặc định vì model đã có sẵn ở đó. Vùng khác cũng được nếu chạy tốt hơn.
+Giai đoạn AWS (nếu bật) giữ vùng Tokyo. Giai đoạn hiện tại không phụ thuộc vùng AWS vì model chạy qua Groq.
 
 ## 1. Ai làm gì
 
@@ -43,11 +45,11 @@ Phân vai có thể đổi nếu nhóm muốn, miễn đổi cả cột.
 
 | Mốc | Duy | Danh | Đạt | Cả nhóm kiểm tra |
 |---|---|---|---|---|
-| **H1** | Có kết quả kiểm tra Bedrock | Có kết quả kiểm tra Bedrock trên tài khoản production | Máy và công cụ sẵn sàng | Họp 10 phút, chốt hướng theo mục 5 |
-| **M1: H3** | Trình chạy gọi được Bedrock | Staging `/healthz` công khai qua CI | APK khung cài được lên máy Duy | Đều xanh trên `main` |
-| **M2: H6** | Xong vòng 1, chọn được model tạm | `/v1/analyses` chạy thật trên staging | App kiểm tra đoạn chat bằng luật, client chạy với mock | Gọi thật từ app tới staging |
+| **H1** | Có kết quả kiểm tra `gpt-oss-120b` qua Groq | Gateway local gọi được Groq bằng key của nhóm | Máy và công cụ sẵn sàng | Họp 10 phút, chốt hướng theo mục 5 |
+| **M1: H3** | Trình chạy gọi được Groq | Gateway local có `/healthz`, CI xanh | APK khung cài được lên máy Duy | Đều xanh trên `main` |
+| **M2: H6** | Xong vòng 1, chọn được model tạm | `/v1/analyses` chạy thật với Groq | App kiểm tra đoạn chat bằng luật, client chạy với mock | Gọi thật từ app tới gateway local |
 | **Đóng băng: H7.5** | **Đóng băng luật, prompt, model** | Cấu hình model đã chọn | | Không gia hạn |
-| **M3: H8.5** | Xong test cuối một lần | Production chạy | Extension và app trỏ tới production | Chạy trọn luồng demo |
+| **M3: H8.5** | Xong test cuối một lần | Gateway local ổn định; AWS chỉ deploy nếu còn thời gian | Extension và app trỏ tới gateway | Chạy trọn luồng demo |
 | **H10** | | | | **Đóng băng code**, chỉ sửa lỗi chặn demo |
 | **H12** | | | | Nộp bài. Dừng nhận thay đổi ở H11.5 |
 
@@ -60,11 +62,11 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 ### Duy: `duy/ai-eval`
 
 **H0–H1**
-- [ ] Tạo tài khoản AWS benchmark, bật MFA, đặt Budgets, chạy kiểm tra ở mục 5.
+- [ ] Lấy key Groq của nhóm (không commit), chạy kiểm tra ở mục 5 với `openai/gpt-oss-120b`.
 - [ ] Nhận credit GDP, ghi ngày hết hạn. Giữ để chạy đối chứng Gemini.
 
 **H1–H3**
-- [ ] Trình chạy: provider Bedrock và Gemini, chạy song song, ghi token và chi phí thật.
+- [ ] Trình chạy: provider Groq và Gemini (đối chứng), ghi token và chi phí thật.
 - [ ] Tách cố định tune 65 / check 40 của bộ v2, cùng nguồn đi chung, lưu manifest có mã băm.
 - [ ] Gói gợi ý H2 từ luật: mã tin, giai đoạn, mâu thuẫn, thực thể, mức hiện tại.
 
@@ -90,23 +92,23 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 ### Danh: `danh/gateway-aws`
 
 **H0–H1**
-- [ ] Tạo tài khoản AWS production, bật MFA cho root, đặt Budgets, chọn vùng Tokyo, chạy kiểm tra ở mục 5.
+- [ ] Chạy gateway local với `AI_PROVIDER=groq`, key Groq đặt trong `.env` không commit; chạy kiểm tra ở mục 5.
 - [ ] Nhận credit GDP.
 
 **H1–H3**
-- [ ] Gateway Hono trên Lambda với `GET /healthz`, template AWS SAM trong `infra/`.
-- [ ] Mở rộng `ci.yml`: thêm ESLint, gitleaks. Thêm `deploy.yml` qua GitHub OIDC tới stack staging, kèm smoke test.
-- [ ] Ghi URL staging vào mục 6 của file này. **Đạt cần URL này ở M2.**
+- [ ] Gateway Hono local với `GET /healthz` và `GET /readyz`; template AWS SAM trong `infra/` giữ sẵn cho giai đoạn sau.
+- [ ] `ci.yml`: gitleaks, typecheck, test, build (không bật ESLint khi chưa cấu hình).
+- [ ] Ghi URL gateway local vào mục 6 của file này. **Đạt cần URL này ở M2.**
 
 **H3–H6**
-- [ ] `POST /v1/devices` và `POST /v1/analyses` đúng hợp đồng: kiểm tra schema, che PII lần hai, gọi Bedrock, kiểm tra trích dẫn bằng core.
-- [ ] DynamoDB: hạn mức thiết bị, bộ đếm chi tiêu, trần ngân sách tự ngắt.
-- [ ] Không log nội dung chat. Tắt Bedrock invocation logging. Có test cho việc này.
+- [ ] `POST /v1/devices` và `POST /v1/analyses` đúng hợp đồng: kiểm tra schema, che PII lần hai, gọi Groq, kiểm tra trích dẫn bằng core.
+- [ ] DynamoDB local hoặc store trong bộ nhớ: hạn mức thiết bị, bộ đếm chi tiêu, trần ngân sách tự ngắt.
+- [ ] Không log nội dung chat. Có test cho việc này.
 
 **H6–H8.5**
-- [ ] `POST /v1/feedback`, `GET /v1/metrics/summary`.
-- [ ] S3 + CloudFront cho bản web của Đạt.
-- [ ] Stack production, tag `v0.5.0`, zip extension trong Release.
+- [ ] `POST /v1/feedback`, `GET /v1/metrics/summary` (yêu cầu quyền admin).
+- [ ] S3 + CloudFront cho bản web của Đạt (chỉ khi bật AWS).
+- [ ] Nếu còn thời gian: deploy staging qua OIDC, tag `v0.5.0`, zip extension trong Release.
 - [ ] Đo nhanh p50/p95 phần overhead của gateway.
 
 **H8.5–H12**
@@ -134,7 +136,7 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 - [ ] Thử mục 28–30 của `apps/extension/HUONG_DAN_CAI_DAT.md` trên Facebook thật, ghi lại kết quả.
 
 **H8.5–H12**
-- [ ] APK bản demo trỏ tới production. Duy cài lại trên máy demo, giữ một file dự phòng.
+- [ ] APK bản demo trỏ tới gateway của nhóm. Duy cài lại trên máy demo, giữ một file dự phòng.
 - [ ] Quay video demo gồm extension và điện thoại.
 - [ ] (P1) Dòng thời gian mức cảnh báo. Trang "7 kịch bản lừa đảo" có nguồn.
 - [ ] (P1) Thử với 3–5 sinh viên, ghi độ dễ hiểu, xin đồng ý trước khi trích phản hồi.
@@ -151,13 +153,13 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 |---|---|
 | Vòng model thứ 3 | Không đủ thời gian. Tối đa 2 vòng |
 | Ảnh chụp màn hình | Chuyển thành lộ trình |
-| Bedrock Guardrails, prompt caching | Làm nếu dư giờ, không ảnh hưởng luồng chính |
+| Guardrails, prompt caching của nhà cung cấp model | Làm nếu dư giờ, không ảnh hưởng luồng chính |
 | Bộ đề kín 20–30 ca → 15 ca | Cỡ mẫu nhỏ hơn nên phải nói rõ khi báo cáo |
 | Thử người dùng 5–10 → 3–5 người | Chỉ là tín hiệu định tính |
 | Dashboard chạy thật | Dùng trang tĩnh |
 | Tách `sidepanel/main.ts` | Không tăng giá trị demo |
 
-**Không được cắt:** AWS production, CI/CD, số AI thật, ít nhất 1 vòng model, APK chạy được với dán văn bản, báo cáo mô hình trung thực, video dự phòng.
+**Không được cắt:** gateway thật gọi Groq, CI/CD, số AI thật, ít nhất 1 vòng model, APK chạy được với dán văn bản, báo cáo mô hình trung thực, video dự phòng. AWS production **đã hoãn** sang giai đoạn sau, không còn là điều kiện của bản demo hiện tại.
 
 **Nếu chậm:**
 
@@ -169,23 +171,23 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 | H10 còn lỗi ở share intent | Demo bằng dán thủ công |
 | H10 Messenger thật lỗi | Demo extension bằng chat giả lập, nói rõ giới hạn |
 
-## 5. Kiểm tra AWS ở H0–H1
+## 5. Kiểm tra Groq ở H0–H1
 
-Làm trước mọi việc khác. Tài liệu AWS cho biết Claude Opus 5.5 và Haiku 5.5 tính phí qua AWS Marketplace, nhưng không nói rõ credit Free Tier có trừ phí này không.
+Làm trước mọi việc khác. Dùng **key Groq của nhóm**, không commit key. Chỉ gửi dữ liệu giả.
 
-1. Đăng ký kiểu **Sign up (advanced)**, chọn Free plan, ghi số credit và hạn. Tài khoản AWS đã có thì không đủ điều kiện nhận credit.
-2. Bật MFA cho root, không tạo access key cho root, đặt AWS Budgets, chọn vùng **Tokyo (`ap-northeast-1`)**.
-3. Gọi thử bằng dữ liệu giả, mỗi model 3 lần: `jp.amazon.nova-2-lite-v1:0`, `jp.anthropic.claude-haiku-5-5`, `jp.anthropic.claude-opus-5-5`.
-4. Xem mục Bills và Credits, rồi xem lại ở M1 vì số liệu có thể cập nhật chậm.
+1. Tạo key trong Groq Console, đặt vào `.env` local (`GROQ_API_KEY=...`), thêm `.env` vào `.gitignore`.
+2. Chạy gateway với `AI_PROVIDER=groq`, `GROQ_MODEL_SMALL=openai/gpt-oss-120b`, `GROQ_MODEL_LARGE=openai/gpt-oss-120b`.
+3. Gọi thử `POST /v1/analyses` bằng đoạn chat giả, mỗi tầng 3 lần. Kiểm tra JSON hợp lệ, trích dẫn khớp tin gốc, mức không tự lên Nghiêm trọng.
+4. Xem hạn mức còn lại trong Groq Console. Ghi lại số lượt/token mỗi lần gọi vào `docs/MODEL_REPORT.md`.
 
 | Kết quả | Hướng xử lý |
 |---|---|
-| Gọi được, credit trừ cả hai | Đi theo plan chính |
-| Claude gọi được nhưng credit không trừ | Sản phẩm dùng Nova. Claude chỉ chạy nếu nhóm đồng ý trả tiền thật |
-| Free plan chặn Claude, Nova chạy được | Nhóm quyết định giữ Free plan và bỏ Claude, hay nâng Paid plan |
-| Bedrock bị chặn hoàn toàn | Nâng Paid plan một tài khoản với Budgets, hoặc gateway gọi Gemini API trả phí |
+| Gọi được, JSON hợp lệ | Đi theo plan chính |
+| Thỉnh thoảng lỗi JSON | Giữ parser nghiêm ngặt, ghi tỉ lệ; chỉ chấp nhận nếu ≥ 95% |
+| 429 do hạn mức | Giảm số lượt/ngày trong Cài đặt, giữ backoff; không nâng plan nếu chưa bàn |
+| Không gọi được vì mạng hoặc key | Demo bằng chế độ chỉ luật + Gemini Nano; nói rõ giới hạn |
 
-**Không nâng Paid plan hay phát sinh tiền thật nếu cả nhóm chưa đồng ý.**
+**Không nâng plan trả phí hay phát sinh tiền thật nếu cả nhóm chưa đồng ý.** AWS (Bedrock, Lambda, staging) chỉ mở lại khi nhóm chuyển giai đoạn và đã xác nhận chi phí.
 
 ## 6. Thông tin dùng chung
 
@@ -195,10 +197,10 @@ Làm trước mọi việc khác. Tài liệu AWS cho biết Claude Opus 5.5 và
 |---|---|
 | Hạn nộp | Chưa xác nhận |
 | H0 | Chưa bắt đầu |
-| URL staging | |
-| URL production | |
+| URL gateway local | |
+| URL staging (AWS, hoãn) | |
 | URL bản web | |
-| Model đã chọn | |
+| Model đã chọn | `openai/gpt-oss-120b` cho cả `small` và `large` |
 
 ## 7. Làm việc với git
 

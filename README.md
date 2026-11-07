@@ -18,6 +18,12 @@ npm run check
 
 Lệnh `check` chạy typecheck, test, eval so với mốc và build extension. Phải xanh trước khi tạo PR.
 
+Giai đoạn hiện tại chạy **local-first + Groq `openai/gpt-oss-120b`**, chưa dùng AWS thật. Gateway local giữ khóa Groq và không lưu nội dung chat:
+
+```bash
+AI_PROVIDER=groq TOKEN_SECRET="$(node -e "console.log('x'.repeat(40))")" GROQ_API_KEY=<key> PORT=8787 npm run dev:gateway
+```
+
 **Đọc tiếp:** [Kế hoạch 12 giờ và phân công](docs/04_KE_HOACH_12H.md) · [Kiến trúc](docs/03_KIEN_TRUC_MUC_TIEU.md) · [Quy tắc phát triển](docs/quy-tac-phat-trien.md)
 
 ## Nhánh và phân công
@@ -39,8 +45,8 @@ packages/contracts/  hợp đồng API và phản hồi mẫu
 apps/extension/      Chrome Extension MV3
 apps/web/            màn hình kiểm tra đoạn chat
 apps/mobile/         app Android bọc apps/web
-services/gateway/    AI Gateway trên AWS Lambda
-infra/               hạ tầng AWS
+services/gateway/    AI Gateway local (Hono + Groq), đóng gói được lên AWS Lambda
+infra/               hạ tầng AWS cho giai đoạn sau
 research/            khung đánh giá (dữ liệu không nằm trong repo)
 fixtures/            bộ tình huống và mốc chất lượng
 docs/                kế hoạch, kiến trúc, quy tắc
@@ -53,11 +59,14 @@ docs/                kế hoạch, kiến trúc, quy tắc
 | `npm test` | Chạy test |
 | `npm run eval` | Chấm bộ tình huống |
 | `npm run build:extension` | Build vào `apps/extension/dist` |
+| `npm run build:gateway` | Bundle gateway Lambda vào `services/gateway/dist` |
+| `npm run dev:gateway` | Chạy gateway local (cần `TOKEN_SECRET`, `GROQ_API_KEY` nếu bật AI) |
 | `npm run dev:extension` | Chat giả lập tại `http://localhost:5178/mock-chat/` |
 
 ## Nguyên tắc không được vi phạm
 
 - Không bật AI thì không có dữ liệu nào rời thiết bị. Không log nội dung chat, ở cả client lẫn server.
+- Gateway không lưu nội dung chat; chỉ giữ bộ đếm lượt/token. Khóa Groq không nằm trong extension hay repo.
 - Dùng "có dấu hiệu", không kết luận tội phạm. Điểm là điểm dấu hiệu, không phải xác suất.
 - Trích dẫn của AI phải khớp tin gốc. AI một mình không đẩy lên Nghiêm trọng, chỉ hạ tối đa 1 bậc và không hạ từ Nghiêm trọng.
 - Không tự gửi tin nhắn. Ở mức Nghiêm trọng, ưu tiên hướng dẫn an toàn.

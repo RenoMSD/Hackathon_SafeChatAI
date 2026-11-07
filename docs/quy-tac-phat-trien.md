@@ -8,8 +8,9 @@ Không vi phạm, kể cả khi làm vậy tiện hơn.
 
 - **Quyền riêng tư**
   - Phiên chỉ lưu trong `chrome.storage.session`; `chrome.storage.local` chỉ chứa cài đặt và bộ đếm lượt AI.
-  - Không log nội dung chat (console, telemetry).
+  - Không log nội dung chat (console, telemetry, gateway, CloudWatch). Log phía server chỉ có mã lỗi kỹ thuật.
   - Không gửi dữ liệu ra ngoài khi người dùng chưa bật và chưa đồng ý; che PII trước khi gửi AI.
+  - Gateway không lưu nội dung chat; chỉ giữ bộ đếm lượt/token. Khóa Groq nằm trong `.env`/Secrets Manager, không nằm trong extension hay repo.
 - **An toàn hiển thị**
   - Nội dung chat chỉ vào DOM qua `textContent` hoặc hàm `h()`; không dùng `innerHTML` với dữ liệu chat.
   - Báo cáo HTML phải qua `escapeHtml`.
@@ -73,9 +74,9 @@ Không vi phạm, kể cả khi làm vậy tiện hơn.
    - Không có `console.*` in nội dung chat.
    - Không có `innerHTML` / `outerHTML` / `insertAdjacentHTML`.
    - Không có key cứng (`gsk_`, `sk-`, `Bearer …`).
-   - `fetch` chỉ tới `api.groq.com`, và chỉ khi người dùng đã bật.
+   - `fetch` chỉ tới gateway của nhóm và `api.groq.com` (chế độ trực tiếp), và chỉ khi người dùng đã bật.
 3. **Manifest:**
-   - Quyền tối thiểu (`sidePanel`, `storage`); `api.groq.com` nằm trong `optional_host_permissions`.
+   - Quyền tối thiểu (`sidePanel`, `storage`); gateway URL và `api.groq.com` nằm trong `optional_host_permissions`.
    - `version` đã tăng và khớp với `package.json`.
    - Có đủ icon 16/32/48/128.
 4. **Tài liệu:** bảng "Tình trạng" trong `TAI_LIEU_KY_THUAT.md` và mục Chất lượng / Lộ trình trong `README.md` gốc đúng thực tế; checklist trong `HUONG_DAN_CAI_DAT.md` đúng thao tác UI.
