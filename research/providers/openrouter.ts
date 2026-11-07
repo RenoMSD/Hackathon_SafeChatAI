@@ -97,7 +97,7 @@ export class OpenRouterClient {
         },
         body: JSON.stringify({
           model: req.model,
-          temperature: 0.1, // giống cấu hình sản phẩm (background/groq.ts)
+          temperature: 0, // giống cấu hình sản phẩm (background/groq.ts)
           ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
           messages: [
             { role: 'system', content: req.system },

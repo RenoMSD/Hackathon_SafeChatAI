@@ -24,7 +24,7 @@ export async function callGroq(req: AiRequest, apiKey: string, model: string): P
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model,
-        temperature: 0.1,
+        temperature: 0,
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: req.system },
