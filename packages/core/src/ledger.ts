@@ -43,10 +43,14 @@ function takeName(rest: string, max: number): string {
   return words.join(' ');
 }
 
+/** Từ thường đứng sau "công ty" trong câu nói, không phải tên riêng ("công ty tuyệt đối không…", "tổng đài công ty in trên…"). */
+const NOT_COMPANY_NAME = /^(tuyet|khong|chua|chi|da|dang|se|van|con|cung|luon|in|tren|cua|nay|do|kia|minh|ben|toi|thi|la|moi|co|cho|ve|o|tai|va|hay|neu|khi)\b/;
+
 function extractCompany(n: string): string | null {
   const m = /\bcong ty (?:tnhh mtv |tnhh |co phan |cp )?(.*)$/.exec(n);
   if (!m) return null;
   const name = takeName(m[1] ?? '', 4);
+  if (NOT_COMPANY_NAME.test(name)) return null;
   return name.length >= 2 ? name : null;
 }
 

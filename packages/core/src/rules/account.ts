@@ -27,6 +27,9 @@ export const accountRules: Rule[] = [
       new RegExp(`${NOT_WARNING}\\b(nhap|dien)\\b.{0,25}\\b${SECRET}\\b.{0,20}\\b(vao|tren)\\b.{0,12}\\b(link|duong link|app|ung dung|trang)\\b`),
       new RegExp(`\\b${SECRET}\\b.{0,30}${NOT_WARNING}\\b(doc|bao|nhan tin|cung cap|dua|gui (lai )?(cho|qua|sang))\\b.{0,12}\\b${TO_THEM}\\b`),
       new RegExp(`\\b${SECRET}\\b.{0,15}\\b(bao nhieu|so may|may so)\\b`),
+      // Xin mã không gọi tên OTP: "đọc em mã đó", "mã 6 số vừa nhận". Không tính mã đơn hàng, mã giảm giá...
+      new RegExp(`${NOT_WARNING}\\bdoc\\b.{0,20}\\bma\\b(?! (don|van don|khach|giam gia|san pham|nhan vien|so thue|hoc sinh|sinh vien))`),
+      new RegExp(`\\bma \\d so\\b.{0,30}${NOT_WARNING}\\b(doc|gui|cho em|cho minh|bao)\\b`),
     ],
   },
   {

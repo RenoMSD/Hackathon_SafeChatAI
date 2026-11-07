@@ -22,9 +22,12 @@ export const technicalRules: Rule[] = [
         /\bfile cai dat\b/,
         /\bcai (dat )?(ung dung|app|phan mem)\b.{0,15}\b(qua|tu|theo|bang) (link|duong dan)\b/,
         /\btai (file|app|ung dung|phan mem)\b.{0,15}\b(link|duong dan)\b/,
+        // Phát hiện từ tune bộ v2: không có chữ .apk, cần đi kèm tên dịch vụ công hoặc yêu cầu cấp quyền
+        /\b(tai|cai|cai dat)\s+(lai\s+)?(phan mem|ung dung|app)\b/,
+        /\b(link|duong dan)\b.{0,20}\btai\s+(phan mem|ung dung|app)\b/,
       ],
       [/\b(vneid|dich vu cong|thue dien tu|etax|hoan thue|dien luc|evn|bao hiem xa hoi|bhxh|cuc thue|tong cuc thue|cong an (phuong|xa|khu vuc))\b/],
-      [/\b(quyen tro nang|tro nang|accessibility|nguon khong xac dinh|cap quyen (man hinh|dieu khien|truy cap)|chia se man hinh|dieu khien tu xa|ultraviewer|teamviewer|anydesk)\b/],
+      [/\b(quyen tro nang|tro nang|accessibility|nguon khong xac dinh|cap quyen (man hinh|dieu khien|truy cap)|chia se man hinh|dieu khien tu xa|ultraviewer|teamviewer|anydesk|bat (het|tat ca|toan bo) (cac )?quyen)\b/],
       [/\b(dong bo (du lieu|thong tin)|dinh danh (dien tu )?muc 2|cap nhat (sinh trac|thong tin|dinh danh|can cuoc)|xac thuc sinh trac|nang cap (tai khoan|dinh danh))\b/],
     ],
   },

@@ -1,18 +1,18 @@
 {
-  "updatedAt": "2026-11-03T09:16:00.557Z",
-  "total": 72,
-  "levelOk": 72,
+  "updatedAt": "2026-11-07T07:10:18.305Z",
+  "total": 95,
+  "levelOk": 95,
   "levelAccuracy": 1,
-  "tp": 51,
+  "tp": 65,
   "fp": 0,
   "fn": 0,
   "precision": 1,
   "recall": 1,
-  "dangerHit": 33,
-  "dangerTotal": 33,
+  "dangerHit": 46,
+  "dangerTotal": 46,
   "benignFlagged": 0,
-  "benignTotal": 32,
+  "benignTotal": 42,
   "pendingOk": 0,
   "pendingTotal": 0,
-  "maxMs": 38.48
+  "maxMs": 56.44
 }

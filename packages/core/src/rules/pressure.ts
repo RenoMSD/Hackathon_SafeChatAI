@@ -36,6 +36,11 @@ export const pressureRules: Rule[] = [
       /\b(liu hon|coi chung|biet nha (em|ban|may) o dau)\b/,
       /\b(boi thuong|den bu|phat)\b.{0,15}\b(hop dong|vi pham|bo viec)\b.{0,20}\b\d+(?:[.,]\d+)? (trieu|ty)\b/,
       /\bkhong (duoc|cho) (ve|nghi viec|bo viec)\b/,
+      // Phát hiện từ tune bộ v2: tống tiền bằng ảnh, đe dọa gọi người thân. "anh" có thể là xưng hô nên cần rõ là ảnh
+      /\b(anh cua (anh|em|chi|ban|may)|hinh anh|clip|video)\b.{0,50}\bse duoc gui di\b/,
+      /\b(thi|khong thi|la) (anh|hinh)( anh)?\s+gui thang\b.{0,20}\b(lanh dao|co quan|gia dinh|nguoi than|dong nghiep)\b/,
+      /\btien doi lay im lang\b/,
+      /\bkhong (tra|thanh toan)\b.{0,30}\b(goi|bao|nhan tin)\b.{0,12}\bcho\b.{0,12}\b(nguoi than|dong nghiep|gia dinh|lanh dao)\b/,
     ],
   },
   {

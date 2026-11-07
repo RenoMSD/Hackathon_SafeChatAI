@@ -39,11 +39,17 @@ export const impersonationRules: Rule[] = [
     groups: [
       [
         /\b(chuyen (gap|tam|giup|ho|nho)|cho (muon|vay) (tam|gap|it)|cuu (gap|voi|tao|minh|em|anh|chi)|ban (qua|sang) (giup|ho|tam)|muon (tam|gap)|ung (tam|truoc) (giup|ho))\b/,
+        // Phát hiện từ tune bộ v2: giả người thân cần tiền cấp cứu
+        /\bchuyen khoan (gap|giup|ho|le|nhanh)\b/,
+        /\bcan gap \d+(?:[.,]\d+)? (nghin|trieu)\b/,
       ],
       [
         /\b(ngan hang|app( ngan hang)?)\b.{0,15}\b(bao tri|bi loi|dang loi|bi khoa)\b/,
         /\bhan muc\b.{0,10}\b(het|vuot)\b/,
         /\b(chuyen|ban) (nho|qua|vao) (tai khoan|so tai khoan) (cua )?(ban|nguoi khac|ho|ban minh|nguoi nha)\b/,
+        /\b(tai khoan|ung dung)\b.{0,12}\bbi khoa\b/,
+        /\b(vao|qua) (tai khoan|so tai khoan) (cua )?ban\b/,
+        /\b(tien vien|vien phi|phong mo|cap cuu|bi tai nan)\b/,
       ],
       [/\b(mang (yeu|lag|cham)|lag (qua|lam)|hong (mic|loa|camera)|khong (nghe|goi) (may|duoc)|dang (ban )?hop|song yeu|goi video\b.{0,12}\b(lag|mo|giat))\b/],
       [/\b(chieu|toi|mai|ti nua|ti xiu|xong)\b.{0,12}\btra (lien|ngay|lai|ban|may|nhe)\b/],

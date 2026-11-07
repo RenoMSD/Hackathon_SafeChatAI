@@ -32,6 +32,8 @@ const STAGE_OF: Record<string, ScamStage> = {
   crypto_wallet: 'S3',
   possible_contradiction: 'S3',
   task_freeze_extortion: 'S4',
+  task_escalating_deposit: 'S4',
+  hold_deposit_deadline: 'S3',
   threat_coercion: 'S4',
   original_documents: 'S4',
   communication_control: 'S4',

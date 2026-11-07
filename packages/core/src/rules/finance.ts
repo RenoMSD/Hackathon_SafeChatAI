@@ -11,7 +11,8 @@ export const financeRules: Rule[] = [
     recommended_action: 'Không chuyển tiền trước khi xác minh độc lập đơn vị tuyển dụng và có văn bản nêu rõ khoản phí.',
     negatable: true,
     patterns: [
-      /\b(phi|le phi|tien) (ho so|kich hoat|dang ky|dao tao|dong phuc|giu cho|bao hiem|the chan|xu ly|mo tai khoan|nhan viec|tham gia|giu suat|lam the|xac minh|bao dam|dam bao|thu tuc|giu viec)\b/,
+      // "có tiện tham gia" sau khi bỏ dấu thành "co tien tham gia", không phải tiền tham gia
+      /(?<!\bco )\b(phi|le phi|tien) (ho so|kich hoat|dang ky|dao tao|dong phuc|giu cho|bao hiem|the chan|xu ly|mo tai khoan|nhan viec|tham gia|giu suat|lam the|xac minh|bao dam|dam bao|thu tuc|giu viec)\b/,
       /\b(dong|nop|chuyen|gui) (truoc )?(tien |them )?(coc|phi|le phi|tien coc)\b/,
       /\bdat coc\b/,
       /\bcoc truoc\b/,
@@ -48,6 +49,50 @@ export const financeRules: Rule[] = [
       /\bhoa hong \d+(?:[.,]\d+)? ?%/,
       /\b(chot|tao) don (ao|hang)\b/,
       /\b(dau tu|gop von)\b.{0,40}\b(loi nhuan|lai|hoa hong)\b/,
+      // Phát hiện từ tune bộ v2: nạp để kích hoạt ví nhận lương, đơn cao cấp, combo, nhóm hoàn %
+      /\bnap\b.{0,12}\b(toi thieu|it nhat)\b/,
+      /\bkich hoat\b.{0,10}\bvi\b.{0,25}\b(luong|hoa hong|nhan tien|rut)\b/,
+      /\b(don|san pham) (cao cap|combo)\b.{0,50}\b(hoan|thanh toan|lam du)\b/,
+      /\b(nhom|nhiem vu|combo)\b.{0,50}\bhoan\b.{0,12}\d+\s*%/,
+      /\blam du\b.{0,20}\b(combo|don|nhiem vu)\b/,
+    ],
+  },
+  {
+    // Phát hiện từ tune bộ v2: số tiền nạp tăng dần, bảo gom tiền hoặc mượn thêm để nạp. Đây là bước giam tiền.
+    type: 'task_escalating_deposit',
+    category: 'finance',
+    severity: 'critical',
+    title: 'Nạp tiền leo thang theo nhiệm vụ, ép gom hoặc mượn thêm tiền',
+    explanation:
+      'Khoản phải nạp tăng dần kèm lời hứa thưởng, hoàn cao hơn, hoặc được bảo gom tiền, mượn bạn bè để nạp đủ. Đây là bước giam tiền: nạp càng nhiều càng khó lấy lại.',
+    recommended_action:
+      'Dừng ngay, không nạp thêm và không vay mượn để nạp. Lưu bằng chứng, báo ngân hàng và trình báo công an.',
+    requireOneOf: [0],
+    groups: [
+      [
+        /\b(nap|dong)\b.{0,15}\d+(?:[.,]\d+)? trieu\b.{0,40}\b(hoan|thuong|hoa hong|rut)\b/,
+        /\bnap cang nhieu\b|\bdon cang to\b/,
+        /\b(gom tien|muon ban be|muon them|vay them)\b.{0,50}\bnap\b/,
+      ],
+      [/\b(nhiem vu|hoa hong|don si|don vip|don hang|he thong phan phoi|hoan \d)\b/],
+    ],
+  },
+  {
+    // Phát hiện từ tune bộ v2: giữ ghế, giữ chỗ bằng chuyển khoản kèm hạn giờ để không kịp xác minh
+    type: 'hold_deposit_deadline',
+    category: 'finance',
+    severity: 'high',
+    title: 'Đòi chuyển khoản giữ chỗ kèm hạn giờ',
+    explanation:
+      'Có yêu cầu chuyển khoản để giữ ghế, giữ chỗ, kèm dọa bán cho người khác nếu quá hạn. Kẻ gian dùng hạn giờ để bạn không kịp kiểm tra người bán.',
+    recommended_action: 'Không chuyển tiền chỉ vì sợ hết chỗ. Đặt qua kênh chính thức của nhà xe, khách sạn và kiểm tra thông tin liên hệ.',
+    minGroups: 2,
+    groups: [
+      [
+        /\b(chuyen khoan|chuyen tien|coc|dat coc)\b.{0,40}\bgiu\b.{0,8}\b(ghe|cho|phong|ve|suat|hang)\b/,
+        /\bgiu\b.{0,8}\b(ghe|cho|suat)\b.{0,30}\b(chuyen khoan|coc)\b/,
+      ],
+      [/\bqua \d+\s*(phut|gio)\b/, /\b(ban|nhuong) cho (khach|nguoi) khac\b/],
     ],
   },
   {

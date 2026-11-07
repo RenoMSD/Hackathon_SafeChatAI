@@ -4,6 +4,7 @@ import { validateEvidence } from './evidence';
 import { buildLedger } from './ledger';
 import { normalizeForMatch } from './normalize';
 import { ALL_RULES, GROUP_WINDOW, groupsSatisfied, matchGroups, matchRule, type Rule } from './rules';
+import { isProtectiveWarning } from './rules/warning';
 import { levelOf, scoreSignals } from './scoring';
 import { deriveStages } from './stages';
 import type { AnalysisResult, ChatMessage, RiskLevel, Signal } from './types';
@@ -38,7 +39,11 @@ function toSignal(rule: Rule, ms: ChatMessage[]): Signal {
  */
 export function runRules(messages: ChatMessage[]): Signal[] {
   const others = messages.filter((m) => m.sender !== 'self');
-  const normalized = others.map((m) => normalizeForMatch(m.text));
+  // Tin đang cảnh báo về lừa đảo, không yêu cầu người nhận làm gì: không dùng làm bằng chứng
+  const normalized = others.map((m) => {
+    const n = normalizeForMatch(m.text);
+    return isProtectiveWarning(n) ? '' : n;
+  });
   const out: Signal[] = [];
 
   for (const rule of ALL_RULES) {
