@@ -2570,6 +2570,15 @@ export function initFloatingWidget(
           ),
         ),
       ),
+      r?.open_questions?.length
+        ? h(
+            'div',
+            { style: 'margin-top:6px;padding:6px 8px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:11.5px;color:#7f1d1d' },
+            h('div', { style: 'font-weight:700' }, 'Bạn đã hỏi nhưng chưa được trả lời rõ'),
+            ...r.open_questions.map((q) => h('div', { style: 'margin-top:2px' }, `• ${q}`)),
+            h('div', { style: 'margin-top:3px;font-size:10.5px;color:#991b1b' }, 'Đối phương chỉ trấn an hoặc viện quy trình. Chưa có câu trả lời kiểm chứng được thì đừng làm tiếp.'),
+          )
+        : null,
       r?.qr?.length
         ? h(
             'div',
@@ -3026,8 +3035,11 @@ export function initFloatingWidget(
             },
             h('div', {}, suggestionText),
             assessmentText && !session.waiting && h('div', { style: 'margin-top:4px;font-size:11px;font-weight:700;color:#b45309' }, assessmentText),
+            (r?.open_questions?.length ?? 0) > 0 &&
+              !session.waiting &&
+              h('div', { style: 'margin-top:4px;font-size:11px;font-weight:700;color:#b91c1c' }, `Bạn đã hỏi ${r!.open_questions!.length} câu nhưng chưa được trả lời rõ. Xem ở Chi tiết.`),
             r?.advice.waiting_answer &&
-              !r.signals.some((s) => s.type.startsWith('user_complied_')) &&
+              !r.signals.some((s) => /^user_(complied|intends)_/.test(s.type)) &&
               !session.waiting &&
               h('div', { style: 'margin-top:4px;font-size:11px;color:#64748b' }, 'Đang chờ đối phương trả lời. Đọc kỹ câu trả lời trước khi làm tiếp.'),
             topQuestion &&

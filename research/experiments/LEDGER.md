@@ -34,3 +34,7 @@ Tự sinh bằng `npm run bench:experiment -- --ledger`. Không sửa tay. Cách
 | [EXP-025](EXP-025/README.md) | Tách đuôi tên miền bị lạm dụng khỏi đuôi phổ biến | rules | `a7e518c+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.1% | 33.9% | 2 |
 | [EXP-026](EXP-026/README.md) | Phân tích link trên máy, bản chốt | rules | `a7e518c+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |
 | [EXP-027](EXP-027/README.md) | Đọc mã QR trong ảnh ngay trên máy | rules | `91b5ca0+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |
+| [EXP-028](EXP-028/README.md) | Giữ bằng chứng khi gộp nạp tiền vào kẹt lệnh | rules | `0360ea5+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |
+| [EXP-029](EXP-029/README.md) | Trục nạn nhân, dấu hiệu giai đoạn cuối, phát hiện vòng vo | rules | `0360ea5+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |
+| [EXP-030](EXP-030/README.md) | Trục nạn nhân, bản sửa báo nhầm mã mẫu | rules | `0360ea5+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |
+| [EXP-031](EXP-031/README.md) | Đổi nhãn chốt 5 ca tune theo trục nạn nhân | rules | `0360ea5+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |

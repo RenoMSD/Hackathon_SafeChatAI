@@ -65,6 +65,24 @@ const RESERVED_FB_PATHS = new Set([
   'privacy',
 ]);
 
+/** Chữ trạng thái Messenger gắn dưới tin của mình ("Đã gửi", "Đã xem"): không phải nội dung tin. */
+const STATUS_SUFFIX = /\s*(Đã gửi|Đã xem|Đang gửi|Đã nhận|Sent|Seen|Delivered|Sending)\s*$/u;
+export function cleanBubbleText(text: string): string {
+  let t = text.trim();
+  while (STATUS_SUFFIX.test(t)) t = t.replace(STATUS_SUFFIX, '').trim();
+  return t;
+}
+
+/** Thông báo của Messenger nằm trong khung chat, không phải tin của ai. */
+export function isSystemNotice(text: string): boolean {
+  return /^(Tin nhắn và cuộc gọi được bảo mật bằng tính năng mã hóa đầu cuối|Messages and calls are secured with end-to-end encryption)/i.test(text.trim());
+}
+
+/** Cùng một tin có thể mang mã "123" ở hàng ngoài và "<id người>@msgr.123" ở hàng trong. */
+export function normalizeDomId(id: string | undefined): string | undefined {
+  return id?.replace(/^\d+@msgr\./, '') || undefined;
+}
+
 /** Địa chỉ link ra ngoài từ các thẻ a trong tin: gỡ link bọc, bỏ link nội bộ của Facebook như hồ sơ, ảnh đại diện. */
 export function externalLinks(hrefs: string[]): string[] {
   const out = new Set<string>();

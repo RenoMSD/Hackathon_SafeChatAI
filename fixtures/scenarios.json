@@ -734,7 +734,7 @@
   },
   {
     "id": "36_r10_vote_otp",
-    "title": "R10: nhờ bình chọn, đăng nhập Zalo, đọc mã 6 số",
+    "title": "R10: nhờ bình chọn, đăng nhập Zalo, đọc mã 6 số → Nghiêm trọng (chiếm tài khoản)",
     "source": "v0.3 R",
     "messages": [
       {
@@ -743,7 +743,7 @@
       }
     ],
     "expected": {
-      "level": "high",
+      "level": "critical",
       "signals": [
         "phishing_vote_qr"
       ]
@@ -3818,7 +3818,7 @@
   },
   {
     "id": "163_chuyen_them_de_rut",
-    "title": "Chuyển thêm kèm hứa rút được → Cao",
+    "title": "Báo hoa hồng đã về rồi đòi chuyển thêm để rút → Nghiêm trọng (mồi rồi đòi tiếp)",
     "source": "v0.11: viết mới khi bỏ ngưỡng số tiền, không dùng dữ liệu nhóm",
     "messages": [
       {
@@ -3831,9 +3831,10 @@
       }
     ],
     "expected": {
-      "level": "high",
+      "level": "critical",
       "signals": [
-        "money_request_context"
+        "money_request_context",
+        "bait_then_demand"
       ]
     }
   },
@@ -4359,7 +4360,7 @@
   },
   {
     "id": "194_da_doc_otp",
-    "title": "Đã đọc OTP → giữ Cao, chuyển hướng dẫn",
+    "title": "Đã đọc OTP sau yêu cầu mức Cao → Nghiêm trọng, chuyển hướng dẫn",
     "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
     "messages": [
       {
@@ -4376,7 +4377,7 @@
       }
     ],
     "expected": {
-      "level": "high",
+      "level": "critical",
       "signals": [
         "otp_password_request",
         "user_complied_otp"
@@ -4385,7 +4386,7 @@
   },
   {
     "id": "195_da_chuyen_tien",
-    "title": "Đã chuyển tiền → giữ Cao",
+    "title": "Đã chuyển tiền sau yêu cầu mức Cao → Nghiêm trọng",
     "source": "v0.12: viết mới khi thêm phân tích link, không dùng dữ liệu nhóm",
     "messages": [
       {
@@ -4402,7 +4403,7 @@
       }
     ],
     "expected": {
-      "level": "high",
+      "level": "critical",
       "signals": [
         "upfront_fee",
         "user_complied_money"
@@ -4936,7 +4937,7 @@
   },
   {
     "id": "222_qr_da_chuyen",
-    "title": "Đã chuyển theo QR kèm nhiệm vụ → giữ Cao",
+    "title": "Đã chuyển theo QR kèm nhiệm vụ → Nghiêm trọng",
     "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
     "messages": [
       {
@@ -4956,7 +4957,7 @@
       }
     ],
     "expected": {
-      "level": "high",
+      "level": "critical",
       "signals": [
         "qr_payment_context",
         "user_complied_money"
@@ -4979,6 +4980,596 @@
     "expected": {
       "level": "low",
       "signals": []
+    }
+  },
+  {
+    "id": "224_ctv_nap_roi_bi_ep_mo_khoa",
+    "title": "Tuyển cộng tác viên, đã nạp rồi bị ép nạp thêm để mở khóa → Nghiêm trọng, nhận ra đã làm theo",
+    "source": "v0.13: hội thoại thử để chạy AI, viết mới, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chào bạn, mình là Linh bên Công ty TNHH Truyền Thông Sao Việt, thấy bạn đang tìm việc làm thêm nên nhắn hỏi thử"
+      },
+      {
+        "sender": "self",
+        "text": "Dạ chào chị, việc gì vậy ạ?"
+      },
+      {
+        "sender": "other",
+        "text": "Việc đánh giá sản phẩm online, mỗi ngày làm 30 phút, thu nhập 300 đến 500 nghìn một ngày nha"
+      },
+      {
+        "sender": "self",
+        "text": "Có cần kinh nghiệm không chị?"
+      },
+      {
+        "sender": "other",
+        "text": "Không cần đâu, mình hướng dẫn từ đầu. Bạn kết bạn với trưởng nhóm qua Telegram để nhận việc nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Sao không trao đổi ở đây luôn ạ? Công ty có hợp đồng không chị?"
+      },
+      {
+        "sender": "other",
+        "text": "Công ty lớn lắm, làm online nên không cần hợp đồng đâu, nhiều bạn sinh viên làm rồi, bạn yên tâm"
+      },
+      {
+        "sender": "self",
+        "text": "Dạ vậy em làm thử"
+      },
+      {
+        "sender": "other",
+        "text": "Nhiệm vụ đầu: em nạp 200k vào hệ thống, 10 phút sau hoàn lại 260k cả gốc lẫn hoa hồng"
+      },
+      {
+        "sender": "self",
+        "text": "Lúc đầu chị nói không mất phí mà?"
+      },
+      {
+        "sender": "other",
+        "text": "Đây không phải phí, chỉ là vốn để chạy đơn thôi em. Đăng nhập ở sao-viet-nhiemvu.top để theo dõi tiền nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Em vừa nạp xong rồi"
+      },
+      {
+        "sender": "other",
+        "text": "Lệnh của em bị kẹt do sai cú pháp, em nạp thêm 2 triệu để mở khóa, không thì mất hết số tiền đã nạp đó"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "task_freeze_extortion",
+        "user_complied_money"
+      ]
+    }
+  },
+  {
+    "id": "225_mau_anh_ne_roi_lay_ma",
+    "title": "Tuyển mẫu ảnh: né 4 câu nghi ngờ, dẫn đăng nhập lấy mã, nạn nhân định gửi mã → Nghiêm trọng",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "self",
+        "text": "Bên mình còn tuyển mẫu ảnh không ạ?"
+      },
+      {
+        "sender": "other",
+        "text": "Bạn đã làm mẫu bao giờ chưa, gửi mình vài ảnh xem thử nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Dạ em từng làm rồi, đây ạ"
+      },
+      {
+        "sender": "other",
+        "text": "Bạn ổn đó, chọn mẫu rồi đăng ký ở link này nha https://tinyurl.com/dang-ky-mau-anh"
+      },
+      {
+        "sender": "self",
+        "text": "Đây là trang chính thức của đơn vị nào ạ?"
+      },
+      {
+        "sender": "other",
+        "text": "Bên mình liên kết studio lớn, link này là form nội bộ riêng cho đợt này, tìm trên mạng không có đâu"
+      },
+      {
+        "sender": "self",
+        "text": "Link rút gọn dễ bị gắn mã độc lắm, chị gửi link gốc được không?"
+      },
+      {
+        "sender": "other",
+        "text": "Link gốc dài quá nên rút gọn cho dễ bấm thôi, không có mã độc gì đâu em yên tâm"
+      },
+      {
+        "sender": "self",
+        "text": "Em bấm thì nó đòi đăng nhập Facebook, vậy có đúng không chị?"
+      },
+      {
+        "sender": "other",
+        "text": "Em cảnh giác vậy là tốt đó. Đó là cổng xác minh thành viên thôi, em cứ đăng nhập để hệ thống cấp mã xác nhận rồi chụp màn hình mã gửi qua đây cho chị nhé"
+      },
+      {
+        "sender": "self",
+        "text": "À ra vậy. Để em nhập thông tin lấy mã xác minh gửi chị liền nha"
+      },
+      {
+        "sender": "other",
+        "text": "Okie em làm xong báo chị nha"
+      },
+      {
+        "sender": "self",
+        "text": "Em thấy vẫn không ổn, nhập tài khoản vào web lạ dễ bị hack lắm, sao phải đăng nhập qua link?"
+      },
+      {
+        "sender": "other",
+        "text": "Em chu đáo ghê, chị khen thật. Đây là quy trình bắt buộc của bên kiểm toán, em dùng nick phụ rồi đổi mật khẩu ngay cũng được"
+      },
+      {
+        "sender": "self",
+        "text": "Vậy để em vào đăng ký lấy cái mã hợp đồng gửi chị"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "account_takeover_code",
+        "evasive_reassurance",
+        "user_intends_otp"
+      ]
+    }
+  },
+  {
+    "id": "226_y_dinh_chuyen",
+    "title": "Đòi nạp, nạn nhân \"để em chuyển liền\" → Nghiêm trọng",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Nhiệm vụ đầu: em nạp 200k vào hệ thống, 10 phút sau hoàn lại 260k cả gốc lẫn hoa hồng"
+      },
+      {
+        "sender": "self",
+        "text": "Dạ để em chuyển liền"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "task_deposit",
+        "user_intends_money"
+      ]
+    }
+  },
+  {
+    "id": "227_xin_so_tai_khoan",
+    "title": "Đòi nạp, nạn nhân xin số tài khoản để chuyển → Nghiêm trọng",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Nhiệm vụ đầu: em nạp 200k vào hệ thống, 10 phút sau hoàn lại 260k cả gốc lẫn hoa hồng"
+      },
+      {
+        "sender": "self",
+        "text": "Chị cho em xin số tài khoản để em chuyển"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "task_deposit",
+        "user_intends_money"
+      ]
+    }
+  },
+  {
+    "id": "228_muon_tien_de_nap",
+    "title": "Đòi nạp, nạn nhân định mượn tiền để nạp → Nghiêm trọng",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Nhiệm vụ đầu: em nạp 200k vào hệ thống, 10 phút sau hoàn lại 260k cả gốc lẫn hoa hồng"
+      },
+      {
+        "sender": "self",
+        "text": "Em không đủ, để em mượn thêm bạn rồi nạp"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "task_deposit",
+        "user_intends_money"
+      ]
+    }
+  },
+  {
+    "id": "229_y_dinh_gui_ma",
+    "title": "Xin OTP, nạn nhân \"chờ em gửi mã liền\" → Nghiêm trọng",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em đọc giúp chị mã OTP vừa gửi về nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Dạ chờ em xíu em gửi mã liền"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "otp_password_request",
+        "user_intends_otp"
+      ]
+    }
+  },
+  {
+    "id": "230_dang_cai_apk",
+    "title": "Bảo tải apk, nạn nhân \"đang cài\" → Nghiêm trọng",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Anh tải file apk về rồi mở lên là được"
+      },
+      {
+        "sender": "self",
+        "text": "Tôi đang cài đây"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "apk_install_request",
+        "user_intends_app"
+      ]
+    }
+  },
+  {
+    "id": "231_xin_ma_lan_hai",
+    "title": "Đã đọc mã rồi bị xin mã tiếp → Nghiêm trọng",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em đọc giúp chị mã OTP nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Mã là 482913"
+      },
+      {
+        "sender": "other",
+        "text": "Còn một mã nữa, em đọc tiếp giúp chị"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "otp_password_request",
+        "user_complied_otp"
+      ]
+    }
+  },
+  {
+    "id": "232_thue_de_rut",
+    "title": "Đầu tư: đòi đóng thuế trước khi rút lãi → Nghiêm trọng",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Sàn đầu tư vàng lãi 3% mỗi tuần"
+      },
+      {
+        "sender": "self",
+        "text": "Em nạp 5 triệu rồi"
+      },
+      {
+        "sender": "other",
+        "text": "Muốn rút lợi nhuận em phải đóng thuế 10% trước nhé"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "withdrawal_fee"
+      ]
+    }
+  },
+  {
+    "id": "233_phi_mo_khoa_giai_ngan",
+    "title": "App vay: đóng phí để giải ngân → Nghiêm trọng",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hồ sơ vay của em đã duyệt"
+      },
+      {
+        "sender": "other",
+        "text": "Em nộp phí bảo hiểm 1 triệu trước khi giải ngân nhé"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "withdrawal_fee"
+      ]
+    }
+  },
+  {
+    "id": "234_moi_roi_doi_tiep",
+    "title": "Nhiệm vụ: báo đã hoàn tiền rồi đòi nạp tiếp → Nghiêm trọng",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Nhiệm vụ đầu: em nạp 200k vào hệ thống, 10 phút sau hoàn lại 260k cả gốc lẫn hoa hồng"
+      },
+      {
+        "sender": "other",
+        "text": "Hệ thống đã hoàn 260k vào tài khoản em rồi nhé"
+      },
+      {
+        "sender": "other",
+        "text": "Giờ em nạp 1 triệu làm nhiệm vụ VIP, hoàn về 1 triệu 4"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "task_deposit",
+        "bait_then_demand"
+      ]
+    }
+  },
+  {
+    "id": "235_ne_ba_lan",
+    "title": "Hỏi công ty, mã số thuế, hợp đồng; cả 3 lần chỉ được trấn an → Cần chú ý",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên chị tuyển cộng tác viên online, thu nhập tốt"
+      },
+      {
+        "sender": "self",
+        "text": "Công ty mình tên gì ạ?"
+      },
+      {
+        "sender": "other",
+        "text": "Công ty lớn lắm em yên tâm"
+      },
+      {
+        "sender": "self",
+        "text": "Có mã số thuế không chị?"
+      },
+      {
+        "sender": "other",
+        "text": "Nhiều bạn làm rồi, uy tín mà"
+      },
+      {
+        "sender": "self",
+        "text": "Có hợp đồng không ạ?"
+      },
+      {
+        "sender": "other",
+        "text": "Em cứ làm thử là biết, đừng lo"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "evasive_reassurance"
+      ]
+    }
+  },
+  {
+    "id": "236_chuyen_tien_com",
+    "title": "Để em chuyển tiền cơm → Thấp",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tiền cơm hôm qua 65k nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Để em chuyển liền nha"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "237_shop_cod",
+    "title": "Shop COD, để em chuyển cọc nhỏ → Thấp",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Shop giao COD, nhận hàng kiểm tra rồi trả tiền nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Dạ để em chuyển cọc 50k giữ đơn"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "238_de_em_xem_da",
+    "title": "Đòi nạp, nạn nhân \"để em xem đã\" → giữ Cao",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Nhiệm vụ đầu: em nạp 200k vào hệ thống, 10 phút sau hoàn lại 260k cả gốc lẫn hoa hồng"
+      },
+      {
+        "sender": "self",
+        "text": "Để em xem đã"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "task_deposit"
+      ]
+    }
+  },
+  {
+    "id": "239_tu_choi_gui_ma",
+    "title": "Xin OTP, nạn nhân từ chối → giữ Cao",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em đọc giúp chị mã OTP nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Em không gửi mã đâu"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "otp_password_request"
+      ]
+    }
+  },
+  {
+    "id": "240_tra_loi_ro_rang",
+    "title": "Hỏi công ty, được trả lời rõ tên pháp nhân và mã số thuế → Thấp",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên chị tuyển nhân viên kho"
+      },
+      {
+        "sender": "self",
+        "text": "Công ty mình tên gì ạ?"
+      },
+      {
+        "sender": "other",
+        "text": "Công ty TNHH Kho Vận Minh An, mã số thuế 0312345678, em qua phỏng vấn trực tiếp nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Có hợp đồng không chị?"
+      },
+      {
+        "sender": "other",
+        "text": "Có hợp đồng lao động, em qua văn phòng ký trực tiếp"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "241_ne_mot_lan",
+    "title": "Chỉ né 1 câu, chưa có yêu cầu → Thấp",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên chị tuyển cộng tác viên online"
+      },
+      {
+        "sender": "self",
+        "text": "Công ty mình tên gì ạ?"
+      },
+      {
+        "sender": "other",
+        "text": "Công ty lớn lắm em yên tâm"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "242_trang_thai_da_gui",
+    "title": "Chữ trạng thái \"Đã gửi\" không bị hiểu là đã gửi mã",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em đọc giúp chị mã OTP nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Em hỏi chút đã Đã gửi"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "otp_password_request"
+      ]
+    }
+  },
+  {
+    "id": "243_hoan_tien_mua_hang",
+    "title": "Shop hoàn tiền rồi đặt cọc đơn mới, không phải nhiệm vụ → không lên Nghiêm trọng",
+    "source": "v0.14: trục nạn nhân, viết lại từ phiên thử của nhóm và câu tự viết, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Shop đã hoàn tiền đơn cũ cho bạn rồi nhé"
+      },
+      {
+        "sender": "other",
+        "text": "Đơn mới bạn đặt cọc 50k giúp shop nha"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "244_ma_otp_mau_khi_kiem_thu",
+    "title": "Kiểm thử phần mềm nói mã OTP cố định là 123456 → không coi là đã đưa mã",
+    "source": "v0.14: viết mới từ lỗi trên tune, không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bạn đọc giúp mình mã OTP trên bản thử nghiệm nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Môi trường thử thì cứ nhập mã OTP cố định là 123456 là qua"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "otp_password_request"
+      ],
+      "forbidden": [
+        "user_complied_otp"
+      ]
     }
   }
 ]

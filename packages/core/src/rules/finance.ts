@@ -40,6 +40,20 @@ const MONEY_THREAT = [/\b(dong bang|bi tich thu|mat (het|toan bo|sach)|bi khoa v
 
 export const financeRules: Rule[] = [
   {
+    // Giai đoạn cuối của lừa đầu tư, nhiệm vụ, vay: tiền đã nằm "trong hệ thống", muốn rút phải nộp thêm.
+    type: 'withdrawal_fee',
+    category: 'finance',
+    severity: 'critical',
+    title: 'Đòi nộp phí hoặc thuế mới cho rút tiền',
+    explanation: 'Đối phương nói muốn rút tiền, nhận lại tiền hay giải ngân thì phải nộp thêm phí hoặc thuế. Nơi làm ăn thật trừ phí vào số tiền rút, không bắt nộp thêm. Đây là bước cuối để lấy thêm tiền của bạn.',
+    recommended_action: 'Dừng ngay, không nộp thêm bất kỳ khoản nào. Số tiền đã nộp gần như không lấy lại được bằng cách nộp thêm. Lưu bằng chứng, báo ngân hàng và công an.',
+    negatable: true,
+    patterns: [
+      /\b(muon|de|moi|thi moi) (rut|nhan lai|lay lai|giai ngan|mo khoa)\b.{0,40}\b(dong|nop|chuyen|nap)\b.{0,20}\b(thue|phi|le phi|tien)\b/,
+      /\b(dong|nop|chuyen|nap)\b.{0,20}\b(thue|phi|le phi)\b.{0,30}\b(de|moi|thi moi|truoc khi) (rut|nhan lai|giai ngan|mo khoa|lay lai)\b/,
+    ],
+  },
+  {
     type: 'money_request_phrase',
     category: 'finance',
     severity: 'medium',

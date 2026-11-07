@@ -1129,7 +1129,14 @@ function adviceCard(s: Session): Node | null {
       ),
       a.answer_assessment === 'evasive' && h('p', { class: 'small', style: 'margin:8px 0 0;font-weight:700' }, 'AI: câu trả lời còn né tránh, chung chung.'),
       a.answer_assessment === 'contradictory' && h('p', { class: 'small', style: 'margin:8px 0 0;font-weight:700' }, 'AI: câu trả lời mâu thuẫn với điều đã nói trước đó.'),
-      a.waiting_answer && !s.result?.signals.some((x) => x.type.startsWith('user_complied_')) && h('p', { class: 'muted small', style: 'margin:8px 0 0' }, 'Đang chờ đối phương trả lời. Đọc kỹ câu trả lời trước khi làm tiếp.'),
+      (s.result?.open_questions?.length ?? 0) > 0 &&
+        h(
+          'div',
+          { class: 'small', style: 'margin:8px 0 0;padding:6px 8px;border:1px solid #fecaca;border-radius:8px;background:#fef2f2;color:#7f1d1d' },
+          h('b', {}, 'Bạn đã hỏi nhưng chưa được trả lời rõ'),
+          ...s.result!.open_questions!.map((q) => h('div', {}, `• ${q}`)),
+        ),
+      a.waiting_answer && !s.result?.signals.some((x) => /^user_(complied|intends)_/.test(x.type)) && h('p', { class: 'muted small', style: 'margin:8px 0 0' }, 'Đang chờ đối phương trả lời. Đọc kỹ câu trả lời trước khi làm tiếp.'),
       state.adviceExpanded &&
         a.questions.length > 0 &&
         h(

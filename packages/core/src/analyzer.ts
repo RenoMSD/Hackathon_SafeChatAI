@@ -1,5 +1,5 @@
 import { buildAdvice } from './advice';
-import { applyContextMitigations, applyVerificationMitigation, entitySignals, linkContextSignals, qrSignals, repeatedMoneySignals, userCompliedSignals } from './context';
+import { applyContextMitigations, applyVerificationMitigation, entitySignals, baitThenDemandSignals, evasionSignals, linkContextSignals, qrSignals, repeatedMoneySignals, userCompliedSignals } from './context';
 import { validateEvidence } from './evidence';
 import { buildLedger } from './ledger';
 import { linkFindings } from './link';
@@ -66,7 +66,16 @@ export function runRules(messages: ChatMessage[]): Signal[] {
       if (ms.length) out.push(toSignal(rule, ms));
     }
   }
-  // Trùng nghĩa: giữ tín hiệu cụ thể hơn
+  // Trùng nghĩa: giữ tín hiệu cụ thể hơn, nhưng giữ cả bằng chứng của tín hiệu bị gộp.
+  // Mất bằng chứng cũ thì các bước sau (vd. người dùng đã nạp sau lần đòi đầu tiên) hiểu sai thứ tự.
+  const freeze = out.find((s) => s.type === 'task_freeze_extortion');
+  const deposit = out.find((s) => s.type === 'task_deposit');
+  if (freeze && deposit) {
+    const byId = new Map(others.map((m) => [m.id, m]));
+    const ids = [...new Set([...deposit.evidence_message_ids, ...freeze.evidence_message_ids])].sort((a, b) => (byId.get(a)?.seq ?? 0) - (byId.get(b)?.seq ?? 0));
+    freeze.evidence_message_ids = ids;
+    freeze.evidence_quotes = ids.map((id) => quote(byId.get(id)!));
+  }
   const types = new Set(out.map((s) => s.type));
   return out.filter((s) => {
     if (s.type === 'secrecy_general' && types.has('secrecy_from_family')) return false;
@@ -77,6 +86,7 @@ export function runRules(messages: ChatMessage[]): Signal[] {
     // Cùng một lời đòi tiền: giữ mức ghép ngữ cảnh nặng nhất
     if (s.type === 'money_request_phrase' && (types.has('money_request_context') || types.has('money_request_threat'))) return false;
     if (s.type === 'money_request_context' && types.has('money_request_threat')) return false;
+    if (s.type === 'apk_install_request' && types.has('malware_apk')) return false;
     return true;
   });
 }
@@ -121,7 +131,10 @@ export function analyze(messages: ChatMessage[], opts: AnalyzeOptions = {}): Ana
     messages,
   );
   const withContext = [...mitigated, ...repeatedMoneySignals(mitigated, messages), ...linkContextSignals(mitigated, messages), ...qrSignals(messages)];
-  const ruleSignals = [...withContext, ...userCompliedSignals(withContext, messages)];
+  const staged = [...withContext, ...baitThenDemandSignals(withContext, messages)];
+  const evasion = evasionSignals(staged, messages);
+  const beforeVictim = [...staged, ...evasion.signals];
+  const ruleSignals = [...beforeVictim, ...userCompliedSignals(beforeVictim, messages)];
   const ledger = buildLedger(messages);
 
   let aiSignals: Signal[] = [];
@@ -192,6 +205,7 @@ export function analyze(messages: ChatMessage[], opts: AnalyzeOptions = {}): Ana
     analyzed_message_count: messages.length,
     links: linkFindings(messages),
     qr: qrFindings(messages),
+    open_questions: evasion.openQuestions,
     ai_status: opts.aiStatus ?? 'off',
     ai_error: opts.aiError,
   };

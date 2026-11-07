@@ -23,6 +23,22 @@ const SECRET_REQUEST: RegExp[] = [
 
 export const accountRules: Rule[] = [
   {
+    // Chiếm tài khoản: dẫn đăng nhập qua trang lạ rồi xin gửi lại mã hoặc ảnh chụp mã.
+    type: 'account_takeover_code',
+    category: 'account',
+    severity: 'critical',
+    title: 'Dẫn đăng nhập rồi xin gửi lại mã xác nhận',
+    explanation: 'Đối phương bảo đăng nhập tài khoản qua trang của họ rồi gửi lại mã hoặc ảnh chụp mã. Mã đó dùng để chiếm tài khoản của bạn, dù được gọi là mã hợp đồng hay mã thành viên.',
+    recommended_action: 'Không đăng nhập, không gửi mã hay ảnh chụp mã. Nếu đã nhập tài khoản, đổi mật khẩu ngay trên ứng dụng chính thức và bật xác thực hai lớp.',
+    negatable: true,
+    minGroups: 3,
+    groups: [
+      [/\b(dang nhap|nhap (tai khoan|thong tin dang nhap|mat khau)|tai khoan (facebook|zalo|fb)|cong xac minh|xac minh (tai khoan|thanh vien|nick))\b/],
+      [/\b(ma|otp|token|ma xac (nhan|minh|thuc)|ma so hop dong)\b/],
+      [/\b(chup (lai )?man hinh|gui (qua|cho|lai|ma)|doc (cho|giup|ma))\b/],
+    ],
+  },
+  {
     type: 'otp_password_request',
     category: 'account',
     severity: 'high',

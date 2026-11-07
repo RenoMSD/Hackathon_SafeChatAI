@@ -174,6 +174,8 @@ export interface AnalysisResult {
   links?: LinkFinding[];
   /** Các mã QR của đối phương, nặng nhất trước. */
   qr?: QrFinding[];
+  /** Câu người dùng đã hỏi hoặc nghi ngờ mà đối phương chỉ trấn an, chưa trả lời rõ. */
+  open_questions?: string[];
   ai_status: 'off' | 'ok' | 'error' | 'pending';
   ai_error?: string;
 }

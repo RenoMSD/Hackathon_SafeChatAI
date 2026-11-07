@@ -126,6 +126,8 @@ const SYNONYMS: Record<string, CanonicalType> = {
   bank_credentials: 'bank_impersonation',
   otp: 'otp_request',
   otp_password_request: 'otp_request',
+  account_takeover_code: 'otp_request',
+  bait_then_demand: 'fee_upfront',
   otp_institution_pressure: 'otp_request',
   remote_access: 'remote_access_request',
   malware_apk: 'remote_access_request',

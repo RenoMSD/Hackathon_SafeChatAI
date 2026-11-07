@@ -107,8 +107,27 @@ const CRITICAL_FINANCIAL_ACTIONS = [
   'Lưu lại bằng chứng (ảnh chụp màn hình, báo cáo xuất) và trình báo công an nơi cư trú.',
 ];
 
-/** Việc cần làm ngay khi người dùng đã làm theo yêu cầu. */
+/** Người dùng đang hoặc vừa làm theo yêu cầu: lời nhắc dừng lại thay cho lời cảnh báo chung. */
+export const COMPLIANCE_SAFETY_MESSAGE =
+  'Bạn đang làm hoặc vừa làm theo yêu cầu của đối phương. Đây thường là bước cuối mà kẻ gian chờ đợi, sau nhiều lời trấn an và hứa hẹn. Dừng lại ngay, không gửi mã, không chuyển hay nộp thêm tiền, kể cả khi được bảo là an toàn.';
+
+/** Việc cần làm ngay khi người dùng sắp hoặc đã làm theo yêu cầu. */
 const INCIDENT_STEPS: Record<string, string[]> = {
+  user_intends_money: [
+    'Dừng lại, chưa chuyển khoản này. Lời hứa hoàn tiền, thưởng hay giữ suất là cách để bạn chuyển nhanh.',
+    'Tự gọi số tổng đài chính thức của đơn vị được nhắc tới để hỏi lại trước khi làm gì.',
+  ],
+  user_intends_otp: [
+    'Đừng gửi mã và đừng chụp màn hình mã cho ai. Không đơn vị nào cần bạn gửi mã này qua tin nhắn, dù gọi là mã hợp đồng hay mã thành viên.',
+    'Nếu đã nhập tài khoản vào trang lạ, đổi mật khẩu ngay trên ứng dụng chính thức và bật xác thực hai lớp.',
+  ],
+  user_intends_app: [
+    'Dừng cài đặt và xóa file vừa tải. Ứng dụng chính thức chỉ tải từ CH Play hoặc App Store.',
+    'Nếu đã cài và cấp quyền, ngắt mạng thiết bị và gọi tổng đài ngân hàng theo số in trên thẻ.',
+  ],
+  user_intends_login: [
+    'Đừng nhập tài khoản, mật khẩu vào trang được gửi qua tin nhắn. Tự mở ứng dụng hoặc trang chính thức nếu cần kiểm tra.',
+  ],
   user_complied_money: [
     'Gọi ngay tổng đài ngân hàng theo số in trên thẻ để đề nghị tra soát khoản vừa chuyển.',
     'Lưu biên lai, số tài khoản nhận và ảnh chụp đoạn chat, rồi trình báo công an nơi cư trú.',
@@ -142,7 +161,7 @@ export function buildAdvice(level: RiskLevel, signals: Signal[], safetyPriority:
     );
     if (!physical) {
       const fin = [...new Set([...steps, ...CRITICAL_FINANCIAL_ACTIONS, ...actions.slice(steps.length + LEVEL_ACTIONS.critical.length)])];
-      return { actions: fin, questions: [], safety_message: FINANCIAL_SAFETY_MESSAGE, support_resources: SUPPORT_RESOURCES };
+      return { actions: fin, questions: [], safety_message: steps.length ? COMPLIANCE_SAFETY_MESSAGE : FINANCIAL_SAFETY_MESSAGE, support_resources: SUPPORT_RESOURCES };
     }
     return { actions, questions: [], safety_message: SAFETY_MESSAGE, support_resources: SUPPORT_RESOURCES };
   }

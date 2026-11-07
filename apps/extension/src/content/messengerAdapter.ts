@@ -11,7 +11,10 @@ import { QR_ONLY_TEXT } from '@safechat/core/transcript';
 import { collectHistory } from './history';
 import { beginQrRead, qrIn } from './qrDecode';
 import {
+  cleanBubbleText,
   externalLinks,
+  isSystemNotice,
+  normalizeDomId,
   HEADER_BUTTON_LABELS,
   labelFromComposer,
   messageIdMatchesPeer,
@@ -222,14 +225,15 @@ export const messengerAdapter: ChatAdapter = {
         );
         const parts = els.map((n) => (n.innerText ?? n.textContent ?? '').trim()).filter(Boolean);
         const qr = qrIn(row);
-        if (parts.length === 0 && qr.length === 0) continue;
-        const text = parts.join(' ') || QR_ONLY_TEXT;
+        const said = cleanBubbleText(parts.join(' '));
+        if ((!said && qr.length === 0) || isSystemNotice(said)) continue;
+        const text = said || QR_ONLY_TEXT;
         if (text.length > MAX_TEXT) continue;
         const sender =
           senderFromAria(row.getAttribute('aria-label') ?? findAriaLabelNear(row, t.log), parts[parts.length - 1] ?? '') ??
           senderFromPosition((els[els.length - 1] ?? row).getBoundingClientRect(), listRect);
         const links = linksIn(row);
-        out.push({ sender, text, domId: row.dataset.messageId, ...(links.length ? { links } : {}), ...(qr.length ? { qr } : {}) });
+        out.push({ sender, text, domId: normalizeDomId(row.dataset.messageId), ...(links.length ? { links } : {}), ...(qr.length ? { qr } : {}) });
       }
       if (out.length > 0) return { messages: out };
     }
@@ -247,8 +251,9 @@ export const messengerAdapter: ChatAdapter = {
         );
         const parts = els.map((n) => (n.innerText ?? n.textContent ?? '').trim()).filter(Boolean);
         const qr = qrIn(row);
-        if (parts.length === 0 && qr.length === 0) continue;
-        const text = parts.join(' ') || QR_ONLY_TEXT;
+        const said = cleanBubbleText(parts.join(' '));
+        if ((!said && qr.length === 0) || isSystemNotice(said)) continue;
+        const text = said || QR_ONLY_TEXT;
         if (text.length > MAX_TEXT) continue;
         const aria = findAriaLabelNear(row, t.log);
         const sender =
@@ -276,8 +281,8 @@ export const messengerAdapter: ChatAdapter = {
         out.push({ sender: senderFromAria(aria, '') ?? senderFromPosition(el.getBoundingClientRect(), listRect), text: QR_ONLY_TEXT, qr });
         continue;
       }
-      const text = (el.innerText ?? el.textContent ?? '').trim();
-      if (!text || text.length > MAX_TEXT) continue;
+      const text = cleanBubbleText(el.innerText ?? el.textContent ?? '');
+      if (!text || text.length > MAX_TEXT || isSystemNotice(text)) continue;
       const aria = findAriaLabelNear(el, t.log);
       const sender = senderFromAria(aria, text) ?? senderFromPosition(el.getBoundingClientRect(), listRect);
       if (sender === 'unknown' && !aria) continue;

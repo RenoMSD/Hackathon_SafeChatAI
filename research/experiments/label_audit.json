@@ -6,8 +6,8 @@
     "agree": 94,
     "agreeRate": 0.8952380952380953,
     "kappa": 0.8418458167876216,
-    "goldEqualsA": 105,
-    "goldEqualsB": 94,
+    "goldEqualsA": 100,
+    "goldEqualsB": 91,
     "bHeavierThanA": 11,
     "aHeavierThanB": 0
   },
@@ -17,8 +17,8 @@
       "agree": 50,
       "agreeRate": 0.8771929824561403,
       "kappa": 0.7881040892193307,
-      "goldEqualsA": 57,
-      "goldEqualsB": 50,
+      "goldEqualsA": 52,
+      "goldEqualsB": 47,
       "bHeavierThanA": 7,
       "aHeavierThanB": 0
     },
@@ -48,8 +48,8 @@
     "agree": 48,
     "agreeRate": 0.9056603773584906,
     "kappa": 0.8204607046070462,
-    "goldEqualsA": 53,
-    "goldEqualsB": 48,
+    "goldEqualsA": 48,
+    "goldEqualsB": 45,
     "bHeavierThanA": 5,
     "aHeavierThanB": 0
   },

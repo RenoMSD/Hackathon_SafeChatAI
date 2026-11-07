@@ -239,37 +239,60 @@ export function qrSignals(messages: ChatMessage[]): Signal[] {
 }
 
 // ---------------------------------------------------------------- người dùng đã làm theo
-const NOT_DONE = /\b(chua|khong|dau co|khoi|dung|neu|co nen)\b|\?/;
+/** Phủ định phải đứng ngay trước hành động ("không gửi", "chưa chuyển"). "Em không đủ, để em mượn thêm rồi nạp" vẫn là sắp làm. */
+const NOT_DONE = /\b(chua|khong|dau co|khoi|dung|co nen)\s+(\S+\s+){0,2}(chuyen|nap|dong|coc|gui|doc|dua|cung cap|cai|tai|bat|nhap|dien|dang nhap|dang ky|vao|bam|lam)\b|\bneu\b|\?/;
+/** Chữ trạng thái dính vào tin của mình ("đã gửi") từng làm khớp nhầm mẫu "đã gửi mã". */
+const STATUS_TAIL = /(\s*\b(da gui|da xem|dang gui|da nhan|sent|seen|delivered))+\s*$/;
 type ComplianceKind = 'money' | 'otp' | 'app' | 'login';
-const COMPLIANCE: Record<ComplianceKind, { requests: string[]; done: RegExp[]; title: string; category: Signal['category'] }> = {
+const COMPLIANCE: Record<ComplianceKind, { requests: string[]; done: RegExp[]; intend: RegExp[]; title: string; intendTitle: string; category: Signal['category'] }> = {
   money: {
-    requests: ['qr_payment_context', 'qr_invalid_crc', 'upfront_fee', 'task_deposit', 'money_request_phrase', 'money_request_context', 'money_request_threat', 'repeated_money_request', 'money_transfer', 'hold_deposit_deadline', 'task_freeze_extortion', 'task_escalating_deposit', 'investment_scam', 'authority_impersonation'],
+    requests: ['withdrawal_fee', 'bait_then_demand', 'qr_payment_context', 'qr_invalid_crc', 'upfront_fee', 'task_deposit', 'money_request_phrase', 'money_request_context', 'money_request_threat', 'repeated_money_request', 'money_transfer', 'hold_deposit_deadline', 'task_freeze_extortion', 'task_escalating_deposit', 'investment_scam', 'authority_impersonation'],
     done: [/\b(chuyen khoan|chuyen|dong|nap|coc|gui tien)\b.{0,14}\b(roi|xong)\b/, /\b(da|vua|moi) (chuyen|dong|nap|coc|gui tien)\b/],
+    intend: [
+      /\bde (em|minh|toi|tao|to) (chuyen|nap|dong|coc|gui tien|thanh toan)\b/,
+      /\b(em|minh|toi) (se|di|dang|chuan bi) (chuyen|nap|dong|gui tien|thanh toan)\b/,
+      /\b(chuyen|nap|dong) (lien|ngay|luon)\b/,
+      /\bcho (em|minh|toi) (xin )?(so tai khoan|tai khoan|stk|ma qr)\b/,
+      /\b(muon|vay) (them|ban|tien|nguoi nha|ban be)\b.{0,25}\b(nap|chuyen|dong)\b/,
+    ],
     title: 'Bạn có thể đã chuyển tiền',
+    intendTitle: 'Bạn sắp chuyển tiền theo yêu cầu',
     category: 'finance',
   },
   otp: {
-    requests: ['otp_password_request', 'otp_institution_pressure', 'bank_credentials'],
-    done: [/\b(doc|gui|nhap|dua|cung cap)\b.{0,14}\b(roi|xong)\b/, /\b(da|vua|moi) (doc|gui|nhap|dua|cung cap)\b/, /\b(ma|otp|mat khau)\b.{0,10}\b(la|day)\b/, /^\s*\d(?:[ .-]?\d){3,7}\s*$/],
+    requests: ['account_takeover_code', 'otp_password_request', 'otp_institution_pressure', 'bank_credentials'],
+    done: [/\b(doc|gui|nhap|dua|cung cap)\b.{0,14}\b(roi|xong)\b/, /\b(da|vua|moi) (doc|gui|nhap|dua|cung cap)\b/, /\b(ma|otp|mat khau)\b(?!.{0,14}\b(co dinh|mau|vi du|test|thu nghiem|gia lap)\b).{0,10}\b(la|day)\b/, /^\s*\d(?:[ .-]?\d){3,7}\s*$/],
+    intend: [
+      /\bde (em|minh|toi)\b.{0,30}\b(gui|doc|nhap|lay|chup) (cai )?(ma|otp|mat khau)\b/,
+      /\b(gui|doc) (ma|otp)\b.{0,12}\b(lien|ngay|luon)\b/,
+      /\blay (cai )?ma\b.{0,25}\bgui\b/,
+    ],
     title: 'Bạn có thể đã đưa mã hoặc mật khẩu',
+    intendTitle: 'Bạn sắp gửi mã hoặc mật khẩu',
     category: 'account',
   },
   app: {
-    requests: ['malware_apk', 'qr_install'],
+    requests: ['malware_apk', 'apk_install_request', 'qr_install'],
     done: [/\b(cai|tai|bat)\b.{0,14}\b(roi|xong)\b/, /\b(da|vua|moi) (cai|tai|bat)\b/],
+    intend: [/\b(dang|de (em|minh|toi)|(em|minh|toi) (se|dang)) (cai|tai)\b/],
     title: 'Bạn có thể đã cài ứng dụng lạ',
+    intendTitle: 'Bạn đang cài ứng dụng theo hướng dẫn',
     category: 'technical',
   },
   login: {
-    requests: ['suspicious_link', 'claim_link_mismatch', 'link_with_pressure', 'phishing_vote_qr', 'refund_link_info'],
+    requests: ['account_takeover_code', 'suspicious_link', 'claim_link_mismatch', 'link_with_pressure', 'phishing_vote_qr', 'refund_link_info'],
     done: [/\b(dang nhap|nhap|dien|bam|vao)\b.{0,14}\b(roi|xong)\b/, /\b(da|vua|moi) (dang nhap|nhap|dien|bam)\b/],
+    intend: [/\bde (em|minh|toi) (vao|nhap|dang nhap|dang ky|bam|dien)\b/, /\b(em|minh|toi) (se|dang) (vao|nhap|dang nhap|dien)\b/],
     title: 'Bạn có thể đã đăng nhập hoặc nhập thông tin qua link',
+    intendTitle: 'Bạn sắp nhập thông tin qua link',
     category: 'account',
   },
 };
 
 /**
- * Tin của người dùng cho thấy đã làm theo một yêu cầu nguy hiểm trước đó. Chỉ tính khi đã có yêu cầu tương ứng.
+ * Trục nạn nhân: tin của người dùng cho thấy sắp làm theo hoặc đã làm theo một yêu cầu trước đó.
+ * Chỉ tính khi đã có yêu cầu tương ứng. Yêu cầu từ mức Cao trở lên thì bắt buộc Nghiêm trọng: đây là lúc kẻ gian
+ * sắp đạt mục đích, cảnh báo phải đủ mạnh để người dùng dừng lại. Yêu cầu nhẹ hơn (vd. link rút gọn) thì mức Cao.
  * Bằng chứng là lời yêu cầu của đối phương, vì dấu hiệu là hành vi của đối phương; tin người dùng chỉ là ngữ cảnh.
  */
 export function userCompliedSignals(signals: Signal[], messages: ChatMessage[]): Signal[] {
@@ -279,27 +302,113 @@ export function userCompliedSignals(signals: Signal[], messages: ChatMessage[]):
     const asks = signals.filter((s) => c.requests.includes(s.type) && !s.mitigation && s.severity !== 'low');
     if (!asks.length) continue;
     const firstAsk = Math.min(...asks.flatMap((s) => s.evidence_message_ids.map((id) => seqOf.get(id) ?? Infinity)));
-    const done = messages.filter((m) => {
-      if (m.sender !== 'self' || m.seq <= firstAsk) return false;
-      const n = normalizeForMatch(m.text);
-      return !NOT_DONE.test(n) && c.done.some((re) => re.test(n));
-    });
-    if (!done.length) continue;
+    const after = messages.filter((m) => m.sender === 'self' && m.seq > firstAsk).map((m) => normalizeForMatch(m.text).replace(STATUS_TAIL, ''));
+    const done = after.some((n) => !NOT_DONE.test(n) && c.done.some((re) => re.test(n)));
+    const intended = after.some((n) => !NOT_DONE.test(n) && c.intend.some((re) => re.test(n)));
+    if (!done && !intended) continue;
+    const serious = asks.some((s) => s.severity === 'high' || s.severity === 'critical');
     const askIds = new Set(asks.flatMap((s) => s.evidence_message_ids));
     const askMessages = messages.filter((m) => askIds.has(m.id) && m.sender !== 'self');
     out.push({
-      type: `user_complied_${kind}`,
+      type: done ? `user_complied_${kind}` : `user_intends_${kind}`,
       category: c.category,
-      severity: 'high',
-      title: c.title,
-      explanation: 'Tin nhắn của bạn cho thấy có thể đã làm theo yêu cầu trước đó. Xử lý càng sớm càng dễ giảm thiệt hại.',
-      recommended_action: 'Làm ngay các bước trong phần gợi ý, không cần trả lời đối phương.',
+      severity: serious ? 'critical' : 'high',
+      title: done ? c.title : c.intendTitle,
+      explanation: done
+        ? 'Tin nhắn của bạn cho thấy có thể đã làm theo yêu cầu trước đó. Xử lý càng sớm càng dễ giảm thiệt hại.'
+        : 'Tin nhắn của bạn cho thấy bạn sắp làm theo yêu cầu này. Đây thường là bước cuối kẻ gian chờ đợi, kể cả khi trước đó bạn đã nghi ngờ.',
+      recommended_action: done ? 'Làm ngay các bước trong phần gợi ý, không cần trả lời đối phương.' : 'Dừng lại trước khi làm. Đọc lại các câu bạn đã hỏi mà chưa được trả lời rõ.',
       evidence_message_ids: askMessages.map((m) => m.id),
       evidence_quotes: askMessages.map(quote),
       source: 'rule',
     });
   }
   return out;
+}
+
+// ---------------------------------------------------------------- mồi trả thưởng rồi đòi tiếp
+const PAYOUT = /\b(da|vua) (hoan|cong|chuyen|tra|ve)\b.{0,30}\b(tien|hoa hong|loi nhuan|vao tai khoan)\b|\b(hoa hong|tien|loi nhuan|tien thuong) (da|vua) (ve|duoc cong|hoan)\b|\brut (duoc|thanh cong)\b/;
+const DEMAND_AFTER_BAIT = new Set(['task_deposit', 'money_request_phrase', 'money_request_context', 'upfront_fee', 'repeated_money_request']);
+
+/**
+ * Trả một khoản nhỏ để tạo lòng tin rồi đòi khoản tiếp theo là bước "vào tròng" của lừa nhiệm vụ, đầu tư.
+ * Chỉ tính trong bối cảnh nhiệm vụ, hoa hồng, để hoàn tiền mua hàng thông thường không bị tính.
+ */
+export function baitThenDemandSignals(signals: Signal[], messages: ChatMessage[]): Signal[] {
+  const others = messages.filter((m) => m.sender !== 'self');
+  if (!others.some((m) => TASK_CONTEXT.test(normalizeForMatch(m.text)))) return [];
+  const payout = others.find((m) => PAYOUT.test(normalizeForMatch(m.text)));
+  if (!payout) return [];
+  const seqOf = new Map(messages.map((m) => [m.id, m.seq]));
+  const laterIds = new Set(signals.filter((s) => DEMAND_AFTER_BAIT.has(s.type) && !s.mitigation).flatMap((s) => s.evidence_message_ids).filter((id) => (seqOf.get(id) ?? 0) > payout.seq));
+  const later = others.filter((m) => laterIds.has(m.id));
+  if (!later.length) return [];
+  const ms = [payout, ...later];
+  return [{
+    type: 'bait_then_demand',
+    category: 'finance',
+    severity: 'critical',
+    title: 'Trả thưởng nhỏ rồi đòi nạp tiếp',
+    explanation: 'Đối phương báo đã trả hoặc hoàn một khoản nhỏ, sau đó đòi nạp khoản tiếp theo. Khoản nhỏ chỉ để tạo lòng tin, các khoản sau thường không rút được.',
+    recommended_action: 'Dừng ở đây, không nạp thêm. Khoản đã nhận không chứng minh đây là việc thật.',
+    evidence_message_ids: ms.map((m) => m.id),
+    evidence_quotes: ms.map(quote),
+    source: 'rule',
+  }];
+}
+
+// ---------------------------------------------------------------- vòng vo, né câu hỏi
+const VERIFY_TOPIC = /\b(trang chinh thuc|chinh thuc|cong ty|ten (cong ty|phap nhan|ben)|ma so thue|hop dong|dia chi|giay phep|sao phai|tai sao|vi sao|co dung khong|an toan khong|lua dao|link goc|duoi mien|nguy hiem|bi hack|ma doc|kiem tra)\b/;
+const DOUBT = /\b(khong on|nguy hiem|bi hack|ma doc|lua dao|gia mao|khong bam|khong dang nhap|khong gui ma|khong chuyen)\b/;
+const CONCRETE = /\b(cong ty (tnhh|co phan|cp)|ma so thue:? ?\d|mst:? ?\d|giay phep (so|\d)|dia chi:? ?(so )?\d|so \d+ duong|hop dong (file|ban|gui kem))\b/;
+const REASSURE = /\b(yen tam|dung lo|khong sao (dau|het)|khong co ma doc|an toan (lam|ma|het)|uy tin|cong ty lon|nhieu (ban|nguoi) (lam|nhan|tham gia) roi|lam thu la biet|cu (lam|bam|vao|dang nhap)|tin (chi|anh|em|minh)|hieu lam roi|chu dao|khen that|canh giac (vay|nhu vay) la tot|can than khong thua)\b/;
+const EXCUSE = /\b(noi bo|tim tren mang|khong co tren|rieng cho|quy trinh|bat buoc|kiem toan|he thong yeu cau|cho de bam)\b/;
+const DANGER_TYPES_EXCLUDED = new Set(['suspicious_link', 'channel_migration', 'qr_payment_request']);
+
+export interface EvasionResult {
+  signals: Signal[];
+  /** Câu nạn nhân đã hỏi hoặc nghi ngờ mà đối phương chỉ trấn an, không trả lời rõ. */
+  openQuestions: string[];
+}
+
+/**
+ * Kẻ gian không trả lời câu hỏi xác minh mà trấn an, khen, viện quy trình, để người hỏi quên câu hỏi hoặc bớt nghi.
+ * Một câu bị né khi các tin ngay sau không có thông tin kiểm chứng được mà chỉ trấn an hoặc viện cớ.
+ * Từ 2 câu bị né: Cần chú ý; nếu đã có yêu cầu nguy hiểm thì Cao.
+ */
+export function evasionSignals(signals: Signal[], messages: ChatMessage[]): EvasionResult {
+  const evaded: { question: ChatMessage; reply: ChatMessage[] }[] = [];
+  let lastQuestion = '';
+  messages.forEach((m, i) => {
+    if (m.sender !== 'self') return;
+    const n = normalizeForMatch(m.text).replace(STATUS_TAIL, '');
+    if (!(m.text.includes('?') && VERIFY_TOPIC.test(n)) && !DOUBT.test(n)) return;
+    if (n === lastQuestion) return;
+    lastQuestion = n;
+    const reply: ChatMessage[] = [];
+    for (let j = i + 1; j < messages.length && messages[j]!.sender !== 'self' && reply.length < 2; j++) reply.push(messages[j]!);
+    if (!reply.length) return;
+    const r = reply.map((x) => normalizeForMatch(x.text)).join(' ');
+    if (!CONCRETE.test(r) && (REASSURE.test(r) || EXCUSE.test(r))) evaded.push({ question: m, reply });
+  });
+  const openQuestions = evaded.map((e) => (e.question.text.length > 140 ? e.question.text.slice(0, 137) + '…' : e.question.text).replace(/\s*(Đã gửi|Đã xem)\s*$/u, ''));
+  if (evaded.length < 2) return { signals: [], openQuestions };
+  const danger = signals.some((s) => !s.mitigation && !DANGER_TYPES_EXCLUDED.has(s.type) && (s.severity === 'high' || s.severity === 'critical'));
+  const replies = [...new Map(evaded.flatMap((e) => e.reply).map((m) => [m.id, m])).values()];
+  return {
+    openQuestions,
+    signals: [{
+      type: 'evasive_reassurance',
+      category: 'pressure',
+      severity: danger ? 'high' : 'medium',
+      title: `Né ${evaded.length} câu hỏi, chỉ trấn an thay vì trả lời`,
+      explanation: 'Bạn đã hỏi hoặc nêu nghi ngờ, nhưng đối phương chỉ trấn an, khen hoặc viện quy trình mà không đưa thông tin kiểm chứng được. Đây là cách làm người hỏi quên câu hỏi hoặc bớt nghi.',
+      recommended_action: 'Chỉ làm tiếp khi các câu hỏi được trả lời bằng thông tin tự kiểm chứng được, như tên pháp nhân, mã số thuế, trang chính thức.',
+      evidence_message_ids: replies.map((m) => m.id),
+      evidence_quotes: replies.map(quote),
+      source: 'rule',
+    }],
+  };
 }
 
 // ---------------------------------------------------------------- đòi tiền lặp lại

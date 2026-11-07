@@ -58,6 +58,18 @@ export const technicalRules: Rule[] = [
     ],
   },
   {
+    // Lời bảo tải hoặc cài file apk. Có thêm dấu hiệu khác thì đã thành malware_apk (Nghiêm trọng).
+    type: 'apk_install_request',
+    category: 'technical',
+    severity: 'high',
+    title: 'Bảo tải hoặc cài file ứng dụng ngoài kho',
+    explanation: 'Đối phương bảo tải hoặc cài một file .apk. File cài đặt ngoài CH Play có thể là ứng dụng điều khiển điện thoại và đọc trộm mã.',
+    recommended_action: 'Không tải, không cài. Ứng dụng chính thức chỉ tải từ CH Play hoặc App Store.',
+    negatable: true,
+    exclude: [/\b(tu|tren|vao|o|len) (cua hang |kho ung dung )?(ch play|google play|app store|appstore)\b/],
+    patterns: [/\b(tai|cai|cai dat)\b.{0,25}\b(file )?apk\b/, /\bapk\b.{0,30}\b(mo len|cai|cai dat)\b/],
+  },
+  {
     type: 'channel_migration',
     category: 'technical',
     severity: 'medium',
