@@ -38,10 +38,13 @@ export const jobTermsRules: Rule[] = [
         /\b(viec lam them|lam them|lam viec) (tai nha|online)\b/,
         /\bcong tac vien may man\b/,
       ],
-      [/\b(giat don|chot don|xu ly don( hang)?|nhap lieu|tang tuong tac|like (video|bai|trang)|tha tim|danh gia (5|nam) sao|nghe nhac|xem video|follow|tuong tac (tiktok|shopee|lazada|facebook|youtube))\b/],
+      [/\b(giat don|chot don|xu ly don( hang)?|nhap lieu|tang tuong tac|like (video|bai|trang)|tha tim|danh gia (5|nam) sao|nghe nhac|xem video|follow|tuong tac (tiktok|shopee|lazada|facebook|youtube)|nhan thich|bam like|theo doi (cac )?(trang|fanpage|kenh|video))\b/],
       [
         /\b(hoa hong \d+(?:[.,]\d+)? ?%|hoan (goc|von|tien)|nhan (goc|lai))\b/,
         /\b\d+ nghin ?(\/ ?|moi |1 )(nhiem vu|don|luot|video|like)\b/,
+        // Trả tiền theo từng lượt: "mỗi lượt nhận 20.000đ", "20.000đ một lượt"
+        /\b(moi|1|mot) (luot|video|nhiem vu|like)\b.{0,30}\b\d[\d.,]*\s*(d|dong|nghin)\b/,
+        /\b\d[\d.,]*\s*(d|dong|nghin)\s*(\/ ?|moi |1 |mot )(luot|video|nhiem vu|like)\b/,
         /\b(luong|tien luong|tien cong|thu nhap)\b.{0,15}\b(tra|thanh toan|nhan)?\s*(trong ngay|hang ngay|theo ngay|cuoi ngay)\b/,
         /\b(thanh toan|nhan tien|nhan luong) (trong ngay|lien|ngay)\b|\bnhan luong thu viec\b/,
       ],

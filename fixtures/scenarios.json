@@ -3419,5 +3419,95 @@
       "level": "low",
       "signals": []
     }
+  },
+  {
+    "id": "143_like_paid_per_turn",
+    "title": "Nhấn thích theo danh sách, mỗi lượt được trả tiền → Cần chú ý",
+    "source": "v0.9: từ kịch bản tuyển cộng tác viên do Duy viết, câu viết lại",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Việc dễ lắm, anh chỉ cần nhấn thích các video bên em gửi, mỗi lượt nhận 30.000đ, không mất phí gì"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "task_recruitment"
+      ]
+    }
+  },
+  {
+    "id": "144_follow_paid_reverse",
+    "title": "Theo dõi kênh, 20.000đ một lượt → Cần chú ý",
+    "source": "v0.9: từ kịch bản tuyển cộng tác viên do Duy viết, câu viết lại",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chị theo dõi các kênh trong danh sách là được, 20.000đ một lượt nha"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "task_recruitment"
+      ]
+    }
+  },
+  {
+    "id": "145_follow_for_voucher",
+    "title": "Theo dõi fanpage để nhận mã giảm giá → Thấp",
+    "source": "v0.9: từ kịch bản tuyển cộng tác viên do Duy viết, câu viết lại",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bạn nhấn thích và theo dõi fanpage của shop để nhận mã giảm giá nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "146_parking_per_turn",
+    "title": "Giá gửi xe mỗi lượt → Thấp",
+    "source": "v0.9: từ kịch bản tuyển cộng tác viên do Duy viết, câu viết lại",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bãi xe đó mỗi lượt 5.000đ thôi, gửi thoải mái"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "147_paid_likes_then_deposit",
+    "title": "Từ việc like có trả tiền sang nạp tiền nhận hoàn → Cao",
+    "source": "v0.9: từ kịch bản tuyển cộng tác viên do Duy viết, câu viết lại",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chị nhấn thích video theo danh sách, mỗi lượt nhận 50.000đ"
+      },
+      {
+        "sender": "self",
+        "text": "Ok em"
+      },
+      {
+        "sender": "other",
+        "text": "Để nhận nhiệm vụ phúc lợi cao hơn, chị nạp tiền gói 500.000đ, hệ thống hoàn lại 650.000đ cả gốc và lãi"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "task_recruitment",
+        "task_deposit"
+      ]
+    }
   }
 ]
