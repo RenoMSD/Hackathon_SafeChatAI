@@ -64,7 +64,7 @@ async function requestOnce(
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${opts.apiKey}` },
       body: JSON.stringify({
         model: opts.model,
-        temperature: 0.1,
+        temperature: 0,
         max_tokens: maxTokens,
         response_format: { type: 'json_object' },
         messages,

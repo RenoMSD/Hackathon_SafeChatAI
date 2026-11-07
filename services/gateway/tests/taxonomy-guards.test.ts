@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { AiParsed } from '@safechat/core/ai';
 import type { Signal } from '@safechat/core/types';
 import { applyGuards } from '../src/lib/guards';
-import { canonicalType, normalizeSignals } from '../src/lib/taxonomy';
+import {
+  calibrateSignals,
+  canonicalType,
+  dropBenignWarnings,
+  dropRuleDuplicates,
+  normalizeSignals,
+} from '../src/lib/taxonomy';
 import { makeConfig } from './helpers';
 
 const cfg = makeConfig();
@@ -51,6 +57,62 @@ describe('taxonomy', () => {
   it('kẹp confidence về 0..1', () => {
     const out = normalizeSignals([sig({ confidence: 9 })], 8);
     expect(out[0]?.confidence).toBe(1);
+  });
+
+  it('ánh xạ thêm type của luật và AI về cùng loại chuẩn', () => {
+    expect(canonicalType('possible_contradiction')).toBe('contradiction');
+    expect(canonicalType('crypto_wallet')).toBe('investment_bait');
+    expect(canonicalType('phishing_link')).toBe('suspicious_link');
+    expect(canonicalType('money_transfer')).toBe('fee_upfront');
+  });
+
+  it('không để tín hiệu không phải cô lập mang category isolation', () => {
+    const out = normalizeSignals(
+      [
+        sig({ type: 'ai_fee_upfront', category: 'isolation', evidence_message_ids: ['m1'] }),
+        sig({ type: 'ai_urgency_pressure', category: 'isolation', evidence_message_ids: ['m2'] }),
+        sig({ type: 'ai_isolation_control', category: 'isolation', evidence_message_ids: ['m3'] }),
+      ],
+      8,
+    );
+    expect(out.filter((s) => s.category === 'isolation').map((s) => s.type)).toEqual(['isolation_control']);
+  });
+
+  it('bỏ tín hiệu AI trùng ý nghĩa với bộ luật', () => {
+    const signals = [sig({ type: 'ai_fee_upfront', severity: 'high' }), sig({ type: 'ai_loan_shark', severity: 'medium' })];
+    const r = dropRuleDuplicates(signals, ['upfront_fee', 'money_transfer']);
+    expect(r.signals.map((s) => s.type)).toEqual(['ai_loan_shark']);
+    expect(r.dropped).toBe(1);
+  });
+
+  it('hạ mức tín hiệu không nguy hiểm khi luật còn thấp, giữ tín hiệu nguy hiểm', () => {
+    const r = calibrateSignals(
+      [sig({ type: 'ai_loan_shark', severity: 'medium' }), sig({ type: 'ai_otp_request', severity: 'high' })],
+      'low',
+    );
+    expect(r.signals[0]?.severity).toBe('low');
+    expect(r.signals[1]?.severity).toBe('high');
+    expect(r.calibrated).toBe(1);
+    expect(calibrateSignals([sig({ type: 'ai_loan_shark', severity: 'high' })], 'high').calibrated).toBe(0);
+  });
+
+  it('bỏ OTP chỉ là thông báo an toàn, giữ OTP bị yêu cầu đọc/gửi', () => {
+    const notice = dropBenignWarnings(
+      [
+        sig({
+          type: 'ai_otp_request',
+          severity: 'high',
+          evidence_quotes: ['Mã OTP của bạn là 482913, hiệu lực 3 phút. Tuyệt đối không cung cấp mã này cho bất kỳ ai.'],
+        }),
+      ],
+      'low',
+    );
+    expect(notice.dropped).toBe(1);
+    const demand = dropBenignWarnings(
+      [sig({ type: 'ai_otp_request', severity: 'high', evidence_quotes: ['Em đọc giúp chị mã OTP vừa gửi nhé'] })],
+      'low',
+    );
+    expect(demand.dropped).toBe(0);
   });
 });
 
@@ -164,5 +226,28 @@ describe('guards', () => {
       cfg,
     });
     expect(r.signals[0]?.evidence_quotes[0]).toBe('call 0912345678 now');
+  });
+
+  it('bỏ tín hiệu trùng bộ luật và ghi uncertainty thay vì tính điểm hai lần', () => {
+    const r = applyGuards({
+      parsed: parsed({ signals: [sig({ type: 'ai_fee_upfront', severity: 'medium' })] }),
+      currentLevel: 'low',
+      clientSummary: '',
+      ruleHintTypes: ['money_transfer'],
+      cfg,
+    });
+    expect(r.signals).toHaveLength(0);
+    expect(r.uncertainties.some((u) => u.includes('trùng với bộ luật'))).toBe(true);
+  });
+
+  it('hạ tín hiệu AI không nguy hiểm theo mức luật và ghi uncertainty', () => {
+    const r = applyGuards({
+      parsed: parsed({ signals: [sig({ type: 'ai_loan_shark', severity: 'medium' })] }),
+      currentLevel: 'low',
+      clientSummary: '',
+      cfg,
+    });
+    expect(r.signals[0]?.severity).toBe('low');
+    expect(r.uncertainties.some((u) => u.includes('hạ mức'))).toBe(true);
   });
 });

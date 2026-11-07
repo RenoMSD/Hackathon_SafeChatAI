@@ -163,7 +163,7 @@ export async function loadConfig(env: Env = process.env): Promise<GatewayConfig>
     tokenSecret,
     tokenSecretPrevious,
     allowedOrigins: list(env, 'ALLOWED_ORIGINS'),
-    promptVersion: env.PROMPT_VERSION?.trim() || 'v1',
+    promptVersion: env.PROMPT_VERSION?.trim() || 'v2',
     tableName: env.TABLE_NAME?.trim() || undefined,
     awsRegion,
     metricsAdminToken,

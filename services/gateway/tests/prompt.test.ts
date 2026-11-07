@@ -97,6 +97,17 @@ describe('buildGatewayPrompt', () => {
     expect(err).toBeInstanceOf(AppError);
   });
 
+  it('nhắc không lặp bộ luật, OTP an toàn và taxonomy có suspicious_link ở cả hai tầng', () => {
+    const cfg = makeConfig();
+    for (const tier of ['small', 'large'] as const) {
+      const r = buildGatewayPrompt(req(msgs(2)), cfg, tier);
+      expect(r.request.system).toContain('QUY TRÌNH PHÁN ĐOÁN');
+      expect(r.request.system).toContain('ĐỐI CHIẾU BỘ LUẬT');
+      expect(r.request.system).toContain('suspicious_link');
+      expect(r.request.system).toContain('không cung cấp/chia sẻ');
+    }
+  });
+
   it('không gọi AI khi chỉ có tin của mình', () => {
     expect(hasNewOtherMessages(req([{ id: 'm1', sender: 'self', text: 'x', seq: 1 }]))).toBe(false);
     expect(hasNewOtherMessages(req([{ id: 'm1', sender: 'other', text: 'x', seq: 1 }], { lastAiSeq: 1 }))).toBe(false);

@@ -133,6 +133,7 @@ analysesRoute.post('/', async (c) => {
       currentLevel: req.currentLevel,
       clientStage: req.stage,
       clientSummary: req.summary,
+      ruleHintTypes: req.ruleHints.map((h) => h.type),
       cfg,
     });
 

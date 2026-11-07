@@ -77,6 +77,7 @@ Không đặt secret trong biến môi trường trần khi deploy; dùng ARN Se
 - Trích dẫn AI phải khớp nguyên văn tin gốc và đủ số lượng; nếu không, tín hiệu bị loại.
 - AI **không thể tự đẩy lên Nghiêm trọng**: mọi tín hiệu `critical` từ model bị hạ xuống `high`, `direct_danger=false`. Rule engine vẫn có thể đặt mức Nghiêm trọng.
 - AI được **hạ tối đa 1 bậc** so với mức rule engine và không bao giờ hạ từ Nghiêm trọng.
+- Tín hiệu AI trùng ý nghĩa với bộ luật (kể cả khác tên, ví dụ `money_transfer` ≈ `fee_upfront`) bị loại để không tính điểm hai lần. Khi bộ luật còn Thấp/Cần chú ý, severity của tín hiệu AI không nguy hiểm bị kẹp theo mức hiện tại; tin OTP chỉ kèm lời dặn "không chia sẻ" không bị coi là yêu cầu OTP.
 - Leo tầng `small → large` dùng prompt riêng của tầng `large` và phải reserve thêm token; nếu hết ngân sách thì giữ kết quả lượt nhanh.
 
 ## Chạy local và kiểm tra

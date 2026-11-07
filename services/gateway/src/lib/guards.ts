@@ -3,7 +3,7 @@ import type { RiskLevel, ScamStage, Signal } from '@safechat/core/types';
 import { RISK_LEVEL_ORDER } from '@safechat/core/types';
 import type { GatewayConfig } from './config';
 import { containsPromptLeak, maskPii, truncateChars } from './text';
-import { isDangerousType, normalizeSignals } from './taxonomy';
+import { calibrateSignals, dropBenignWarnings, dropRuleDuplicates, isDangerousType, normalizeSignals } from './taxonomy';
 
 const STAGES: ScamStage[] = ['S0', 'S1', 'S2', 'S3', 'S4'];
 
@@ -12,6 +12,8 @@ export interface GuardInput {
   currentLevel: RiskLevel;
   clientStage?: ScamStage;
   clientSummary: string;
+  /** Loại tín hiệu bộ luật đã báo; AI trùng loại sẽ bị bỏ để không tính điểm hai lần. */
+  ruleHintTypes?: string[];
   cfg: Pick<GatewayConfig, 'aiMaxSignals' | 'summaryMaxChars'>;
 }
 
@@ -51,10 +53,14 @@ function clampStage(detected: string | undefined, clientStage: ScamStage | undef
 
 export function applyGuards(input: GuardInput): GuardResult {
   const { parsed, currentLevel, clientStage, clientSummary, cfg } = input;
-  // AI một mình không được đẩy lên Nghiêm trọng; giữ cùng bất biến với analyze() trong core.
+  // Ba lớp hiệu chỉnh: bỏ trùng với bộ luật, hạ mức khi luật còn thấp, bỏ thông báo OTP an toàn.
   const normalized = normalizeSignals(parsed.signals, cfg.aiMaxSignals);
-  const lowConfidenceCritical = normalized.some((s) => s.severity === 'critical' && (s.confidence ?? 1) < 0.5);
-  const signals = normalized.map((s) =>
+  const deduped = dropRuleDuplicates(normalized, input.ruleHintTypes ?? []);
+  const calibrated = calibrateSignals(deduped.signals, currentLevel);
+  const benign = dropBenignWarnings(calibrated.signals, currentLevel);
+  // AI một mình không được đẩy lên Nghiêm trọng; giữ cùng bất biến với analyze() trong core.
+  const lowConfidenceCritical = benign.signals.some((s) => s.severity === 'critical' && (s.confidence ?? 1) < 0.5);
+  const signals = benign.signals.map((s) =>
     s.severity === 'critical' ? { ...s, severity: 'high' as const, direct_danger: false } : s,
   );
   const rejected = parsed.rejected + Math.max(0, parsed.signals.length - signals.length);
@@ -77,6 +83,15 @@ export function applyGuards(input: GuardInput): GuardResult {
   }
   if (lowConfidenceCritical) {
     uncertainties.push('Có tín hiệu nghiêm trọng nhưng độ tin cậy thấp; cần xác minh độc lập trước khi kết luận.');
+  }
+  if (deduped.dropped > 0) {
+    uncertainties.push('Một số tín hiệu AI trùng với bộ luật đã được bỏ để tránh tính điểm hai lần.');
+  }
+  if (calibrated.calibrated > 0) {
+    uncertainties.push('Tín hiệu AI đã được hạ mức theo mức hiện tại của bộ luật vì chưa có dấu hiệu nguy hiểm trực tiếp.');
+  }
+  if (benign.dropped > 0) {
+    uncertainties.push('Tin nhắn mã OTP kèm lời dặn không chia sẻ được coi là thông báo an toàn, không phải yêu cầu cung cấp mã.');
   }
   if (promptLeakSuspected) uncertainties.push('Phản hồi AI có dấu hiệu lặp lại hướng dẫn hệ thống nên đã được thay bằng tóm tắt an toàn.');
   const dedupedUncertainties = [...new Set(uncertainties)].slice(0, 5);

@@ -1,193 +1,67 @@
-import type { Severity, Signal } from '@safechat/core/types';
+import type { RiskLevel, Severity, Signal, SignalCategory } from '@safechat/core/types';
+import { RISK_LEVEL_ORDER } from '@safechat/core/types';
+import {
+  canonicalSignalType,
+  isDangerousSignalType,
+  type CanonicalType,
+} from '@safechat/core/taxonomy';
 
-/** Danh sách loại tín hiệu chuẩn. AI trả type tự do, gateway ánh xạ về đây. */
-export const CANONICAL_TYPES = [
-  'job_bait',
-  'fee_upfront',
-  'overseas_transport',
-  'document_retention',
-  'debt_bondage',
-  'forced_labor',
-  'threat_direct',
-  'threat_indirect',
-  'isolation_control',
-  'secrecy_demand',
-  'location_control',
-  'account_control',
-  'romance_bait',
-  'love_bombing',
-  'sextortion',
-  'intimate_image_threat',
-  'investment_bait',
-  'withdrawal_fee',
-  'account_freeze_threat',
-  'authority_impersonation',
-  'bank_impersonation',
-  'otp_request',
-  'remote_access_request',
-  'mule_account',
-  'loan_shark',
-  'organ_trade',
-  'minor_grooming',
-  'trafficking_recruitment',
-  'meta_warning',
-  'contradiction',
-  'urgency_pressure',
-  'sunk_cost',
-  'gaslighting',
-  'other',
-] as const;
+export { CANONICAL_TYPES, type CanonicalType } from '@safechat/core/taxonomy';
 
-export type CanonicalType = (typeof CANONICAL_TYPES)[number];
-
-const CANONICAL = new Set<string>(CANONICAL_TYPES);
-
-/** Từ đồng nghĩa (kể cả type luật của core) ánh xạ về loại chuẩn. */
-const SYNONYMS: Record<string, CanonicalType> = {
-  fake_job: 'job_bait',
-  scam_job: 'job_bait',
-  job_scam: 'job_bait',
-  recruitment_scam: 'job_bait',
-  task_recruitment: 'job_bait',
-  unrealistic_pay: 'job_bait',
-  upfront_payment: 'fee_upfront',
-  advance_fee: 'fee_upfront',
-  deposit_fee: 'fee_upfront',
-  upfront_fee: 'fee_upfront',
-  fee_advance: 'fee_upfront',
-  parcel_fee_scam: 'fee_upfront',
-  recovery_scam: 'fee_upfront',
-  refund_link_info: 'fee_upfront',
-  money_transfer: 'fee_upfront',
-  task_deposit: 'fee_upfront',
-  overseas_job: 'overseas_transport',
-  overseas_work: 'overseas_transport',
-  transport_abroad: 'overseas_transport',
-  passport_retention: 'document_retention',
-  id_retention: 'document_retention',
-  id_document_request: 'document_retention',
-  original_documents: 'document_retention',
-  debt_bondage: 'debt_bondage',
-  debt_trap: 'debt_bondage',
-  borrow_request: 'debt_bondage',
-  forced_labour: 'forced_labor',
-  forced_labor: 'forced_labor',
-  labour_abuse: 'forced_labor',
-  threat: 'threat_direct',
-  direct_threat: 'threat_direct',
-  threat_coercion: 'threat_direct',
-  debt_collection_threat: 'threat_direct',
-  task_freeze_extortion: 'threat_direct',
-  indirect_threat: 'threat_indirect',
-  blackmail: 'threat_indirect',
-  isolation: 'isolation_control',
-  communication_control: 'isolation_control',
-  channel_migration: 'isolation_control',
-  secrecy: 'secrecy_demand',
-  secrecy_general: 'secrecy_demand',
-  secrecy_from_family: 'secrecy_demand',
-  keep_secret: 'secrecy_demand',
-  location_control: 'location_control',
-  urgent_relocation: 'location_control',
-  relocation: 'location_control',
-  account_control: 'account_control',
-  account_takeover_borrow: 'account_control',
-  romance_scam: 'romance_bait',
-  romance_customs_gift: 'romance_bait',
-  love_bomb: 'love_bombing',
-  lovebombing: 'love_bombing',
-  sextortion: 'sextortion',
-  intimate_image: 'intimate_image_threat',
-  intimate_image_request: 'intimate_image_threat',
-  investment_scam: 'investment_bait',
-  investment_fraud: 'investment_bait',
-  withdrawal_fee: 'withdrawal_fee',
-  account_frozen: 'account_freeze_threat',
-  account_freeze: 'account_freeze_threat',
-  police_impersonation: 'authority_impersonation',
-  authority_impersonation: 'authority_impersonation',
-  hidden_company_identity: 'authority_impersonation',
-  bank_fraud: 'bank_impersonation',
-  bank_impersonation: 'bank_impersonation',
-  bank_alert_callback: 'bank_impersonation',
-  bank_credentials: 'bank_impersonation',
-  otp: 'otp_request',
-  otp_password_request: 'otp_request',
-  remote_access: 'remote_access_request',
-  malware_apk: 'remote_access_request',
-  phishing_vote_qr: 'remote_access_request',
-  mule: 'mule_account',
-  money_mule: 'mule_account',
-  card_cash_service: 'mule_account',
-  loan_shark: 'loan_shark',
-  loan_app_trap: 'loan_shark',
-  loan_offer_app: 'loan_shark',
-  organ: 'organ_trade',
-  organ_trade: 'organ_trade',
-  grooming: 'minor_grooming',
-  minor_grooming: 'minor_grooming',
-  trafficking: 'trafficking_recruitment',
-  trafficking_recruitment: 'trafficking_recruitment',
-  meta: 'meta_warning',
-  meta_warning: 'meta_warning',
-  contradiction: 'contradiction',
-  no_written_contract: 'contradiction',
-  urgency: 'urgency_pressure',
-  urgency_pressure: 'urgency_pressure',
-  sunk_cost: 'sunk_cost',
-  gaslighting: 'gaslighting',
-  guilt_debt: 'gaslighting',
-};
-
-function normalizeKey(raw: string): string {
-  return raw
-    .toLowerCase()
-    .replace(/^(ai_)+/, '')
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
-}
-
-export function canonicalType(raw: string): CanonicalType {
-  const key = normalizeKey(raw);
-  if (CANONICAL.has(key)) return key as CanonicalType;
-  const direct = SYNONYMS[key];
-  if (direct) return direct;
-  const collapsed = key.replace(/_/g, '');
-  if (CANONICAL.has(collapsed)) return collapsed as CanonicalType;
-  return SYNONYMS[collapsed] ?? 'other';
-}
+export const canonicalType = canonicalSignalType;
+export const isDangerousType = isDangerousSignalType;
 
 const SEVERITY_ORDER: Record<Severity, number> = { critical: 3, high: 2, medium: 1, low: 0 };
 
-const DANGEROUS = new Set([
-  'threat_direct',
-  'threat_indirect',
+/** Loại thật sự thuộc nhóm cô lập/di chuyển; các loại khác không được gắn category "isolation". */
+const ISOLATION_TYPES = new Set<CanonicalType>([
   'isolation_control',
   'secrecy_demand',
   'location_control',
-  'account_control',
-  'otp_request',
-  'document_retention',
-  'remote_access_request',
-  'minor_grooming',
-  'trafficking_recruitment',
-  'sextortion',
-  'intimate_image_threat',
-  'organ_trade',
-  'debt_bondage',
-  'forced_labor',
   'overseas_transport',
-  'mule_account',
-  'bank_impersonation',
-  'authority_impersonation',
+  'forced_labor',
+  'trafficking_recruitment',
+  'organ_trade',
 ]);
 
-export function isDangerousType(type: string): boolean {
-  return DANGEROUS.has(type);
+/** Category hiển thị/điểm cho từng loại chuẩn khi AI gắn nhầm "isolation". */
+const CATEGORY_BY_TYPE: Partial<Record<CanonicalType, SignalCategory>> = {
+  job_bait: 'job_terms',
+  fee_upfront: 'finance',
+  debt_bondage: 'finance',
+  withdrawal_fee: 'finance',
+  account_freeze_threat: 'finance',
+  mule_account: 'finance',
+  loan_shark: 'finance',
+  sunk_cost: 'finance',
+  investment_bait: 'investment',
+  threat_direct: 'pressure',
+  threat_indirect: 'pressure',
+  romance_bait: 'pressure',
+  love_bombing: 'pressure',
+  sextortion: 'pressure',
+  intimate_image_threat: 'pressure',
+  minor_grooming: 'pressure',
+  urgency_pressure: 'pressure',
+  gaslighting: 'pressure',
+  contradiction: 'contradiction',
+  account_control: 'account',
+  otp_request: 'account',
+  authority_impersonation: 'impersonation',
+  bank_impersonation: 'impersonation',
+  remote_access_request: 'technical',
+  suspicious_link: 'technical',
+  meta_warning: 'contradiction',
+};
+
+function signalCategory(type: CanonicalType, category: SignalCategory): SignalCategory {
+  if (category !== 'isolation' || ISOLATION_TYPES.has(type)) return category;
+  // Chặn AI tự đạt mức Nghiêm trọng bằng hai tín hiệu bất kỳ cùng gắn nhãn "isolation".
+  return CATEGORY_BY_TYPE[type] ?? 'pressure';
 }
 
 /**
- * Chuẩn hoá type, khử trùng theo (type, evidence ids), sắp severity giảm dần, cắt tối đa N.
+ * Chuẩn hoá type/category, khử trùng theo (type, evidence ids), sắp severity giảm dần, cắt tối đa N.
  */
 export function normalizeSignals(signals: Signal[], maxSignals: number): Signal[] {
   const deduped = new Map<string, Signal>();
@@ -198,6 +72,7 @@ export function normalizeSignals(signals: Signal[], maxSignals: number): Signal[
     const normalized: Signal = {
       ...s,
       type,
+      category: signalCategory(type, s.category),
       confidence:
         typeof s.confidence === 'number' && Number.isFinite(s.confidence)
           ? Math.max(0, Math.min(1, s.confidence))
@@ -213,4 +88,73 @@ export function normalizeSignals(signals: Signal[], maxSignals: number): Signal[
       return (b.confidence ?? 0) - (a.confidence ?? 0);
     })
     .slice(0, maxSignals);
+}
+
+/**
+ * Bỏ tín hiệu AI trùng ý nghĩa với tín hiệu bộ luật (kể cả khác tên, ví dụ money_transfer ≈ fee_upfront).
+ * Bộ luật đã đóng góp điểm cho dấu hiệu đó; giữ lại sẽ tính hai lần và đẩy mức lên sai.
+ */
+export function dropRuleDuplicates(signals: Signal[], ruleTypes: string[]): { signals: Signal[]; dropped: number } {
+  const ruleCanonical = new Set(ruleTypes.map((t) => canonicalType(t)));
+  if (ruleCanonical.size === 0) return { signals, dropped: 0 };
+  const kept = signals.filter((s) => !ruleCanonical.has(canonicalType(s.type)));
+  return { signals: kept, dropped: signals.length - kept.length };
+}
+
+/** Mức tối đa AI được gán cho tín hiệu không nguy hiểm khi bộ luật còn thấp. */
+const CALIBRATION_CAP: Partial<Record<RiskLevel, Severity>> = { low: 'low', attention: 'medium' };
+
+/**
+ * Hạ severity của tín hiệu không nguy hiểm theo mức hiện tại của bộ luật.
+ * Khi luật chưa thấy rủi ro, một tín hiệu "medium" của AI không đủ để đẩy cảnh báo lên;
+ * tín hiệu nguy hiểm (OTP, đe dọa, giấy tờ, mạo danh...) được giữ nguyên.
+ */
+export function calibrateSignals(
+  signals: Signal[],
+  currentLevel: RiskLevel,
+): { signals: Signal[]; calibrated: number } {
+  const cap = CALIBRATION_CAP[currentLevel];
+  if (!cap) return { signals, calibrated: 0 };
+  let calibrated = 0;
+  const out = signals.map((s) => {
+    if (isDangerousType(s.type) || SEVERITY_ORDER[s.severity] <= SEVERITY_ORDER[cap]) return s;
+    calibrated += 1;
+    return { ...s, severity: cap };
+  });
+  return { signals: out, calibrated };
+}
+
+function deaccent(input: string): string {
+  return input
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase();
+}
+
+const OTP_HINT = /(ma otp|ma pin|\botp\b|\bpin\b)/;
+const OTP_WARNING = /khong\s+(?:duoc\s+|tuyet doi\s+)?(?:cung cap|chia se|tiet lo|doc|gui|nhap|bam|click|tai)/;
+const OTP_DEMAND_VERB = /\b(doc|cung cap|chia se|gui|nhap|bam|click|tai)\b/;
+
+/** Tin nhắn chỉ thông báo mã OTP kèm lời dặn không chia sẻ, không hề yêu cầu người dùng đọc/gửi mã. */
+function isOtpSafetyNotice(s: Signal): boolean {
+  if (canonicalType(s.type) !== 'otp_request') return false;
+  const text = deaccent(s.evidence_quotes.join(' '));
+  if (!OTP_HINT.test(text) || !OTP_WARNING.test(text)) return false;
+  const withoutWarnings = text.replace(/khong\s+(?:duoc\s+|tuyet doi\s+)?(?:cung cap|chia se|tiet lo|doc|gui|nhap|bam|click|tai)[^.;!?]*/g, ' ');
+  return !OTP_DEMAND_VERB.test(withoutWarnings);
+}
+
+/**
+ * Bỏ tín hiệu OTP chỉ là thông báo an toàn khi bộ luật chưa ở mức cao.
+ * Không đụng tới trường hợp AI thấy lời yêu cầu đọc/gửi mã.
+ */
+export function dropBenignWarnings(
+  signals: Signal[],
+  currentLevel: RiskLevel,
+): { signals: Signal[]; dropped: number } {
+  if (RISK_LEVEL_ORDER[currentLevel] >= RISK_LEVEL_ORDER.high) return { signals, dropped: 0 };
+  const kept = signals.filter((s) => !isOtpSafetyNotice(s));
+  return { signals: kept, dropped: signals.length - kept.length };
 }

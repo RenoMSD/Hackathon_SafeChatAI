@@ -40,8 +40,13 @@ job_bait, fee_upfront, overseas_transport, document_retention, debt_bondage, for
 threat_direct, threat_indirect, isolation_control, secrecy_demand, location_control, account_control,
 romance_bait, love_bombing, sextortion, intimate_image_threat, investment_bait, withdrawal_fee,
 account_freeze_threat, authority_impersonation, bank_impersonation, otp_request, remote_access_request,
-mule_account, loan_shark, organ_trade, minor_grooming, trafficking_recruitment, meta_warning,
+suspicious_link, mule_account, loan_shark, organ_trade, minor_grooming, trafficking_recruitment, meta_warning,
 contradiction, urgency_pressure, sunk_cost, gaslighting.`;
+
+const RULE_AND_BENIGN = `ĐỐI CHIẾU BỘ LUẬT VÀ BỐI CẢNH LÀNH TÍNH:
+- Không trả tín hiệu cùng ý nghĩa với <rule_signals> dù khác tên (upfront_fee/money_transfer/task_deposit ≈ fee_upfront; task_recruitment/unrealistic_pay ≈ job_bait; urgent_relocation ≈ location_control; original_documents ≈ document_retention).
+- Tin OTP/PIN kèm lời dặn "không cung cấp/chia sẻ" mà KHÔNG yêu cầu đọc/gửi mã → không phải otp_request.
+- Không tạo tín hiệu cho: chia tiền ăn/ship, COD, cọc nhỏ có xác nhận; người quen đã xác minh bằng cuộc gọi trong hội thoại; link tên miền chính thức của nhà mạng/sàn/ngân hàng; tuyển dụng có hợp đồng/email HR/phỏng vấn tại văn phòng, không thu phí.`;
 
 const SMALL_ADDENDUM = `HƯỚNG DẪN BỔ SUNG (lượt nhanh, ưu tiên tốc độ):
 10 dấu hiệu ưu tiên: phí trả trước; việc nhẹ lương cao; giữ hộ chiếu/giấy tờ; đe dọa trực tiếp; đòi bí mật; cô lập khỏi gia đình; OTP/PIN; yêu cầu cài app/link lạ; giữ tiền để rút thêm; giục gấp/áp lực thời gian.
@@ -51,6 +56,7 @@ BỐI CẢNH LÀNH TÍNH (không nâng mức nếu không có dấu hiệu trự
 - Chia tiền ăn/ship, mua bán COD, đặt cọc nhỏ có xác nhận, chuyển khoản cho người quen đã gọi điện xác minh.
 - HR/ngân hàng/công an thật mời đến văn phòng hoặc chi nhánh, không đòi OTP, không đòi tiền qua chat.
 - Dẫn lại tin lừa đảo để cảnh báo hoặc bài báo giáo dục → meta_warning, không phải tín hiệu tấn công.
+${RULE_AND_BENIGN}
 ${TAXONOMY}
 ${EVIDENCE_RULES}
 ${ANTI_INJECTION}
@@ -66,6 +72,7 @@ BỐI CẢNH LÀNH TÍNH DỄ NHẦM (không nâng mức nếu không có lời 
 - Chủ nhà đòi cọc, shipper xin phí giao hàng, đại lý yêu cầu đặt cọc; thương lượng giá, nhắc nợ thông thường.
 - Cha mẹ mắng con, bạn bè trêu nhau, game thủ nói tục, trích dẫn phim/roleplay/châm biếm.
 Nếu có dấu hiệu meta (trích dẫn, "cảnh báo mọi người", "bài báo nói"), thêm meta_warning thay vì tín hiệu tấn công.
+${RULE_AND_BENIGN}
 
 NGÔN NGỮ:
 - Tiếng Việt không dấu, từ lóng vùng miền (mô/răng/rứa/hè/nghen/dzậy/vầy), chuyển ngữ (job, salary, deposit, fee), viết cách chữ (l.ư.ơ.n.g), leetspeak (0TP), homoglyph: hiểu theo ngữ cảnh, nêu uncertainty nếu nhập nhằng.

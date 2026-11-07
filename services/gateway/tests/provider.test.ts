@@ -19,11 +19,14 @@ afterEach(() => {
 
 describe('callGroq', () => {
   it('trả nội dung và usage', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ok({ signals: [] })));
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => ok({ signals: [] }));
+    vi.stubGlobal('fetch', fetchMock);
     const r = await callGroq(req, base);
     expect(r.content).toContain('signals');
     expect(r.inputTokens).toBe(10);
     expect(r.outputTokens).toBe(5);
+    const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string) as { temperature: number };
+    expect(body.temperature).toBe(0);
   });
 
   it('429 trả QUOTA_EXCEEDED kèm retryAfterSec', async () => {
