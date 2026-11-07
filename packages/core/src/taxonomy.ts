@@ -112,6 +112,8 @@ const SYNONYMS: Record<string, CanonicalType> = {
   account_freeze: 'account_freeze_threat',
   police_impersonation: 'authority_impersonation',
   authority_impersonation: 'authority_impersonation',
+  gov_id_claim: 'authority_impersonation',
+  gov_id_pressure: 'authority_impersonation',
   hidden_company_identity: 'authority_impersonation',
   bank_fraud: 'bank_impersonation',
   bank_impersonation: 'bank_impersonation',

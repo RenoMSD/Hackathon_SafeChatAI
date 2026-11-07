@@ -22,3 +22,4 @@ Tự sinh bằng `npm run bench:experiment -- --ledger`. Không sửa tay. Cách
 | [EXP-013](EXP-013/README.md) | Xét ngữ cảnh đời thường trong ±4 tin quanh bằng chứng | rules, tune và ca đệm 30, 50 tin | `xem-git-log` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | – | – | 2 |
 | [EXP-014](EXP-014/README.md) | Thử bản nháp luật đe dọa trên bộ câu do thành viên khác viết | rules + 2 luật nháp lúc chạy, 20 câu ngoài repo | `39c9962` | – (–) | – (–) | chưa xem | chưa xem | – | – | 2 |
 | [EXP-015](EXP-015/README.md) | Sửa luật theo bộ phát triển của nhóm, vòng 1 | rules | `xem-git-log` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |
+| [EXP-016](EXP-016/README.md) | Sửa luật vòng 2, giả danh cán bộ hành chính | rules | `xem-git-log` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |

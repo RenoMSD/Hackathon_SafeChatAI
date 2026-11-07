@@ -3299,5 +3299,125 @@
       "level": "low",
       "signals": []
     }
+  },
+  {
+    "id": "136_id_error_claim",
+    "title": "Nhắn báo hồ sơ định danh bị lỗi → Cần chú ý",
+    "source": "v0.9: vòng 2, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Anh ơi hồ sơ định danh của anh bị lỗi đồng bộ, cần bổ sung trong tuần này"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "gov_id_claim"
+      ]
+    }
+  },
+  {
+    "id": "137_id_error_go_office",
+    "title": "Mời ra phường bổ sung hồ sơ → Thấp",
+    "source": "v0.9: vòng 2, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hồ sơ định danh của chị bị lỗi, chị ra công an phường bổ sung trong giờ hành chính nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "138_id_lock_threat",
+    "title": "Dọa khóa mã định danh nếu không cập nhật → Cao",
+    "source": "v0.9: vòng 2, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hồ sơ định danh của anh bị lỗi đồng bộ"
+      },
+      {
+        "sender": "self",
+        "text": "Sao lại lỗi vậy"
+      },
+      {
+        "sender": "other",
+        "text": "Không cập nhật trong chiều nay thì mã định danh bị tạm khóa, sau này làm hộ chiếu không được đâu"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "gov_id_claim",
+        "gov_id_pressure"
+      ]
+    }
+  },
+  {
+    "id": "139_no_need_go_office",
+    "title": "Bảo khỏi ra phường, kết bạn Zalo gặp cán bộ → Cao",
+    "source": "v0.9: vòng 2, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hồ sơ định danh của chị cần chỉnh lại. Không cần ra phường đâu, chị kết bạn Zalo gặp cán bộ chuyên trách hướng dẫn là xong"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "gov_id_pressure"
+      ]
+    }
+  },
+  {
+    "id": "140_friend_id_advice",
+    "title": "Bạn khuyên ra phường khi bị khóa định danh → Thấp",
+    "source": "v0.9: vòng 2, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tài khoản định danh bị khóa thì ông ra công an phường nhờ mở lại là được"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "141_add_zalo_normal",
+    "title": "Kết bạn Zalo để trao đổi công việc thường → Thấp",
+    "source": "v0.9: vòng 2, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em kết bạn Zalo với chị nhé, để chị gửi tài liệu họp cho tiện"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "142_account_locked_game",
+    "title": "Hồ sơ game bị khóa → Thấp",
+    "source": "v0.9: vòng 2, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hồ sơ trong game của tao bị khóa rồi, chán thật"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
   }
 ]
