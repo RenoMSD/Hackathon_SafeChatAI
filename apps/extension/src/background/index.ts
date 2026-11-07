@@ -1,7 +1,7 @@
 // Service worker: quản lý phiên theo dõi (state machine) và điều phối phân tích.
 // idle → tracking ⇄ paused → (dừng và xóa) → không còn phiên
 import { parseSnapshot, SnapshotError } from '@safechat/core/context-manager';
-import { appendObserved, emptyTranscript } from '@safechat/core/transcript';
+import { appendObserved, emptyTranscript, mergeLateQr } from '@safechat/core/transcript';
 import { RISK_LEVEL_ORDER, type RiskLevel } from '@safechat/core/types';
 import {
   emptyAiState,
@@ -16,6 +16,9 @@ import { AI_IDLE_ALARM, cancelAi, handleNanoResult, kickAi, resetGatewayBackoff,
 import { clearDevice } from './gateway';
 import { recompute, sendToTab, serial, updateBadge } from './runtime';
 import { clearSessionVerified, loadSession, loadSettings, saveSession, saveSettings } from './store';
+
+/** Mặc định đọc QR, chỉ gửi cờ khi người dùng tắt. */
+const qrFlag = (s: { qrScan?: boolean }) => (s.qrScan === false ? { readQr: false } : {});
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 // Widget mèo trong content script đọc phiên trực tiếp để hiện mức, bằng chứng và tóm tắt.
 chrome.storage.session.setAccessLevel?.({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
@@ -65,7 +68,14 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
       recompute(s);
       await saveSession(s);
       await updateBadge(s);
-      await sendToTab(req.tabId, { kind: 'cs_start', threadId: s.threadId, loadHistory: true, allowScroll: settings.historyScroll });
+      await sendToTab(req.tabId, { kind: 'cs_start', threadId: s.threadId, loadHistory: true, allowScroll: settings.historyScroll, ...qrFlag(settings) });
+      return { ok: true };
+    }
+
+    case 'set_qr_scan': {
+      const settings = await loadSettings();
+      settings.qrScan = req.value;
+      await saveSettings(settings);
       return { ok: true };
     }
 
@@ -120,7 +130,7 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
       await saveSession(s);
       await updateBadge(s);
       // Content script đọc lại các tin đang hiển thị; tin đã có trong bản nháp được khử trùng lặp theo khóa
-      await sendToTab(req.tabId, { kind: 'cs_start', threadId: s.threadId });
+      await sendToTab(req.tabId, { kind: 'cs_start', threadId: s.threadId, ...qrFlag(await loadSettings()) });
       kickAi(500);
       return { ok: true };
     }
@@ -142,7 +152,7 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
         s.pendingThread = undefined;
         s.waiting = undefined;
         s.readerError = undefined;
-        await sendToTab(s.tabId, { kind: 'cs_start', threadId: s.threadId });
+        await sendToTab(s.tabId, { kind: 'cs_start', threadId: s.threadId, ...qrFlag(await loadSettings()) });
         kickAi(500);
       }
       await saveSession(s);
@@ -218,7 +228,7 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
   if (ev.kind === 'cs_ready') {
     if (s.status === 'tracking') {
       const settings = await loadSettings();
-      await sendToTab(s.tabId, { kind: 'cs_start', threadId: s.threadId, loadHistory: s.transcript.messages.length === 0, allowScroll: settings.historyScroll });
+      await sendToTab(s.tabId, { kind: 'cs_start', threadId: s.threadId, loadHistory: s.transcript.messages.length === 0, allowScroll: settings.historyScroll, ...qrFlag(settings) });
     }
     return;
   }
@@ -258,7 +268,8 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
   }
   const before: RiskLevel = s.result?.risk_level ?? 'low';
   const added = appendObserved(s.transcript, ev.batch, s.maxMessages);
-  if (added.length === 0) {
+  const lateQr = mergeLateQr(s.transcript, ev.batch);
+  if (added.length === 0 && !lateQr) {
     if (ev.initial) await saveSession(s);
     return;
   }

@@ -279,6 +279,23 @@ describe('background — vòng đời phiên', () => {
     expect(local.safechat_settings.scanConsent).toBe(false);
   });
 
+  it('tắt đọc QR: báo content script không đọc, bật lại thì bỏ cờ', async () => {
+    mockGateway(() => okResponse([]));
+    await fake.chrome.storage.local.set({ safechat_settings: { policyVersion: 2, gatewayEnabled: false, historyScroll: true } });
+    thread = { threadId: 'mock:qr', threadLabel: 'QR' };
+    await fake.panel({ kind: 'stop_and_clear' });
+    await fake.panel({ kind: 'set_qr_scan', value: false });
+    startMsgs.length = 0;
+    await fake.panel({ kind: 'start', tabId: TAB });
+    expect(startMsgs).toEqual([{ kind: 'cs_start', threadId: 'mock:qr', loadHistory: true, allowScroll: true, readQr: false }]);
+    await fake.panel({ kind: 'stop_and_clear' });
+    await fake.panel({ kind: 'set_qr_scan', value: true });
+    startMsgs.length = 0;
+    await fake.panel({ kind: 'start', tabId: TAB });
+    expect(startMsgs).toEqual([{ kind: 'cs_start', threadId: 'mock:qr', loadHistory: true, allowScroll: true }]);
+    await fake.panel({ kind: 'set_qr_scan', value: true });
+  });
+
   it('chọn không cuộn: báo content script không được cuộn, vẫn đọc và đánh giá ngay', async () => {
     const gw = mockGateway(() => okResponse([]));
     await fake.chrome.storage.local.set({

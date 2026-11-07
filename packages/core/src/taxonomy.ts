@@ -62,6 +62,7 @@ const SYNONYMS: Record<string, CanonicalType> = {
   refund_link_info: 'fee_upfront',
   money_transfer: 'fee_upfront',
   task_deposit: 'fee_upfront',
+  qr_payment_context: 'fee_upfront',
   money_request_phrase: 'fee_upfront',
   money_request_context: 'fee_upfront',
   money_request_threat: 'fee_upfront',

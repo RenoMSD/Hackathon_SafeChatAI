@@ -15,6 +15,22 @@ export interface ChatMessage {
   timestamp?: string;
   /** Địa chỉ thật của các link trong tin. Chỉ phân tích trên máy, không gửi cho AI. */
   links?: string[];
+  /** Nội dung mã QR đọc được từ ảnh trong tin. Chỉ phân tích trên máy, không gửi cho AI. */
+  qr?: string[];
+}
+
+export type QrKind = 'url' | 'payment' | 'wifi' | 'contact' | 'vcard' | 'install' | 'crypto' | 'text';
+
+/** Kết quả phân tích một mã QR. Số tài khoản đã che, chỉ còn 4 số cuối. */
+export interface QrFinding {
+  kind: QrKind;
+  label: string;
+  level: LinkLevel;
+  reasons: string[];
+  details: { label: string; value: string }[];
+  url?: string;
+  crcValid?: boolean;
+  purpose?: string;
 }
 
 export type LinkLevel = 'none' | 'weak' | 'medium' | 'high';
@@ -156,6 +172,8 @@ export interface AnalysisResult {
   analyzed_message_count: number;
   /** Các link của đối phương, nặng nhất trước. */
   links?: LinkFinding[];
+  /** Các mã QR của đối phương, nặng nhất trước. */
+  qr?: QrFinding[];
   ai_status: 'off' | 'ok' | 'error' | 'pending';
   ai_error?: string;
 }

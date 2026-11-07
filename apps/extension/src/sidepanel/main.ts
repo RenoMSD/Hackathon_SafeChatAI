@@ -599,8 +599,8 @@ function introView(): Node {
             },
           }),
           h('span', { class: 'small' }, state.settings.historyScroll
-            ? 'Tôi hiểu và đồng ý cho SafeChat AI đọc văn bản của riêng cuộc trò chuyện đang mở, gồm tối đa 50 tin gần nhất. Tiện ích có thể tự cuộn khung chat lên để tải các tin này rồi trả về chỗ cũ, không gửi tin và không bấm gì.'
-            : 'Tôi hiểu và đồng ý cho SafeChat AI đọc văn bản của riêng cuộc trò chuyện đang mở, tối đa 50 tin đang có trên trang. Tiện ích không cuộn khung chat, không gửi tin và không bấm gì.'),
+            ? 'Tôi hiểu và đồng ý cho SafeChat AI đọc văn bản và mã QR trong ảnh của riêng cuộc trò chuyện đang mở, gồm tối đa 50 tin gần nhất. Tiện ích có thể tự cuộn khung chat lên để tải các tin này rồi trả về chỗ cũ, không gửi tin và không bấm gì.'
+            : 'Tôi hiểu và đồng ý cho SafeChat AI đọc văn bản và mã QR trong ảnh của riêng cuộc trò chuyện đang mở, tối đa 50 tin đang có trên trang. Tiện ích không cuộn khung chat, không gửi tin và không bấm gì.'),
         ),
       ),
     ),
@@ -1056,6 +1056,26 @@ function saveSnapshotFile(s: Session) {
 // ---------- Khối 4 & 5: Hộp Gợi ý làm rõ ý định (Blue Card) + Hộp Giới hạn quét & Tải ngay (Amber Card) ----------
 const LINK_LEVEL_TEXT: Record<string, string> = { high: 'Rất đáng ngờ', medium: 'Đáng ngờ', weak: 'Cần xem kỹ', none: 'Chưa thấy dấu hiệu' };
 
+function qrCard(s: Session): Node | null {
+  const items = s.result?.qr;
+  if (!items?.length) return null;
+  return h(
+    'section',
+    { class: 'card' },
+    h('h2', {}, 'Mã QR trong đoạn chat'),
+    h('p', { class: 'muted small', style: 'margin:4px 0 8px' }, 'Đọc ngay trên máy, ảnh không được gửi đi. Số tài khoản đã che.'),
+    ...items.map((q) =>
+      h(
+        'div',
+        { style: 'padding:6px 0;border-top:1px solid #e2e8f0' },
+        h('div', { class: 'small', style: 'display:flex;justify-content:space-between;gap:8px' }, h('b', {}, q.label), h('span', {}, q.level === 'none' ? '' : LINK_LEVEL_TEXT[q.level] ?? '')),
+        ...q.details.map((d) => h('div', { class: 'small', style: 'word-break:break-all' }, `${d.label}: ${d.value}`)),
+        ...q.reasons.map((reason) => h('div', { class: 'muted small' }, reason)),
+      ),
+    ),
+  );
+}
+
 function linksCard(s: Session): Node | null {
   const links = s.result?.links;
   if (!links?.length) return null;
@@ -1435,6 +1455,12 @@ function settingsCard(): Node {
           ),
       h('span', { class: st.gatewayEnabled ? 'ok small' : 'muted small' }, st.gatewayEnabled ? 'Đang bật' : 'Đang tắt'),
     ),
+    h(
+      'label',
+      { class: 'small', style: 'display:flex;gap:6px;margin-top:10px' },
+      h('input', { type: 'checkbox', checked: st.qrScan !== false, onchange: (e: Event) => void save({ ...st, qrScan: (e.target as HTMLInputElement).checked }) }),
+      h('span', {}, 'Đọc mã QR trong ảnh của đoạn chat đã khóa. Chạy ngay trên máy, ảnh không được gửi đi. Áp dụng từ lần quét sau.'),
+    ),
     // ----- Tiết kiệm lượt gọi -----
     h('h3', { style: 'margin-top:12px' }, 'Tiết kiệm lượt gọi AI'),
     h(
@@ -1615,7 +1641,7 @@ function render() {
               ? draftView(s)
               : settingsCard(),
     );
-    if (state.view === 'overview') nodes.push(linksCard(s));
+    if (state.view === 'overview') nodes.push(qrCard(s), linksCard(s));
   }
   app.replaceChildren(...nodes.filter((n): n is Node | string => !!n));
 }

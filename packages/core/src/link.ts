@@ -157,23 +157,34 @@ export function findUrls(text: string): string[] {
   return [...withScheme, ...bare];
 }
 
+const RANK: Record<LinkLevel, number> = { high: 3, medium: 2, weak: 1, none: 0 };
+
+/**
+ * Gộp theo host: Messenger hiện cùng một trang hai lần (link đầy đủ và dòng tên miền của thẻ xem trước).
+ * Giữ bản nặng hơn, bằng nhau thì giữ bản có đường dẫn dài hơn.
+ */
+function keepOnePerHost(seen: Map<string, LinkFinding>, f: LinkFinding) {
+  const key = f.host || f.url;
+  const old = seen.get(key);
+  if (!old || RANK[f.level] > RANK[old.level] || (RANK[f.level] === RANK[old.level] && f.url.length > old.url.length)) seen.set(key, f);
+}
+
 export function messageLinks(m: ChatMessage): LinkFinding[] {
   const seen = new Map<string, LinkFinding>();
-  for (const raw of [...findUrls(m.text), ...(m.links ?? [])]) {
+  const fromQr = (m.qr ?? []).filter((p) => /^https?:\/\//i.test(p.trim()));
+  for (const raw of [...findUrls(m.text), ...(m.links ?? []), ...fromQr]) {
     const f = analyzeUrl(unwrapFacebookLink(raw));
-    if (f && !seen.has(f.url)) seen.set(f.url, f);
+    if (f) keepOnePerHost(seen, f);
   }
   return [...seen.values()];
 }
 
-const RANK: Record<LinkLevel, number> = { high: 3, medium: 2, weak: 1, none: 0 };
-
-/** Danh sách link của đối phương để hiển thị, nặng nhất trước. */
+/** Danh sách link của đối phương để hiển thị, nặng nhất trước, mỗi host một dòng. */
 export function linkFindings(messages: ChatMessage[], limit = 8): LinkFinding[] {
   const seen = new Map<string, LinkFinding>();
   for (const m of messages) {
     if (m.sender === 'self') continue;
-    for (const f of messageLinks(m)) if (!seen.has(f.url)) seen.set(f.url, f);
+    for (const f of messageLinks(m)) keepOnePerHost(seen, f);
   }
   return [...seen.values()].sort((a, b) => RANK[b.level] - RANK[a.level]).slice(0, limit);
 }

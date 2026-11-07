@@ -1,8 +1,9 @@
 import { buildAdvice } from './advice';
-import { applyContextMitigations, applyVerificationMitigation, entitySignals, linkContextSignals, repeatedMoneySignals, userCompliedSignals } from './context';
+import { applyContextMitigations, applyVerificationMitigation, entitySignals, linkContextSignals, qrSignals, repeatedMoneySignals, userCompliedSignals } from './context';
 import { validateEvidence } from './evidence';
 import { buildLedger } from './ledger';
 import { linkFindings } from './link';
+import { qrFindings } from './qr';
 import { normalizeForMatch } from './normalize';
 import { ALL_RULES, GROUP_WINDOW, groupsSatisfied, matchGroups, matchRule, type Rule } from './rules';
 import { isProtectiveWarning } from './rules/warning';
@@ -119,7 +120,7 @@ export function analyze(messages: ChatMessage[], opts: AnalyzeOptions = {}): Ana
     applyContextMitigations([...runRules(messages), ...entitySignals(messages)], messages),
     messages,
   );
-  const withContext = [...mitigated, ...repeatedMoneySignals(mitigated, messages), ...linkContextSignals(mitigated, messages)];
+  const withContext = [...mitigated, ...repeatedMoneySignals(mitigated, messages), ...linkContextSignals(mitigated, messages), ...qrSignals(messages)];
   const ruleSignals = [...withContext, ...userCompliedSignals(withContext, messages)];
   const ledger = buildLedger(messages);
 
@@ -190,6 +191,7 @@ export function analyze(messages: ChatMessage[], opts: AnalyzeOptions = {}): Ana
     advice: buildAdvice(level, signals, scored.safety_priority, { messages, nextStep: opts.aiNextStep }),
     analyzed_message_count: messages.length,
     links: linkFindings(messages),
+    qr: qrFindings(messages),
     ai_status: opts.aiStatus ?? 'off',
     ai_error: opts.aiError,
   };

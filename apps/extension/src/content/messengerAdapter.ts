@@ -7,7 +7,9 @@
 import type { ObservedMessage } from '@safechat/core/transcript';
 import type { ThreadInfo } from '../shared/protocol';
 import type { ChatAdapter } from './adapter';
+import { QR_ONLY_TEXT } from '@safechat/core/transcript';
 import { collectHistory } from './history';
+import { beginQrRead, qrIn } from './qrDecode';
 import {
   externalLinks,
   HEADER_BUTTON_LABELS,
@@ -198,6 +200,7 @@ export const messengerAdapter: ChatAdapter = {
     if (!t) return { messages: [] };
 
     const listRect = t.log.getBoundingClientRect();
+    beginQrRead();
 
     // Nhánh 1: Các tin nhắn có thuộc tính [data-message-id]
     const msgRows = [...t.log.querySelectorAll<HTMLElement>(SELECTORS.message)]
@@ -218,14 +221,15 @@ export const messengerAdapter: ChatAdapter = {
           (n) => !n.querySelector(SELECTORS.text) && !n.closest(SELECTORS.notText),
         );
         const parts = els.map((n) => (n.innerText ?? n.textContent ?? '').trim()).filter(Boolean);
-        if (parts.length === 0) continue;
-        const text = parts.join(' ');
+        const qr = qrIn(row);
+        if (parts.length === 0 && qr.length === 0) continue;
+        const text = parts.join(' ') || QR_ONLY_TEXT;
         if (text.length > MAX_TEXT) continue;
         const sender =
-          senderFromAria(row.getAttribute('aria-label') ?? findAriaLabelNear(row, t.log), parts[parts.length - 1]!) ??
-          senderFromPosition(els[els.length - 1]!.getBoundingClientRect(), listRect);
+          senderFromAria(row.getAttribute('aria-label') ?? findAriaLabelNear(row, t.log), parts[parts.length - 1] ?? '') ??
+          senderFromPosition((els[els.length - 1] ?? row).getBoundingClientRect(), listRect);
         const links = linksIn(row);
-        out.push({ sender, text, domId: row.dataset.messageId, ...(links.length ? { links } : {}) });
+        out.push({ sender, text, domId: row.dataset.messageId, ...(links.length ? { links } : {}), ...(qr.length ? { qr } : {}) });
       }
       if (out.length > 0) return { messages: out };
     }
@@ -242,15 +246,16 @@ export const messengerAdapter: ChatAdapter = {
           (n) => !n.querySelector(SELECTORS.text) && !n.closest(SELECTORS.notText),
         );
         const parts = els.map((n) => (n.innerText ?? n.textContent ?? '').trim()).filter(Boolean);
-        if (parts.length === 0) continue;
-        const text = parts.join(' ');
+        const qr = qrIn(row);
+        if (parts.length === 0 && qr.length === 0) continue;
+        const text = parts.join(' ') || QR_ONLY_TEXT;
         if (text.length > MAX_TEXT) continue;
         const aria = findAriaLabelNear(row, t.log);
         const sender =
-          senderFromAria(aria, parts[parts.length - 1]!) ??
-          senderFromPosition(els[els.length - 1]!.getBoundingClientRect(), listRect);
+          senderFromAria(aria, parts[parts.length - 1] ?? '') ??
+          senderFromPosition((els[els.length - 1] ?? row).getBoundingClientRect(), listRect);
         const links = linksIn(row);
-        out.push({ sender, text, ...(links.length ? { links } : {}) });
+        out.push({ sender, text, ...(links.length ? { links } : {}), ...(qr.length ? { qr } : {}) });
       }
       if (out.length > 0) return { messages: out };
     }
@@ -259,9 +264,18 @@ export const messengerAdapter: ChatAdapter = {
     const textLeaves = [...t.log.querySelectorAll<HTMLElement>(SELECTORS.text)]
       .filter((n) => !n.querySelector(SELECTORS.text) && !n.closest(SELECTORS.notText))
       .slice(-MAX_ROWS);
+    const imageWraps = [...t.log.querySelectorAll<HTMLImageElement>('img')].filter((i) => i.getBoundingClientRect().width >= 80).map((i) => i.parentElement!).filter(Boolean);
+    const ordered = [...textLeaves, ...imageWraps].sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
 
     const out: ObservedMessage[] = [];
-    for (const el of textLeaves) {
+    for (const el of ordered) {
+      if (!textLeaves.includes(el)) {
+        const qr = qrIn(el);
+        if (!qr.length) continue;
+        const aria = findAriaLabelNear(el, t.log);
+        out.push({ sender: senderFromAria(aria, '') ?? senderFromPosition(el.getBoundingClientRect(), listRect), text: QR_ONLY_TEXT, qr });
+        continue;
+      }
       const text = (el.innerText ?? el.textContent ?? '').trim();
       if (!text || text.length > MAX_TEXT) continue;
       const aria = findAriaLabelNear(el, t.log);

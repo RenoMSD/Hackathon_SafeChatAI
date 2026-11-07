@@ -83,6 +83,14 @@ describe('link thật trong thẻ a', () => {
     expect(req.sent[0]).not.toHaveProperty('links');
     expect(JSON.stringify(req)).not.toContain('abc123');
   });
+  it('link đầy đủ và dòng tên miền của thẻ xem trước chỉ hiện một lần', () => {
+    const r = analyze(chat([
+      ['other', 'https://vietcombank-xacthuc.store/login vietcombank-xacthuc.store', ['https://vietcombank-xacthuc.store/login']],
+      ['other', 'Xem lại ở vietcombank-xacthuc.store nhé'],
+    ]));
+    expect(r.links?.filter((l) => l.host === 'vietcombank-xacthuc.store')).toHaveLength(1);
+    expect(r.links?.[0]?.url).toBe('https://vietcombank-xacthuc.store/login');
+  });
   it('kết quả hiển thị đã bỏ query', () => {
     const r = analyze(chat([['other', 'Vào https://evil.top/a?token=abc123 nhé']]));
     expect(JSON.stringify(r.links)).not.toContain('abc123');

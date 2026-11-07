@@ -33,3 +33,4 @@ Tự sinh bằng `npm run bench:experiment -- --ledger`. Không sửa tay. Cách
 | [EXP-024](EXP-024/README.md) | Phân tích link trên máy, ghép ngữ cảnh, nhận biết người dùng đã làm theo | rules | `a7e518c+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.1% | 33.9% | 2 |
 | [EXP-025](EXP-025/README.md) | Tách đuôi tên miền bị lạm dụng khỏi đuôi phổ biến | rules | `a7e518c+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.1% | 33.9% | 2 |
 | [EXP-026](EXP-026/README.md) | Phân tích link trên máy, bản chốt | rules | `a7e518c+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |
+| [EXP-027](EXP-027/README.md) | Đọc mã QR trong ảnh ngay trên máy | rules | `91b5ca0+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 4.0% | 33.9% | 2 |

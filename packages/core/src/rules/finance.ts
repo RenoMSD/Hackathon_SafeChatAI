@@ -26,7 +26,7 @@ const MONEY_REQUEST_EXCLUDE = [
   /\bcong ty (se )?(dong|tra|chuyen) them\b/,
 ];
 /** Lý do hợp thức cho việc đòi tiền thì lên mức Cao. */
-const MONEY_CONTEXT: RegExp[] = [
+export const MONEY_CONTEXT: RegExp[] = [
   // Việc làm, nhiệm vụ
   /\b(nhiem vu|hoa hong|cong tac vien|tuyen (dung|nhan vien)|nhan viec|viec lam|lam them|don ao|chot don|giat don)\b/,
   // Hứa trả lại

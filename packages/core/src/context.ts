@@ -7,6 +7,8 @@
 import { extractEntities } from './entities';
 import { isUnrelatedLink, messageLinks } from './link';
 import { normalizeForMatch, stripDiacritics } from './normalize';
+import { classifyQr } from './qr';
+import { MONEY_CONTEXT } from './rules/finance';
 import { GROUP_WINDOW } from './rules/rule';
 import { isLinkWarning } from './rules/warning';
 import type { ChatMessage, LinkFinding, LinkLevel, Signal } from './types';
@@ -198,12 +200,50 @@ export function linkContextSignals(signals: Signal[], messages: ChatMessage[]): 
   return out;
 }
 
+// ---------------------------------------------------------------- mã QR
+/**
+ * QR chuyển tiền rất phổ biến nên đứng một mình chỉ là thông tin. Lên Cao khi đi cùng việc làm, lời hứa, giục gấp
+ * trong cùng cửa sổ tin. QR chứa link đã đi qua phân tích link như một link bình thường.
+ */
+export function qrSignals(messages: ChatMessage[]): Signal[] {
+  const others = messages.filter((m) => m.sender !== 'self');
+  const texts = others.map((m) => normalizeForMatch(m.text));
+  const ofKind = (kinds: string[], extra?: (i: number) => boolean) =>
+    others.filter((m, i) => (m.qr ?? []).some((p) => kinds.includes(classifyQr(p).kind)) && (!extra || extra(i)));
+  const inContext = (i: number) => {
+    const from = Math.max(0, i - GROUP_WINDOW + 1);
+    const to = Math.min(others.length - 1, i + GROUP_WINDOW - 1);
+    for (let j = from; j <= to; j++) if (MONEY_CONTEXT.some((re) => re.test(texts[j]!))) return true;
+    return false;
+  };
+  const invalidCrc = (i: number) => (others[i]!.qr ?? []).some((p) => classifyQr(p).crcValid === false);
+  const make = (type: string, severity: Signal['severity'], title: string, explanation: string, recommended_action: string, ms: ChatMessage[]): Signal => ({
+    type, category: 'finance', severity, title, explanation, recommended_action, source: 'rule',
+    evidence_message_ids: ms.map((m) => m.id), evidence_quotes: ms.map(quote),
+  });
+  const out: Signal[] = [];
+  const payments = ofKind(['payment']);
+  const paymentContext = ofKind(['payment'], inContext);
+  const badCrc = ofKind(['payment'], invalidCrc);
+  if (paymentContext.length) {
+    out.push(make('qr_payment_context', 'high', 'Gửi QR chuyển tiền kèm lời hứa, việc làm hoặc giục gấp', 'Đối phương gửi mã QR chuyển tiền và gắn với công việc, lời hứa hoàn tiền, lợi nhuận hoặc hạn gấp.', 'Không quét để chuyển tiền chỉ vì lời hứa hay hạn gấp. Kiểm tra đơn vị qua kênh độc lập trước.', paymentContext));
+  } else if (payments.length) {
+    out.push(make('qr_payment_request', 'low', 'Gửi mã QR chuyển tiền', 'Đối phương gửi mã QR để chuyển tiền. Đây là việc thường gặp, hãy kiểm tra đúng người nhận trước khi quét.', 'Kiểm tra tên người nhận hiện trong ứng dụng ngân hàng trước khi xác nhận chuyển.', payments));
+  }
+  if (badCrc.length) out.push(make('qr_invalid_crc', 'medium', 'Mã QR chuyển tiền có thể đã bị sửa', 'Mã kiểm tra của QR chuyển tiền không khớp, nội dung có thể đã bị sửa hoặc hỏng.', 'Không chuyển theo mã này. Đề nghị người nhận gửi lại, và đối chiếu tên trong ứng dụng ngân hàng.', badCrc));
+  const install = ofKind(['install']);
+  if (install.length) out.push({ ...make('qr_install', 'high', 'Mã QR dẫn tới cài ứng dụng', 'Mã QR mở thẳng việc cài ứng dụng, có thể là ứng dụng độc hại.', 'Không quét mã này. Ứng dụng chính thức chỉ tải từ CH Play hoặc App Store.', install), category: 'technical' });
+  const crypto = ofKind(['crypto']);
+  if (crypto.length) out.push({ ...make('qr_crypto', 'medium', 'Mã QR chuyển tiền ảo', 'Mã QR chứa địa chỉ ví tiền ảo. Giao dịch tiền ảo gần như không thể lấy lại khi bị lừa.', 'Không chuyển tiền ảo theo mã do người lạ gửi.', crypto), category: 'investment' });
+  return out;
+}
+
 // ---------------------------------------------------------------- người dùng đã làm theo
 const NOT_DONE = /\b(chua|khong|dau co|khoi|dung|neu|co nen)\b|\?/;
 type ComplianceKind = 'money' | 'otp' | 'app' | 'login';
 const COMPLIANCE: Record<ComplianceKind, { requests: string[]; done: RegExp[]; title: string; category: Signal['category'] }> = {
   money: {
-    requests: ['upfront_fee', 'task_deposit', 'money_request_phrase', 'money_request_context', 'money_request_threat', 'repeated_money_request', 'money_transfer', 'hold_deposit_deadline', 'task_freeze_extortion', 'task_escalating_deposit', 'investment_scam', 'authority_impersonation'],
+    requests: ['qr_payment_context', 'qr_invalid_crc', 'upfront_fee', 'task_deposit', 'money_request_phrase', 'money_request_context', 'money_request_threat', 'repeated_money_request', 'money_transfer', 'hold_deposit_deadline', 'task_freeze_extortion', 'task_escalating_deposit', 'investment_scam', 'authority_impersonation'],
     done: [/\b(chuyen khoan|chuyen|dong|nap|coc|gui tien)\b.{0,14}\b(roi|xong)\b/, /\b(da|vua|moi) (chuyen|dong|nap|coc|gui tien)\b/],
     title: 'Bạn có thể đã chuyển tiền',
     category: 'finance',
@@ -215,7 +255,7 @@ const COMPLIANCE: Record<ComplianceKind, { requests: string[]; done: RegExp[]; t
     category: 'account',
   },
   app: {
-    requests: ['malware_apk'],
+    requests: ['malware_apk', 'qr_install'],
     done: [/\b(cai|tai|bat)\b.{0,14}\b(roi|xong)\b/, /\b(da|vua|moi) (cai|tai|bat)\b/],
     title: 'Bạn có thể đã cài ứng dụng lạ',
     category: 'technical',

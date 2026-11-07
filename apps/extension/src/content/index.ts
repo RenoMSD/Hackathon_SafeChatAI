@@ -1,5 +1,5 @@
 // Content script: thụ động cho tới khi background gửi cs_start (sau khi người dùng đồng ý).
-// Chỉ đọc văn bản tin nhắn của cuộc trò chuyện đã chọn; không gửi tin, không bấm gì.
+// Chỉ đọc văn bản tin nhắn và mã QR trong ảnh của cuộc trò chuyện đã chọn; không gửi tin, không bấm gì.
 // Lần quét đầu có thể tự cuộn khung chat để tải lịch sử rồi trả về vị trí cũ, nếu người dùng không tắt tùy chọn này.
 import type { ContentEvent, ContentRequest, ProbeResult } from '../shared/protocol';
 import type { ChatAdapter } from './adapter';
@@ -7,9 +7,12 @@ import { initFloatingWidget } from './floatingWidget';
 import { HISTORY_TARGET, readInitial } from './history';
 import { messengerAdapter } from './messengerAdapter';
 import { mockAdapter } from './mockAdapter';
+import { qrMadeProgress, qrPending, setQrEnabled } from './qrDecode';
 
 const DEBOUNCE_MS = 400;
 const CHECK_MS = 1000;
+const QR_RETRY_MS = 800;
+const QR_MAX_RETRIES = 8;
 
 function pickAdapter(): ChatAdapter | null {
   if (document.querySelector('[data-safechat-mock-thread]')) return mockAdapter;
@@ -23,6 +26,8 @@ let debounce: ReturnType<typeof setTimeout> | undefined;
 let trackedThread: string | null = null;
 let waiting = false;
 let startRun = 0;
+let qrRetry: ReturnType<typeof setTimeout> | undefined;
+let qrRetries = 0;
 
 function send(ev: ContentEvent) {
   chrome.runtime.sendMessage(ev).catch(() => {
@@ -36,6 +41,17 @@ function flush(adapter: ChatAdapter) {
   const { messages, error } = adapter.readMessages(trackedThread);
   if (error) send({ kind: 'cs_messages', threadId: trackedThread, batch: [], error });
   else if (messages.length) send({ kind: 'cs_messages', threadId: trackedThread, batch: messages });
+  scheduleQrRetry(adapter);
+}
+
+/** Ảnh có thể tải xong sau chữ, và sự kiện tải ảnh không kích hoạt MutationObserver. */
+function scheduleQrRetry(adapter: ChatAdapter) {
+  clearTimeout(qrRetry);
+  // Giới hạn chỉ tính lần không tiến triển, để đoạn chat nhiều ảnh vẫn đọc hết.
+  if (qrMadeProgress()) qrRetries = 0;
+  if (!qrPending() || qrRetries >= QR_MAX_RETRIES) return;
+  qrRetries++;
+  qrRetry = setTimeout(() => flush(adapter), QR_RETRY_MS);
 }
 
 function checkThread(adapter: ChatAdapter) {
@@ -73,6 +89,7 @@ function attachObserver(adapter: ChatAdapter): boolean {
   observedRoot = root;
   observer = new MutationObserver(() => {
     clearTimeout(debounce);
+    qrRetries = 0;
     debounce = setTimeout(() => flush(adapter), DEBOUNCE_MS);
   });
   observer.observe(root, { childList: true, subtree: true, characterData: true });
@@ -110,6 +127,7 @@ async function initialScan(adapter: ChatAdapter, threadId: string, run: number, 
   if (cancelled()) return;
   send({ kind: 'cs_messages', threadId, batch: result.messages, error: result.error, initial: { target: HISTORY_TARGET, complete: result.complete } });
   beginWatching(adapter);
+  scheduleQrRetry(adapter);
 }
 
 function stop() {
@@ -117,6 +135,8 @@ function stop() {
   detachObserver();
   clearInterval(checkTimer);
   clearTimeout(debounce);
+  clearTimeout(qrRetry);
+  qrRetries = 0;
   trackedThread = null;
   waiting = false;
 }
@@ -141,6 +161,7 @@ chrome.runtime.onMessage.addListener((req: ContentRequest, _sender, sendResponse
       sendResponse(probeLocal());
       return false;
     case 'cs_start':
+      setQrEnabled(req.readQr !== false);
       if (adapter) start(adapter, req.threadId, req.loadHistory, req.allowScroll);
       sendResponse({ ok: !!adapter });
       return false;

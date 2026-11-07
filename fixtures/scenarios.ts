@@ -16,7 +16,7 @@ export const scenarios: Scenario[] = (
   raw as {
     id: string;
     title: string;
-    messages: { sender: Sender; text: string }[];
+    messages: { sender: Sender; text: string; qr?: string[] }[];
     expected: Scenario['expected'];
     pending?: boolean;
     source?: string;
@@ -28,5 +28,6 @@ export const scenarios: Scenario[] = (
     seq: i + 1,
     sender: m.sender,
     text: m.text,
+    ...(m.qr ? { qr: m.qr } : {}),
   })),
 }));

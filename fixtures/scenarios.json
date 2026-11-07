@@ -4724,5 +4724,261 @@
         "suspicious_link"
       ]
     }
+  },
+  {
+    "id": "212_qr_chuyen_tien_mot_minh",
+    "title": "QR chuyển tiền một mình → Thấp",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "00020101021238540010A00000072701240006970400011001234567890208QRIBFTTA530370454065000005802VN6304B06E"
+        ]
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [
+        "qr_payment_request"
+      ]
+    }
+  },
+  {
+    "id": "213_qr_chia_tien_an",
+    "title": "Chia tiền ăn bằng QR → Thấp",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tiền cơm hôm qua nhé"
+      },
+      {
+        "sender": "other",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "00020101021238540010A00000072701240006970400011001234567890208QRIBFTTA530370454065000005802VN6304B06E"
+        ]
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [
+        "qr_payment_request"
+      ]
+    }
+  },
+  {
+    "id": "214_qr_kem_nhiem_vu",
+    "title": "QR chuyển tiền kèm nhiệm vụ, hoa hồng → Cao",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Làm nhiệm vụ này là có hoa hồng em nhé"
+      },
+      {
+        "sender": "other",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "00020101021238540010A00000072701240006970400011001234567890208QRIBFTTA530370454065000005802VN6304B06E"
+        ]
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "qr_payment_context"
+      ]
+    }
+  },
+  {
+    "id": "215_qr_kem_ep_han",
+    "title": "QR chuyển tiền kèm hạn cuối → Cao",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hôm nay là hạn cuối, mất suất đó"
+      },
+      {
+        "sender": "other",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "00020101021238540010A00000072701240006970400011001234567890208QRIBFTTA530370454065000005802VN6304B06E"
+        ]
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "qr_payment_context"
+      ]
+    }
+  },
+  {
+    "id": "216_qr_crc_sai",
+    "title": "QR chuyển tiền có CRC sai → Cần chú ý",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "00020101021238540010A00000072701240006970400011001234567890208QRIBFTTA530370454065000005802VN63040000"
+        ]
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "qr_payment_request",
+        "qr_invalid_crc"
+      ]
+    }
+  },
+  {
+    "id": "217_qr_link_gia",
+    "title": "QR chứa link giả ngân hàng → Cao",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "https://vietcombank-xacthuc.store/login"
+        ]
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "218_qr_link_thuong",
+    "title": "QR chứa link quán ăn → Thấp",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "https://nhahang.vn/menu"
+        ]
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "219_qr_cai_ung_dung",
+    "title": "QR cài ứng dụng → Cao",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "intent://scan/#Intent;end"
+        ]
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "qr_install"
+      ]
+    }
+  },
+  {
+    "id": "220_qr_vi_tien_ao",
+    "title": "QR ví tiền ảo → Cần chú ý",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "bitcoin:bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+        ]
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "qr_crypto"
+      ]
+    }
+  },
+  {
+    "id": "221_qr_wifi",
+    "title": "QR Wi-Fi → Thấp",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "WIFI:T:WPA;S:QuanCaPhe;P:12345678;;"
+        ]
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "222_qr_da_chuyen",
+    "title": "Đã chuyển theo QR kèm nhiệm vụ → giữ Cao",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Làm nhiệm vụ này là có hoa hồng em nhé"
+      },
+      {
+        "sender": "other",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "00020101021238540010A00000072701240006970400011001234567890208QRIBFTTA530370454065000005802VN6304B06E"
+        ]
+      },
+      {
+        "sender": "self",
+        "text": "Em chuyển rồi nha"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "qr_payment_context",
+        "user_complied_money"
+      ]
+    }
+  },
+  {
+    "id": "223_qr_nguoi_dung_gui",
+    "title": "QR do người dùng tự gửi không tính → Thấp",
+    "source": "v0.13: viết mới khi thêm đọc QR, số tài khoản giả, không dùng dữ liệu nhóm",
+    "messages": [
+      {
+        "sender": "self",
+        "text": "[Ảnh mã QR]",
+        "qr": [
+          "intent://scan/#Intent;end"
+        ]
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
   }
 ]

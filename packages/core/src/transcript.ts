@@ -1,6 +1,8 @@
 import type { ChatMessage, Sender } from './types';
 
 export const DEFAULT_MAX_MESSAGES = 300;
+/** Chữ thay cho tin chỉ có ảnh mã QR. */
+export const QR_ONLY_TEXT = '[Ảnh mã QR]';
 
 /** Tin nhắn thô do adapter đọc từ giao diện, theo thứ tự hiển thị. */
 export interface ObservedMessage {
@@ -11,6 +13,8 @@ export interface ObservedMessage {
   timestamp?: string;
   /** Địa chỉ thật của các link trong tin. */
   links?: string[];
+  /** Nội dung mã QR đọc được từ ảnh trong tin. */
+  qr?: string[];
 }
 
 export interface TranscriptState {
@@ -25,7 +29,9 @@ export function emptyTranscript(): TranscriptState {
 }
 
 const clean = (t: string) => t.replace(/\s+/g, ' ').trim();
-const keyOf = (o: ObservedMessage) => (o.domId ? `d:${o.domId}` : `c:${o.sender}|${clean(o.text)}`);
+/** Tin chỉ có ảnh QR đều cùng một chữ, nên khóa phải có nội dung mã để phân biệt các ảnh khác nhau. */
+const keyOf = (o: ObservedMessage) =>
+  o.domId ? `d:${o.domId}` : `c:${o.sender}|${clean(o.text)}${clean(o.text) === QR_ONLY_TEXT ? `|${o.qr?.[0] ?? ''}` : ''}`;
 
 /**
  * Xác định phần tin MỚI trong một lô quan sát. Giao diện chat thường render lại hoặc chỉ giữ một
@@ -83,6 +89,21 @@ export function mergeOlder(acc: ObservedMessage[], next: ObservedMessage[]): Obs
   return known ? acc : [...filtered, ...acc];
 }
 
+/** Ảnh trong tin đã có có thể tải xong muộn hơn chữ: bổ sung mã QR vào đúng tin đó. Trả true nếu có thay đổi. */
+export function mergeLateQr(state: TranscriptState, batch: ObservedMessage[]): boolean {
+  let changed = false;
+  for (const o of batch) {
+    if (!o.qr?.length) continue;
+    const at = state.keys.lastIndexOf(keyOf(o));
+    const m = at >= 0 ? state.messages[at] : undefined;
+    if (m && !m.qr?.length) {
+      m.qr = o.qr;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 /**
  * Ghép các tin quan sát được vào bản nháp (khử trùng lặp, giữ tối đa `max` tin gần nhất).
  * Trả về các tin mới được thêm.
@@ -102,6 +123,7 @@ export function appendObserved(
       seq: state.nextSeq,
       timestamp: o.timestamp,
       ...(o.links?.length ? { links: o.links } : {}),
+      ...(o.qr?.length ? { qr: o.qr } : {}),
     };
     state.nextSeq++;
     state.messages.push(msg);

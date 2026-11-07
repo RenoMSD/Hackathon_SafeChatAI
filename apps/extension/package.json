@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@safechat/core": "*"
+    "@safechat/core": "*",
+    "jsqr": "1.4.0"
   }
 }

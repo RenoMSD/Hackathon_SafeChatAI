@@ -47,6 +47,8 @@ const QUESTIONS: Record<string, string> = {
   card_cash_service: 'Cho em xin tên ngân hàng; em sẽ tự đổi hạn mức trên ứng dụng chính thức ạ.',
   parcel_fee_scam: 'Cho em xin mã vận đơn, em tự tra trên ứng dụng của đơn vị vận chuyển ạ.',
   debt_collection_threat: 'Cho em xin số hợp đồng và tên công ty cho vay để em tự kiểm tra qua kênh chính thức ạ.',
+  qr_payment_request: 'Tài khoản này đứng tên ai và khoản này để làm gì ạ?',
+  qr_payment_context: 'Tài khoản này đứng tên ai và khoản này để làm gì ạ? Anh/chị gửi em văn bản nêu rõ được không?',
   claim_link_mismatch: 'Trang chính thức của đơn vị là gì ạ? Em sẽ tự vào từ ứng dụng chính thức, không qua link này.',
   link_with_pressure: 'Em sẽ tự kiểm tra trong ứng dụng chính thức trước, không qua link này được không ạ?',
   suspicious_link: 'Đây là trang chính thức của đơn vị nào ạ? Em sẽ tự truy cập từ website/ứng dụng chính thức.',

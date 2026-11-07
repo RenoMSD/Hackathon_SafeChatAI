@@ -1780,11 +1780,14 @@ export function initFloatingWidget(
   let scrollHistory = DEFAULT_SETTINGS.historyScroll;
   // Đã từng đồng ý trong bảng này. Bỏ dấu đồng ý thì lần thả mèo sau phải đọc lại.
   let scanConsented = false;
+  // Đọc mã QR trong ảnh, chạy ngay trên máy.
+  let readQr = true;
   chrome.storage?.local
     ?.get?.(SETTINGS_KEY)
     ?.then((res) => {
       const stored = res?.[SETTINGS_KEY] as Partial<Settings> | undefined;
       scanConsented = stored?.scanConsent === true;
+      if (stored?.qrScan === false) readQr = false;
       const saved = stored?.historyScroll;
       if (typeof saved === 'boolean' && saved !== scrollHistory) {
         scrollHistory = saved;
@@ -2567,6 +2570,22 @@ export function initFloatingWidget(
           ),
         ),
       ),
+      r?.qr?.length
+        ? h(
+            'div',
+            {},
+            h('div', { style: 'font-weight:700;font-size:12px;color:#0f172a;margin-top:6px' }, 'Mã QR trong đoạn chat'),
+            ...r.qr.map((q) =>
+              h(
+                'div',
+                { style: 'margin-top:4px;padding:6px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:11.5px;color:#334155' },
+                h('div', { style: 'display:flex;justify-content:space-between;gap:6px' }, h('b', {}, q.label), h('span', { style: 'flex:none;font-weight:700' }, q.level === 'none' ? '' : LINK_LEVEL_TEXT[q.level])),
+                ...q.details.map((d) => h('div', { style: 'margin-top:2px;word-break:break-all' }, `${d.label}: ${d.value}`)),
+                ...q.reasons.map((reason) => h('div', { style: 'margin-top:2px;font-size:10.5px;color:#64748b' }, reason)),
+              ),
+            ),
+          )
+        : null,
       r?.links?.length
         ? h(
             'div',
@@ -2847,6 +2866,20 @@ export function initFloatingWidget(
             ),
             h(
               'label',
+              { class: 'consent-label', style: 'margin-top:4px' },
+              h('input', {
+                type: 'checkbox',
+                checked: readQr,
+                onchange: (e: Event) => {
+                  readQr = (e.target as HTMLInputElement).checked;
+                  void sendReq({ kind: 'set_qr_scan', value: readQr });
+                  renderWidget();
+                },
+              }),
+              h('span', {}, h('b', {}, 'Đọc mã QR trong ảnh'), ': chạy ngay trên máy, ảnh không được gửi đi.'),
+            ),
+            h(
+              'label',
               { class: 'consent-label' },
               h('input', {
                 type: 'checkbox',
@@ -2864,8 +2897,8 @@ export function initFloatingWidget(
                 'span',
                 {},
                 scrollHistory
-                  ? 'Đồng ý cho SafeChat AI đọc văn bản của đoạn chat bạn chọn khóa, gồm tối đa 50 tin gần nhất, có thể tự cuộn khung chat rồi trả về chỗ cũ.'
-                  : 'Đồng ý cho SafeChat AI đọc văn bản của đoạn chat bạn chọn khóa, tối đa 50 tin đang có trên trang, không cuộn khung chat.',
+                  ? `Đồng ý cho SafeChat AI đọc văn bản${readQr ? ' và mã QR trong ảnh' : ''} của đoạn chat bạn chọn khóa, gồm tối đa 50 tin gần nhất, có thể tự cuộn khung chat rồi trả về chỗ cũ.`
+                  : `Đồng ý cho SafeChat AI đọc văn bản${readQr ? ' và mã QR trong ảnh' : ''} của đoạn chat bạn chọn khóa, tối đa 50 tin đang có trên trang, không cuộn khung chat.`,
               ),
             ),
           ),
