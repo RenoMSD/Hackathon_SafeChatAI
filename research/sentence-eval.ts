@@ -24,13 +24,17 @@ if (!file || !runId || !apiKey) throw new Error('Cần --file, --run-id và GROQ
 const MAP: Record<string, RiskLevel> = { thap: 'low', can_chu_y: 'attention', cao: 'high', nghiem_trong: 'critical' };
 const { header, rows } = parseCsv(readFileSync(file, 'utf8').replace(/^﻿/, ''));
 if (!header.includes('tin_nhan') || !header.includes('nhan')) throw new Error('File cần cột tin_nhan và nhan');
-const cell = (r: object, k: string) => String((r as Record<string, unknown>)[k] ?? '');
-const items = rows.filter((r) => cell(r, 'tin_nhan').trim()).map((r, i) => ({
-  id: i < threats ? `A${String(i + 1).padStart(2, '0')}` : `B${String(i - threats + 1).padStart(2, '0')}`,
-  threat: i < threats,
-  gold: MAP[cell(r, 'nhan').trim()]!,
-  messages: [{ id: 'msg-001', seq: 1, sender: 'other', text: cell(r, 'tin_nhan') }] as ChatMessage[],
-}));
+const items = rows.filter((r) => r.values.tin_nhan?.trim()).map((r, i) => {
+  const gold = MAP[r.values.nhan?.trim() ?? ''];
+  if (!gold) throw new Error(`Dòng ${r.line}: nhãn không hợp lệ`);
+  return {
+    id: i < threats ? `A${String(i + 1).padStart(2, '0')}` : `B${String(i - threats + 1).padStart(2, '0')}`,
+    threat: i < threats,
+    gold,
+    messages: [{ id: 'msg-001', seq: 1, sender: 'other', text: r.values.tin_nhan! }] as ChatMessage[],
+  };
+});
+if (items.length === 0) throw new Error('Không đọc được câu nào trong file');
 
 const client = new OpenRouterClient({
   apiKey, cacheDir: join(CACHE_DIR, 'groq'), dailyCap: 950, minIntervalMs: Number(arg('interval-ms', '20000')), timeoutMs: 60_000,
