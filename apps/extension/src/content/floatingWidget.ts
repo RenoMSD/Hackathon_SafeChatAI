@@ -1110,7 +1110,7 @@ export function initFloatingWidget(
   document.body.append(host);
 
   let session: Session | null = null;
-  let minimized = false;
+  let minimized = true;
   let consent = true;
   let hasScanned = false;
   let isScanning = false;
@@ -1396,6 +1396,15 @@ export function initFloatingWidget(
     minimized = false;
     hasScanned = true;
     runScan();
+  }
+
+  async function closeToDefaultCat() {
+    await sendReq({ kind: 'stop_and_clear' });
+    session = null;
+    chosenThreadId = null;
+    minimized = true;
+    hideSpotlight();
+    renderWidget();
   }
 
   function renderOverviewTab(s: Session): Node {
@@ -1685,17 +1694,18 @@ export function initFloatingWidget(
   }
 
   function renderWidget() {
-    // 1. Trạng thái thu gọn thành chú mèo Pixel cầm khiên (khi chưa khóa chat)
+    // 1. Mặc định khi mở lên (hoặc thu gọn khi chưa khóa chat): chú mèo Tuxedo Pixel cầm khiên + nút Quét chat
     if (minimized && !session) {
+      const openAndScan = () => {
+        minimized = false;
+        runScan();
+      };
       const catBtn = h(
         'button',
         {
           class: 'cat-stage-btn',
-          title: 'Kéo để di chuyển · Bấm vào mèo để mở SafeChat AI',
-          onclick: () => {
-            minimized = false;
-            renderWidget();
-          },
+          title: 'Kéo để di chuyển · Bấm vào mèo để quét đoạn chat',
+          onclick: openAndScan,
         },
         pixelCatShieldSvg('low', 88, 62),
         h('span', { class: 'cat-shield-tag attention' }, 'Quét chat'),
@@ -1710,10 +1720,7 @@ export function initFloatingWidget(
           {
             class: 'cat-bubble attention',
             style: 'padding:6px 10px;width:auto;max-width:220px;cursor:pointer',
-            onclick: () => {
-              minimized = false;
-              renderWidget();
-            },
+            onclick: openAndScan,
           },
           h('div', { style: 'font-size:11px;font-weight:700;color:#1e293b;text-align:center' }, 'Bấm vào mèo để quét đoạn chat'),
         ),
@@ -2024,7 +2031,7 @@ export function initFloatingWidget(
                 {
                   class: 'text-btn',
                   title: 'Dừng canh gác đoạn chat này',
-                  onclick: () => void stopAndScanOthers(),
+                  onclick: () => void closeToDefaultCat(),
                 },
                 'Đóng',
               ),
@@ -2138,8 +2145,8 @@ export function initFloatingWidget(
           'button',
           {
             class: 'text-btn',
-            title: 'Dừng và quét đoạn chat khác',
-            onclick: () => void stopAndScanOthers(),
+            title: 'Dừng và về mèo canh gác mặc định',
+            onclick: () => void closeToDefaultCat(),
           },
           'Đóng',
         ),
