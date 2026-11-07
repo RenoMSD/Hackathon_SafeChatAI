@@ -1,0 +1,57 @@
+name: CD - Deploy Gateway
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # cần cho OIDC
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cấu hình AWS qua OIDC (không access key dài hạn)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Cài AWS SAM CLI
+        run: |
+          pip install aws-sam-cli
+
+      - name: Build SAM (staging)
+        working-directory: infra
+        run: sam build --use-container
+
+      - name: Deploy SAM staging stack
+        working-directory: infra
+        run: |
+          sam deploy \
+            --stack-name safechat-staging \
+            --template-file .aws-sam/build/template.yaml \
+            --capabilities CAPABILITY_IAM \
+            --parameter-overrides Environment=staging \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --resolve-s3
+
+      - name: Lấy URL staging
+        id: url
+        working-directory: infra
+        run: |
+          URL=$(aws cloudformation describe-stacks --stack-name safechat-staging \
+            --query "Stacks[0].Outputs[?OutputKey=='GatewayUrl'].OutputValue" --output text)
+          echo "gateway_url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Smoke test GET /healthz
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ steps.url.outputs.gateway_url }}/healthz")
+          echo "HTTP status: $STATUS"
+          test "$STATUS" = "200"

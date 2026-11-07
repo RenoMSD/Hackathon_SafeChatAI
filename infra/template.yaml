@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SafeChat AI Gateway — stack staging/production (vùng ap-northeast-1)
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [staging, prod]
+    Default: staging
+
+Resources:
+  GatewayTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'safechat-${Environment}'
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  GatewayFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'safechat-gateway-${Environment}'
+      Runtime: nodejs20.x
+      Handler: services/gateway/dist/index.handler
+      CodeUri: .
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt GatewayFunction.Arn
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: '*'
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          MODEL_SMALL: jp.amazon.nova-2-lite-v1:0
+          MODEL_LARGE: jp.anthropic.claude-haiku-5-5
+          TABLE_NAME: !Ref GatewayTable
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            PayloadFormatVersion: '2.0'
+
+  GatewayApi:
+    Type: AWS::ApiGateway::Api
+    Properties:
+      Name: !Sub 'safechat-api-${Environment}'
+      ProtocolType: HTTP
+
+Outputs:
+  GatewayUrl:
+    Description: URL gateway staging/prod
+    Value: !Sub 'https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  GatewayFunctionName:
+    Description: Tên Lambda gateway
+    Value: !Ref GatewayFunction
