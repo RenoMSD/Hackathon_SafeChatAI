@@ -18,3 +18,4 @@ Tự sinh bằng `npm run bench:experiment -- --ledger`. Không sửa tay. Cách
 | [EXP-009](EXP-009/README.md) | Gom đủ 5 tin mới gọi AI một lần, gọi nốt tin lẻ khi dừng 60 giây | đếm lượt gọi bằng AI giả, không gọi mạng | `a7abe92+dirty` | – (–) | – (–) | chưa xem | chưa xem | – | – | 2 |
 | [EXP-010](EXP-010/README.md) | Chạy thử Groq 2 ca: model dùng được, token, reasoning_effort | ai, groq, 2 ca tune, trần 2048 token, prompt bench-v2 | `309ab2d` | – (–) | – (–) | chưa xem | chưa xem | – | – | 2 |
 | [EXP-011](EXP-011/README.md) | Luật + gpt-oss-120b mức low | hybrid-hint, groq openai/gpt-oss-120b (reasoning low), prompt bench-v2 | `098afb3` | 3.2% (1/31) | 25.0% (8/32) | chưa xem | chưa xem | – | – | 2 |
+| [EXP-012](EXP-012/README.md) | Quét ban đầu 50 tin, đánh giá mỗi 2 tin, prompt gọn: kiểm tra offline và 4 lượt thật | đếm offline trên tune, 4 lượt thật gpt-oss-20b mức low, prompt bench-v5 | `9840674` | – (–) | – (–) | chưa xem | chưa xem | – | – | 2 |
