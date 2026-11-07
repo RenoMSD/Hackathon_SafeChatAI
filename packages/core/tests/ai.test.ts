@@ -133,4 +133,21 @@ describe('phân tích chi tiết', () => {
     expect(r.level_reason).toContain('25%');
     expect(r.category_counts.finance).toBe(2);
   });
+
+  it('bỏ tín hiệu AI trùng loại chuẩn với bộ luật (khác tên)', () => {
+    const m = msgs([['other', 'ck vô stk 9988776655 MB Bank của tao đi, nội dung ghi tên mày']]);
+    const aiDup: Signal = {
+      type: 'fee_upfront',
+      category: 'finance',
+      severity: 'high',
+      title: 'Yêu cầu chuyển khoản',
+      explanation: '',
+      evidence_message_ids: ['msg-001'],
+      evidence_quotes: ['ck vô stk 9988776655 MB Bank của tao đi'],
+      recommended_action: '',
+      source: 'ai',
+    };
+    const r = analyze(m, { aiSignals: [aiDup] });
+    expect(r.signals.some((s) => s.source === 'ai')).toBe(false);
+  });
 });
