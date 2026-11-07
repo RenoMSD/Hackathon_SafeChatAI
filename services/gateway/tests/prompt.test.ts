@@ -97,15 +97,23 @@ describe('buildGatewayPrompt', () => {
     expect(err).toBeInstanceOf(AppError);
   });
 
-  it('nhắc không lặp bộ luật, OTP an toàn và taxonomy có suspicious_link ở cả hai tầng', () => {
+  it('nhắc không lặp bộ luật, OTP an toàn và taxonomy có suspicious_link ở cả hai tầng; prompt gọn', () => {
     const cfg = makeConfig();
     for (const tier of ['small', 'large'] as const) {
       const r = buildGatewayPrompt(req(msgs(2)), cfg, tier);
       expect(r.request.system).toContain('QUY TRÌNH PHÁN ĐOÁN');
-      expect(r.request.system).toContain('ĐỐI CHIẾU BỘ LUẬT');
+      expect(r.request.system).toContain('KHÔNG tạo lại tín hiệu cùng ý nghĩa');
+      expect(r.request.system.length).toBeLessThan(6500);
       expect(r.request.system).toContain('suspicious_link');
-      expect(r.request.system).toContain('không cung cấp/chia sẻ');
+      expect(r.request.system).toContain('không chia sẻ');
     }
+  });
+
+  it('gửi mức của luật cho AI và không coi "đã gọi xác minh" là an toàn', () => {
+    const r = buildGatewayPrompt(req(msgs(2), { currentLevel: 'high', stage: 'S3' }), makeConfig(), 'large');
+    expect(r.request.user).toContain('<state>high S3</state>');
+    expect(r.request.system).not.toContain('đã xác minh bằng cuộc gọi');
+    expect(r.request.system).toContain('làm giả được');
   });
 
   it('không gọi AI khi chỉ có tin của mình', () => {

@@ -61,6 +61,8 @@ export interface Session {
   threadLabel: string;
   platform: 'messenger' | 'mock';
   startedAt: number;
+  /** Tiến độ quét ban đầu: đang tải lịch sử, hoặc đã đọc được bao nhiêu tin. */
+  scan?: { state: 'loading' | 'done'; target: number; read?: number; complete?: boolean };
   /** Thời điểm nhận tin gần nhất, để biết hội thoại đã dừng bao lâu. Thiếu thì tính từ startedAt. */
   lastMessageAt?: number;
   maxMessages: number;
@@ -93,8 +95,10 @@ export interface Settings {
   gatewayUrl: string;
   /** Số lượt gọi gateway tối đa mỗi ngày trên thiết bị này (giữ chi phí/hạn mức). */
   dailyBudget: number;
-  /** Gọi AI khi đủ N tin mới của đối phương. */
+  /** Gọi AI khi đủ N tin mới (cả hai phía), có ít nhất 1 tin của đối phương. */
   batchSize: number;
+  /** Phiên bản mặc định của lịch gọi AI, để đổi một lần cho máy đã lưu cài đặt cũ. */
+  policyVersion?: number;
   /** Hội thoại dừng lâu chừng này thì gọi nốt tin lẻ chưa đủ lô. 0 = tắt. */
   idleFlushSec: number;
   minIntervalSec: number;
@@ -106,10 +110,18 @@ export const DEFAULT_SETTINGS: Settings = {
   gatewayEnabled: false,
   gatewayUrl: DEFAULT_GATEWAY_URL,
   dailyBudget: 200,
-  batchSize: 5,
-  idleFlushSec: 60,
-  minIntervalSec: 10,
+  batchSize: 2,
+  policyVersion: 2,
+  idleFlushSec: 20,
+  minIntervalSec: 30,
 };
+
+/** Máy đã lưu lịch gọi AI cũ (5 tin, 60 giây) nhận mặc định mới đúng một lần; sau đó giữ giá trị người dùng đặt. */
+export function migrateSettings(stored: Record<string, unknown>): { settings: Record<string, unknown>; changed: boolean } {
+  if (Object.keys(stored).length === 0 || stored.policyVersion === DEFAULT_SETTINGS.policyVersion) return { settings: stored, changed: false };
+  const { batchSize: _b, idleFlushSec: _i, minIntervalSec: _m, ...rest } = stored;
+  return { settings: { ...rest, policyVersion: DEFAULT_SETTINGS.policyVersion }, changed: true };
+}
 
 export function emptyAiState(): AiState {
   return { status: 'off', summary: '', lastSeq: 0, lastAt: 0, lastLevel: 'low', lastRuleTypes: [], signals: [], uncertainties: [], calls: 0 };
@@ -170,13 +182,15 @@ export interface StopResult {
 /** Background → content script */
 export type ContentRequest =
   | { kind: 'cs_probe' }
-  | { kind: 'cs_start'; threadId: string }
+  /** loadHistory: lần quét đầu của phiên, tải thêm lịch sử nếu chưa đủ. */
+  | { kind: 'cs_start'; threadId: string; loadHistory?: boolean }
   | { kind: 'cs_stop' };
 
 /** Content script → background */
 export type ContentEvent =
   | { kind: 'cs_ready' }
-  | { kind: 'cs_messages'; threadId: string; batch: ObservedMessage[]; error?: string }
+  | { kind: 'cs_scan_started'; threadId: string; target: number }
+  | { kind: 'cs_messages'; threadId: string; batch: ObservedMessage[]; error?: string; initial?: { target: number; complete: boolean } }
   /** Khung chat đã chọn bị đóng (waiting=true) hoặc đã mở lại (false). */
   | { kind: 'cs_thread_waiting'; threadId: string; waiting: boolean }
   | { kind: 'cs_thread_changed'; threadId: string | null; threadLabel: string };

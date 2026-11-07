@@ -1,4 +1,5 @@
 // Adapter cho khung chat popup Messenger trên facebook.com và messenger.com.
+// Chỉ đọc. Ngoại lệ duy nhất: lần quét đầu tự cuộn khung chat để tải lịch sử rồi trả về vị trí cũ.
 // DOM của Messenger KHÔNG ổn định và có thể đổi bất cứ lúc nào — TẤT CẢ selector nằm ở đây.
 // Cấu trúc đã dò trên giao diện thật (dev/dom-probe.js):
 //   khung: [button aria-label="Cài đặt đoạn chat"] › h2/h3/span (tên) · a[href=/<id hoặc username>/]
@@ -6,6 +7,7 @@
 import type { ObservedMessage } from '@safechat/core/transcript';
 import type { ThreadInfo } from '../shared/protocol';
 import type { ChatAdapter } from './adapter';
+import { collectHistory } from './history';
 import {
   HEADER_BUTTON_LABELS,
   labelFromComposer,
@@ -148,6 +150,17 @@ function selected(threadId: string): Thread | undefined {
   return m.length === 1 ? m[0] : undefined;
 }
 
+/** Phần tử cuộn gần nhất của vùng tin, đi từ tin cuối lên tới khung chat. */
+function findScroller(t: Thread): HTMLElement | null {
+  let el: HTMLElement | null = t.log.querySelector<HTMLElement>(`${SELECTORS.message}:last-of-type`) ?? t.log;
+  while (el && el !== t.root.parentElement) {
+    const o = getComputedStyle(el).overflowY;
+    if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight) return el;
+    el = el.parentElement;
+  }
+  return null;
+}
+
 function findAriaLabelNear(el: HTMLElement, stopAt: HTMLElement): string | null {
   const direct = el.getAttribute('aria-label');
   if (direct) return direct;
@@ -252,6 +265,28 @@ export const messengerAdapter: ChatAdapter = {
       out.push({ sender, text });
     }
     return { messages: out };
+  },
+
+  async loadHistory(threadId, target, cancelled) {
+    const t = selected(threadId);
+    const scroller = t ? findScroller(t) : null;
+    // Khoảng cách tới đáy không đổi khi có tin cũ chèn lên trên, nên dùng để trả về đúng chỗ cũ.
+    const fromBottom = scroller ? scroller.scrollHeight - scroller.scrollTop : 0;
+    return collectHistory(
+      {
+        read: () => this.readMessages(threadId),
+        scrollUp: () => {
+          if (!scroller?.isConnected) return false;
+          scroller.scrollTop = 0;
+          return true;
+        },
+        restore: () => {
+          if (scroller?.isConnected) scroller.scrollTop = scroller.scrollHeight - fromBottom;
+        },
+        cancelled,
+      },
+      target,
+    );
   },
 
   observeRoot(threadId) {

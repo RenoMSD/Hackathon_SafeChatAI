@@ -1,6 +1,6 @@
 // Lưu trữ: phiên trong chrome.storage.session (chỉ nằm trong bộ nhớ, tự mất khi đóng trình duyệt);
 // cài đặt trong chrome.storage.local. Không ghi nội dung chat vào log.
-import { DEFAULT_SETTINGS, SESSION_KEY, SETTINGS_KEY, type Session, type Settings } from '../shared/protocol';
+import { DEFAULT_SETTINGS, migrateSettings, SESSION_KEY, SETTINGS_KEY, type Session, type Settings } from '../shared/protocol';
 
 export async function loadSession(): Promise<Session | null> {
   const r = await chrome.storage.session.get(SESSION_KEY);
@@ -24,11 +24,11 @@ const LEGACY_KEYS = ['groqEnabled', 'groqApiKey', 'groqSmallModel', 'groqLargeMo
 export async function loadSettings(): Promise<Settings> {
   const r = await chrome.storage.local.get(SETTINGS_KEY);
   const stored = { ...((r[SETTINGS_KEY] as Record<string, unknown> | undefined) ?? {}) };
-  if (LEGACY_KEYS.some((k) => k in stored)) {
-    for (const k of LEGACY_KEYS) delete stored[k];
-    await chrome.storage.local.set({ [SETTINGS_KEY]: stored });
-  }
-  return { ...DEFAULT_SETTINGS, ...stored } as Settings;
+  const hadLegacy = LEGACY_KEYS.some((k) => k in stored);
+  for (const k of LEGACY_KEYS) delete stored[k];
+  const { settings, changed } = migrateSettings(stored);
+  if (hadLegacy || changed) await chrome.storage.local.set({ [SETTINGS_KEY]: settings });
+  return { ...DEFAULT_SETTINGS, ...settings } as Settings;
 }
 
 export async function saveSettings(s: Settings): Promise<void> {

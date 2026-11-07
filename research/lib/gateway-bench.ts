@@ -12,9 +12,9 @@ import { buildGatewayPrompt, type PromptResult } from '../../services/gateway/sr
 /** Cùng giá trị với mặc định trong services/gateway/src/lib/config.ts và infra/template.yaml. */
 const BENCH_GATEWAY_CFG = {
   aiContextMessages: 8,
-  aiMaxNewMessages: 20,
+  aiMaxNewMessages: 50,
   aiMaxInputChars: 20000,
-  aiMaxInputTokens: 6000,
+  aiMaxInputTokens: 7500,
   aiMaxSignals: 8,
   summaryMaxChars: 800,
 } as GatewayConfig;

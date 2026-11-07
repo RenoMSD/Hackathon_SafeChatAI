@@ -65,6 +65,23 @@ function newPart(state: TranscriptState, batch: ObservedMessage[]): ObservedMess
 }
 
 /**
+ * Gộp hai lần đọc khi đang cuộn lên: `next` có thể chứa thêm tin cũ hơn và có thể đã mất tin mới nhất
+ * vì giao diện chỉ giữ một phần trong DOM. Trả về danh sách từ cũ tới mới, không trùng.
+ */
+export function mergeOlder(acc: ObservedMessage[], next: ObservedMessage[]): ObservedMessage[] {
+  const filtered = next.filter((o) => clean(o.text));
+  if (acc.length === 0) return filtered;
+  const firstKey = keyOf(acc[0]!);
+  const at = filtered.findIndex((o) => keyOf(o) === firstKey);
+  if (at === 0) return acc;
+  if (at > 0) return [...filtered.slice(0, at), ...acc];
+  // Không có tin chung: chỉ nhận tin chưa gặp và coi là cũ hơn, vì đang cuộn lên.
+  const seen = new Set(acc.map(keyOf));
+  const known = filtered.some((o) => seen.has(keyOf(o)));
+  return known ? acc : [...filtered, ...acc];
+}
+
+/**
  * Ghép các tin quan sát được vào bản nháp (khử trùng lặp, giữ tối đa `max` tin gần nhất).
  * Trả về các tin mới được thêm.
  */

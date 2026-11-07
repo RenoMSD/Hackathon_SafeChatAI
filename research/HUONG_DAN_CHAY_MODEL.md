@@ -41,7 +41,7 @@ npm run bench:experiment-ai -- --id EXP-011 --run groq_20b_tune --model openai/g
 npm run bench:experiment -- --ledger
 ```
 
-6. `ai` và `hybrid-hint` đọc cả hội thoại một lần. Sản phẩm thì gom đủ 5 tin của đối phương mới gọi AI và gọi nốt tin lẻ khi hội thoại dừng 60 giây, nên sau khi chọn model phải đo thêm bằng `replay-hybrid`, khoảng 116 lượt trên tune ([EXP-009](experiments/EXP-009/README.md)):
+6. `ai` và `hybrid-hint` đọc cả hội thoại một lần. Sản phẩm thì gọi AI mỗi 2 tin mới của cả hai phía và gọi nốt tin lẻ khi hội thoại dừng 20 giây, nên sau khi chọn model phải đo thêm bằng `replay-hybrid`, khoảng 350 lượt trên tune. Muốn thử quét ban đầu thì thêm `--pad-to 50` để có hội thoại dài ([EXP-009](experiments/EXP-009/README.md)):
 
 ```bash
 npm run bench:run -- --provider groq --dataset set:v2 --split tune --configs replay-rules,replay-hybrid --models <model đã chọn> --interval-ms 15000 --run-id groq_replay_tune
@@ -140,7 +140,7 @@ npm run bench:run -- --dataset set:v2 --split tune --configs replay-rules,replay
 | `ai` | 1 lượt / ca / model |
 | `hybrid`, `hybrid-veto` | Dùng lại phản hồi của `ai`, không tốn thêm |
 | `hybrid-hint` | 1 lượt / ca |
-| `replay-hybrid` | Khoảng 2 lượt / ca (mỗi 5 tin của đối phương một lượt, cộng một lượt gọi nốt ở cuối) |
+| `replay-hybrid` | Khoảng 5 lượt / ca (mỗi 2 tin một lượt, cộng một lượt gọi nốt ở cuối) |
 
 Ví dụ: `set:v2` tập `tune` có 65 ca × 1 cấu hình gọi mạng (`ai` hoặc `hybrid-hint`) = 65 lượt / model.
 

@@ -24,6 +24,7 @@ import type { RiskLevel } from '@safechat/core/types';
 import { gatewayBenchRequest, gatewayLevel } from './lib/gateway-bench';
 import { benchRequest, hybridHintLevel, hybridLevel, hybridVetoLevel, PROMPT_VERSION, readAiOutcome, type AiOutcome, type BenchConfig } from './lib/bench';
 import { arg, CACHE_DIR, hasTuneCheckSplit, loadDataset, loadEnv, RESEARCH_DIR, RESULTS_DIR } from './lib/io';
+import { padCases } from './lib/long-cases';
 import { caseReplayStats, replayCase, type CaseReplayStats, type ReplayTurn } from './lib/replay';
 import { GROQ_LABEL, GROQ_URL } from './providers/groq';
 import { DailyCapReached, OpenRouterClient, type ChatResult } from './providers/openrouter';
@@ -121,6 +122,8 @@ if (needsAi && isDirty && !process.argv.includes('--allow-dirty')) {
 }
 
 let cases = loadDataset(dataset, split);
+const padTo = Number(arg('pad-to', '0'));
+if (padTo > 0) cases = padCases(cases, padTo);
 if (limit > 0) cases = cases.slice(0, limit);
 const runId = arg('run-id') ?? `${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}_${dataset}-${split}`;
 mkdirSync(RESULTS_DIR, { recursive: true });
@@ -161,6 +164,7 @@ const meta = {
   configs,
   models,
   reasoningEffort,
+  padTo,
   repeats,
   n: cases.length,
   promptVersion: PROMPT_VERSION,

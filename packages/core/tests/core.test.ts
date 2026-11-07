@@ -2,8 +2,28 @@ import { describe, expect, it } from 'vitest';
 import { analyze } from '@safechat/core/analyzer';
 import { validateEvidence } from '@safechat/core/evidence';
 import { normalizeForMatch } from '@safechat/core/normalize';
-import { appendObserved, emptyTranscript } from '@safechat/core/transcript';
+import { appendObserved, emptyTranscript, mergeOlder } from '@safechat/core/transcript';
 import type { ChatMessage, Signal } from '@safechat/core/types';
+
+describe('mergeOlder: gộp khi cuộn lên', () => {
+  const m = (t: string, domId?: string) => ({ sender: 'other' as const, text: t, domId });
+  it('thêm tin cũ vào đầu, không trùng', () => {
+    expect(mergeOlder([m('c', 'c'), m('d', 'd')], [m('a', 'a'), m('b', 'b'), m('c', 'c'), m('d', 'd')]).map((x) => x.text)).toEqual(['a', 'b', 'c', 'd']);
+  });
+  it('lần đọc mới đã mất tin mới nhất: vẫn giữ', () => {
+    expect(mergeOlder([m('c', 'c'), m('d', 'd')], [m('a', 'a'), m('b', 'b'), m('c', 'c')]).map((x) => x.text)).toEqual(['a', 'b', 'c', 'd']);
+  });
+  it('không có gì mới thì giữ nguyên', () => {
+    const acc = [m('c', 'c'), m('d', 'd')];
+    expect(mergeOlder(acc, [m('c', 'c'), m('d', 'd')])).toBe(acc);
+  });
+  it('không có domId: so theo nội dung', () => {
+    expect(mergeOlder([m('c'), m('d')], [m('b'), m('c')]).map((x) => x.text)).toEqual(['b', 'c', 'd']);
+  });
+  it('lần đọc không chạm tin đang có: coi là cũ hơn', () => {
+    expect(mergeOlder([m('c', 'c')], [m('a', 'a'), m('b', 'b')]).map((x) => x.text)).toEqual(['a', 'b', 'c']);
+  });
+});
 
 describe('normalizeForMatch', () => {
   it('bỏ dấu, mở rộng teencode, tách đơn vị tiền', () => {

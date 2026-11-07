@@ -62,7 +62,7 @@ src/sidepanel/   giao diện (TypeScript thuần, chỉ dùng textContent)
 
 ```
 Bộ quy tắc (luôn chạy, miễn phí)
-  └─ khi đủ N tin mới của đối phương (mặc định 5) hoặc hội thoại dừng 60 giây mà còn tin lẻ, cách nhau ≥ X giây:
+  └─ ngay khi bắt đầu quét (đọc tối đa 50 tin gần nhất), sau đó khi đủ N tin mới của cả hai phía (mặc định 2, có ít nhất 1 tin của đối phương) hoặc hội thoại dừng 20 giây mà còn tin lẻ, cách nhau ≥ X giây (mặc định 30):
        1. Gemini Nano trên máy (nếu bật + side panel đang mở) — không tốn lượt, dữ liệu không rời máy
        2. Groq `openai/gpt-oss-120b` qua gateway — mặc định, lượt nhanh
             └─ leo lên lượt sâu (cùng model, prompt đầy đủ, ngân sách lớn hơn) khi mức ≥ Cần chú ý,

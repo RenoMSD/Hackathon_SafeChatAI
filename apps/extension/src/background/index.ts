@@ -61,7 +61,7 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
       recompute(s);
       await saveSession(s);
       await updateBadge(s);
-      await sendToTab(req.tabId, { kind: 'cs_start', threadId: s.threadId });
+      await sendToTab(req.tabId, { kind: 'cs_start', threadId: s.threadId, loadHistory: true });
       return { ok: true };
     }
 
@@ -206,7 +206,7 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
 
   if (ev.kind === 'cs_ready') {
     if (s.status === 'tracking') {
-      await sendToTab(s.tabId, { kind: 'cs_start', threadId: s.threadId });
+      await sendToTab(s.tabId, { kind: 'cs_start', threadId: s.threadId, loadHistory: s.transcript.messages.length === 0 });
     }
     return;
   }
@@ -216,6 +216,13 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
     s.status = 'paused';
     s.pauseReason = ev.threadId ? 'thread_changed' : 'page_unsupported';
     s.pendingThread = ev.threadId ? { threadId: ev.threadId, threadLabel: ev.threadLabel } : undefined;
+    await saveSession(s);
+    return;
+  }
+
+  if (ev.kind === 'cs_scan_started') {
+    if (ev.threadId !== s.threadId || s.status !== 'tracking') return;
+    s.scan = { state: 'loading', target: ev.target };
     await saveSession(s);
     return;
   }
@@ -232,10 +239,17 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
     s.readerError = ev.error;
     await saveSession(s);
   }
-  if (ev.error) return;
+  if (ev.initial) s.scan = { state: 'done', target: ev.initial.target, read: ev.batch.length, complete: ev.initial.complete };
+  if (ev.error) {
+    if (ev.initial) await saveSession(s);
+    return;
+  }
   const before: RiskLevel = s.result?.risk_level ?? 'low';
   const added = appendObserved(s.transcript, ev.batch, s.maxMessages);
-  if (added.length === 0) return;
+  if (added.length === 0) {
+    if (ev.initial) await saveSession(s);
+    return;
+  }
   s.lastMessageAt = Date.now();
   recompute(s);
   await saveSession(s);

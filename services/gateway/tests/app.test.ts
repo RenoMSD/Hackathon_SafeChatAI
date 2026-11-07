@@ -321,9 +321,9 @@ describe('app', () => {
     expect(complete).toHaveBeenCalledTimes(2);
     const firstPrompt = complete.mock.calls[0]![0] as { system: string };
     const secondPrompt = complete.mock.calls[1]![0] as { system: string };
-    expect(firstPrompt.system).toContain('lượt nhanh');
-    expect(secondPrompt.system).toContain('TAXONOMY TÍN HIỆU');
-    expect(secondPrompt.system).not.toContain('lượt nhanh');
+    expect(firstPrompt.system).toContain('LƯỢT NHANH');
+    expect(secondPrompt.system).toContain('LƯỢT SÂU');
+    expect(secondPrompt.system).not.toContain('LƯỢT NHANH');
   });
 
   it('lỗi đọc kết quả AI không ghi nội dung chat vào log', async () => {

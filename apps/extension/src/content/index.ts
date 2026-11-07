@@ -1,8 +1,10 @@
 // Content script: thụ động cho tới khi background gửi cs_start (sau khi người dùng đồng ý).
-// Chỉ đọc văn bản tin nhắn của cuộc trò chuyện đã chọn; không gửi tin, không thao tác giao diện.
+// Chỉ đọc văn bản tin nhắn của cuộc trò chuyện đã chọn; không gửi tin, không bấm gì.
+// Lần quét đầu có thể tự cuộn khung chat để tải lịch sử, rồi trả về vị trí cũ.
 import type { ContentEvent, ContentRequest, ProbeResult } from '../shared/protocol';
 import type { ChatAdapter } from './adapter';
 import { initFloatingWidget } from './floatingWidget';
+import { HISTORY_TARGET } from './history';
 import { messengerAdapter } from './messengerAdapter';
 import { mockAdapter } from './mockAdapter';
 
@@ -20,6 +22,7 @@ let checkTimer: ReturnType<typeof setInterval> | undefined;
 let debounce: ReturnType<typeof setTimeout> | undefined;
 let trackedThread: string | null = null;
 let waiting = false;
+let startRun = 0;
 
 function send(ev: ContentEvent) {
   chrome.runtime.sendMessage(ev).catch(() => {
@@ -82,15 +85,38 @@ function detachObserver() {
   observedRoot = null;
 }
 
-function start(adapter: ChatAdapter, threadId: string) {
-  stop();
-  trackedThread = threadId;
+function beginWatching(adapter: ChatAdapter) {
   attachObserver(adapter);
   checkTimer = setInterval(() => checkThread(adapter), CHECK_MS);
-  flush(adapter);
+}
+
+function start(adapter: ChatAdapter, threadId: string, loadHistory = false) {
+  stop();
+  trackedThread = threadId;
+  const run = startRun;
+  if (!loadHistory) {
+    beginWatching(adapter);
+    flush(adapter);
+    return;
+  }
+  void initialScan(adapter, threadId, run);
+}
+
+/** Lần quét đầu: gom tối đa HISTORY_TARGET tin rồi gửi một lần, sau đó mới theo dõi tin mới. */
+async function initialScan(adapter: ChatAdapter, threadId: string, run: number) {
+  send({ kind: 'cs_scan_started', threadId, target: HISTORY_TARGET });
+  const cancelled = () => run !== startRun;
+  const result = adapter.loadHistory
+    ? await adapter.loadHistory(threadId, HISTORY_TARGET, cancelled)
+    : { ...adapter.readMessages(threadId), complete: true };
+  if (cancelled()) return;
+  const batch = result.messages.slice(-HISTORY_TARGET);
+  send({ kind: 'cs_messages', threadId, batch, error: result.error, initial: { target: HISTORY_TARGET, complete: result.complete } });
+  beginWatching(adapter);
 }
 
 function stop() {
+  startRun++;
   detachObserver();
   clearInterval(checkTimer);
   clearTimeout(debounce);
@@ -118,7 +144,7 @@ chrome.runtime.onMessage.addListener((req: ContentRequest, _sender, sendResponse
       sendResponse(probeLocal());
       return false;
     case 'cs_start':
-      if (adapter) start(adapter, req.threadId);
+      if (adapter) start(adapter, req.threadId, req.loadHistory);
       sendResponse({ ok: !!adapter });
       return false;
     case 'cs_stop':

@@ -16,6 +16,7 @@ import {
 } from '@safechat/core/types';
 import {
   DEFAULT_SETTINGS,
+  migrateSettings,
   probeThreads,
   SESSION_KEY,
   SETTINGS_KEY,
@@ -441,7 +442,7 @@ function introView(): Node {
               render();
             },
           }),
-          h('span', { class: 'small' }, 'Tôi hiểu và đồng ý cho SafeChat AI đọc văn bản của riêng cuộc trò chuyện đang mở.'),
+          h('span', { class: 'small' }, 'Tôi hiểu và đồng ý cho SafeChat AI đọc văn bản của riêng cuộc trò chuyện đang mở, gồm tối đa 50 tin gần nhất. Tiện ích có thể tự cuộn khung chat lên để tải các tin này rồi trả về chỗ cũ, không gửi tin và không bấm gì.'),
         ),
       ),
     ),
@@ -610,7 +611,18 @@ function sessionHeader(s: Session): Node {
       s.resumedFrom &&
         h('div', { class: 'muted small', style: 'margin-top:4px' }, `Tiếp tục từ bản nháp lưu lúc ${new Date(s.resumedFrom.savedAt).toLocaleString('vi-VN')}`),
       s.status === 'tracking' &&
-        s.waiting &&
+        s.scan?.state === 'loading' && h('p', { class: 'banner small' }, `Đang đọc lịch sử, tối đa ${s.scan.target} tin…`),
+      s.scan?.state === 'done' &&
+        s.scan.read !== undefined &&
+        s.scan.read < s.scan.target &&
+        h(
+          'p',
+          { class: 'muted small' },
+          s.scan.complete
+            ? `Đã đọc ${s.scan.read} tin, đây là toàn bộ tin tải được. Đánh giá dựa trên phần này.`
+            : `Mới đọc được ${s.scan.read} tin trong thời gian cho phép. Đánh giá có thể thiếu các tin cũ hơn.`,
+        ),
+      s.waiting &&
         h(
           'div',
           { class: 'banner small', style: 'margin-top:8px' },
@@ -1222,7 +1234,7 @@ function settingsCard(): Node {
       numField('batch', 'Gọi khi đủ N tin mới', st.batchSize, 1, 50, (v) => save({ ...st, batchSize: v })),
       numField('gap', 'Cách nhau tối thiểu (giây)', st.minIntervalSec, 3, 600, (v) => save({ ...st, minIntervalSec: v })),
     ),
-    h('p', { class: 'muted small' }, `Đã dùng hôm nay: ${state.usageToday}/${st.dailyBudget} lượt qua máy chủ SafeChat. Bộ quy tắc cảnh báo sau từng tin. AI chạy khi đủ N tin mới của đối phương, hoặc khi hội thoại dừng ${st.idleFlushSec} giây mà còn tin chưa đọc.`),
+    h('p', { class: 'muted small' }, `Đã dùng hôm nay: ${state.usageToday}/${st.dailyBudget} lượt qua máy chủ SafeChat. Bộ quy tắc cảnh báo sau từng tin. Khi bắt đầu quét, AI đọc ngay tối đa 50 tin gần nhất. Sau đó AI chạy khi đủ N tin mới của cả hai phía, hoặc khi hội thoại dừng ${st.idleFlushSec} giây mà còn tin chưa đọc.`),
   );
 }
 
@@ -1409,7 +1421,7 @@ async function refreshProbe() {
 async function init() {
   const [sess, sett] = await Promise.all([chrome.storage.session.get(SESSION_KEY), chrome.storage.local.get(SETTINGS_KEY)]);
   state.session = (sess[SESSION_KEY] as Session | undefined) ?? null;
-  state.settings = { ...DEFAULT_SETTINGS, ...((sett[SETTINGS_KEY] as Partial<Settings> | undefined) ?? {}) };
+  state.settings = { ...DEFAULT_SETTINGS, ...migrateSettings((sett[SETTINGS_KEY] as Record<string, unknown> | undefined) ?? {}).settings } as Settings;
   await refreshUsage();
   render();
   await refreshProbe();

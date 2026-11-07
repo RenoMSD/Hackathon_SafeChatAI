@@ -1,3 +1,5 @@
+import { padCases } from '../lib/long-cases';
+import type { BenchCase } from '../lib/dataset';
 import type { AiParsed } from '@safechat/core/ai';
 import { analyze } from '@safechat/core/analyzer';
 import { RISK_LEVEL_ORDER } from '@safechat/core/types';
@@ -362,6 +364,25 @@ describe('client OpenRouter (fetch giả)', () => {
   });
 });
 
+describe('hội thoại dài từ ca có sẵn', () => {
+  const c = (id: string, gold: BenchCase['gold'], kind: BenchCase['kind'], n: number): BenchCase => ({
+    id, gold, kind, group: 0, tags: [], source: 't',
+    messages: Array.from({ length: n }, (_, i) => ({ id: `msg-${String(i + 1).padStart(3, '0')}`, seq: i + 1, sender: 'other' as const, text: `${id} tin ${i + 1}` })),
+  });
+  const set = [c('A', 'high', 'scam', 5), c('B', 'low', 'benign', 6), c('C', 'low', 'benign', 6)];
+  it('thêm tin đệm vào trước, giữ nhãn và các tin gốc ở cuối', () => {
+    const out = padCases(set, 12);
+    expect(out[0]!.gold).toBe('high');
+    expect(out[0]!.messages).toHaveLength(12);
+    expect(out[0]!.messages.at(-1)!.text).toBe('A tin 5');
+    expect(out[0]!.messages.at(-1)!.id).toBe('msg-012');
+    expect(out[0]!.messages.slice(0, 7).every((m) => !m.text.startsWith('A '))).toBe(true);
+  });
+  it('không đệm bằng tin của chính ca đó', () => {
+    expect(padCases(set, 12)[1]!.messages.slice(0, 6).every((m) => !m.text.startsWith('B '))).toBe(true);
+  });
+});
+
 describe('đo đường gateway', () => {
   const m: ChatMessage[] = [
     { id: 'msg-001', seq: 1, sender: 'other', text: 'Chị thấy em dạo này ổn không' },
@@ -390,7 +411,7 @@ describe('đo đường gateway', () => {
     const p = gatewayBenchRequest([{ id: 'msg-001', seq: 1, sender: 'other', text: 'Chuyển vào 1903 4567 8901 nhé' }]);
     expect(p.request.user).toContain('[SỐ]');
     expect(p.request.user).not.toContain('1903 4567 8901');
-    expect(p.request.system).toContain('TAXONOMY');
+    expect(p.request.system).toContain('LƯỢT NHANH');
   });
   it('AI lỗi thì giữ kết quả luật', () => {
     expect(gatewayLevel(m, null)).toBe(analyze(m).risk_level);
@@ -462,8 +483,8 @@ describe('tập tune/check đã khóa', () => {
 
 describe('cấu hình so sánh', () => {
   const m: ChatMessage[] = [{ id: 'msg-001', seq: 1, sender: 'other', text: 'Ck vô stk 9988776655 giúp mình nhé' }];
-  it('prompt AI-only không chứa tín hiệu luật, prompt hint thì có, có schema JSON và PROMPT_VERSION bench-v2', () => {
-    expect(PROMPT_VERSION).toBe('bench-v3');
+  it('prompt AI-only không chứa tín hiệu luật, prompt hint thì có, có schema JSON và đúng PROMPT_VERSION', () => {
+    expect(PROMPT_VERSION).toBe('bench-v4');
     expect(benchRequest(m, false).user).toContain('<rule_signals>[]</rule_signals>');
     expect(benchRequest(m, true).user).toContain('money_transfer');
     expect(benchRequest(m, false).system).toContain('risk_level');

@@ -1902,7 +1902,9 @@ export function initFloatingWidget(
               ? `${latestSig.title}${topAction ? ` — Gợi ý: ${topAction}` : ''}`
               : topAction && lv !== 'low'
                 ? `Gợi ý: ${topAction}`
-                : `Đang canh gác (${session.transcript.messages.length} tin) · ${LEVEL_SUBTITLE[lv]}`;
+                : session.scan?.state === 'loading'
+          ? `Đang đọc lịch sử, tối đa ${session.scan.target} tin…`
+          : `Đang canh gác (${session.transcript.messages.length} tin) · ${LEVEL_SUBTITLE[lv]}`;
 
       const bubbleHead = h(
         'div',

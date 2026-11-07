@@ -9,11 +9,13 @@ const fake = installFakeChrome();
 const TAB = 7;
 let thread = { threadId: 'mock:05', threadLabel: 'Chat thử' };
 const contentCalls: string[] = [];
+const startMsgs: unknown[] = [];
 let probeOverride: unknown = null;
 
 fake.onTab(TAB, (msg) => {
   const m = msg as { kind: string };
   contentCalls.push(m.kind);
+  if (m.kind === 'cs_start') startMsgs.push(msg);
   if (m.kind === 'cs_probe') return probeOverride ?? { supported: true, platform: 'mock', ...thread };
   return { ok: true };
 });
@@ -166,7 +168,7 @@ describe('background — vòng đời phiên', () => {
     const gw = mockGateway(() => okResponse([goodSignal]));
     (fake.chrome.permissions as { contains: () => Promise<boolean> }).contains = async () => true;
     await fake.chrome.storage.local.set({
-      safechat_settings: { gatewayEnabled: true, gatewayUrl: GW, minIntervalSec: 3, batchSize: 5, dailyBudget: 50 },
+      safechat_settings: { policyVersion: 2, gatewayEnabled: true, gatewayUrl: GW, minIntervalSec: 3, batchSize: 5, dailyBudget: 50 },
     });
     await startAiSession('mock:ai');
     const s = (await session())!;
@@ -189,6 +191,44 @@ describe('background — vòng đời phiên', () => {
     const local = (await fake.chrome.storage.local.get(null)) as Record<string, any>;
     expect(local.safechat_ai_usage?.count).toBe(1);
     expect(local.safechat_device?.baseUrl).toBe(GW);
+  });
+
+  it('quét ban đầu: yêu cầu tải lịch sử, ghi tiến độ, AI chạy ngay lượt sâu', async () => {
+    const gw = mockGateway(() => okResponse([]));
+    await fake.chrome.storage.local.set({
+      safechat_settings: { gatewayEnabled: true, gatewayUrl: GW, dailyBudget: 50 },
+    });
+    thread = { threadId: 'mock:scan', threadLabel: 'Quét' };
+    await fake.panel({ kind: 'stop_and_clear' });
+    startMsgs.length = 0;
+    await fake.panel({ kind: 'start', tabId: TAB });
+    await fake.panel({ kind: 'reanalyze' });
+    expect(startMsgs).toEqual([{ kind: 'cs_start', threadId: 'mock:scan', loadHistory: true }]);
+    await fake.content(TAB, { kind: 'cs_scan_started', threadId: 'mock:scan', target: 50 });
+    await tick();
+    expect((await session())!.scan).toEqual({ state: 'loading', target: 50 });
+    const batch = Array.from({ length: 30 }, (_, i) => ({ sender: 'other', text: `Tin lịch sử ${i + 1}` }));
+    await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:scan', batch, initial: { target: 50, complete: true } });
+    await new Promise((r) => setTimeout(r, 700));
+    const s = (await session())!;
+    expect(s.scan).toEqual({ state: 'done', target: 50, read: 30, complete: true });
+    expect(s.transcript.messages).toHaveLength(30);
+    expect(gw.analyses).toBe(1);
+    expect(gw.bodies[0]!.tier).toBe('large');
+    expect(gw.bodies[0]!.messages).toHaveLength(30);
+    expect(s.ai.lastReason).toBe('Quét ban đầu 30 tin');
+  });
+
+  it('cài đặt cũ 5 tin, 60 giây nhận mặc định mới một lần; đặt lại sau đó thì giữ', async () => {
+    await fake.chrome.storage.local.set({ safechat_settings: { gatewayEnabled: true, gatewayUrl: GW, batchSize: 5, idleFlushSec: 60, minIntervalSec: 10 } });
+    await fake.panel({ kind: 'reanalyze' });
+    const a = (await fake.chrome.storage.local.get(null)) as Record<string, any>;
+    expect(a.safechat_settings.batchSize).toBeUndefined();
+    expect(a.safechat_settings.policyVersion).toBe(2);
+    await fake.chrome.storage.local.set({ safechat_settings: { ...a.safechat_settings, batchSize: 3 } });
+    await fake.panel({ kind: 'reanalyze' });
+    const b = (await fake.chrome.storage.local.get(null)) as Record<string, any>;
+    expect(b.safechat_settings.batchSize).toBe(3);
   });
 
   it('cs_ready: phiên đang theo dõi trên đúng tab → đọc tiếp; tab khác → không làm gì', async () => {
@@ -244,7 +284,7 @@ describe('background — vòng đời phiên', () => {
     const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
     const gw = mockGateway(() => okResponse([], 'Đã đọc tin lẻ.'));
     await fake.chrome.storage.local.set({
-      safechat_settings: { gatewayEnabled: true, gatewayUrl: GW, minIntervalSec: 3, batchSize: 5, idleFlushSec: 1, dailyBudget: 50 },
+      safechat_settings: { policyVersion: 2, gatewayEnabled: true, gatewayUrl: GW, minIntervalSec: 3, batchSize: 5, idleFlushSec: 1, dailyBudget: 50 },
     });
     thread = { threadId: 'mock:idle', threadLabel: 'Tin lẻ' };
     await fake.panel({ kind: 'stop_and_clear' });
@@ -274,7 +314,7 @@ describe('background — vòng đời phiên', () => {
     let ok = false;
     const gw = mockGateway(() => (ok ? okResponse([], 'Đã ổn.') : fail()));
     await fake.chrome.storage.local.set({
-      safechat_settings: { gatewayEnabled: true, gatewayUrl: GW, minIntervalSec: 0.01, batchSize: 5, dailyBudget: 50 },
+      safechat_settings: { policyVersion: 2, gatewayEnabled: true, gatewayUrl: GW, minIntervalSec: 0.01, batchSize: 5, dailyBudget: 50 },
     });
     thread = { threadId: 'mock:fail', threadLabel: 'Lỗi' };
     await fake.panel({ kind: 'stop_and_clear' });

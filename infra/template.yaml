@@ -174,9 +174,9 @@ Resources:
           AI_TIMEOUT_SMALL_MS: '8000'
           AI_TIMEOUT_LARGE_MS: '10000'
           AI_CONTEXT_MESSAGES: '8'
-          AI_MAX_NEW_MESSAGES: '20'
+          AI_MAX_NEW_MESSAGES: '50'
           AI_MAX_INPUT_CHARS: '20000'
-          AI_MAX_INPUT_TOKENS: '6000'
+          AI_MAX_INPUT_TOKENS: '7500'
           AI_MAX_SIGNALS: '8'
           AI_ESCALATION: 'on'
           DEVICE_RPM: !Ref DeviceRpm
