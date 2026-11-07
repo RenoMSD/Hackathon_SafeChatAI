@@ -1,0 +1,1589 @@
+[
+  {
+    "id": "01_normal_job",
+    "title": "Tin tuyển dụng bình thường, thông tin rõ",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chào bạn, mình là Lan, chuyên viên tuyển dụng của Công ty TNHH Phần mềm Sao Mai. Bên mình đang tuyển thực tập sinh kiểm thử phần mềm."
+      },
+      {
+        "sender": "self",
+        "text": "Dạ em chào chị, cho em hỏi công việc cụ thể và mức hỗ trợ ạ?"
+      },
+      {
+        "sender": "other",
+        "text": "Thực tập 3 tháng, hỗ trợ 4 triệu/tháng, làm việc tại văn phòng ở quận Cầu Giấy. Có hợp đồng thực tập và bảo hiểm tai nạn."
+      },
+      {
+        "sender": "other",
+        "text": "Bạn gửi CV qua email tuyendung@saomai.vn, bên mình hẹn phỏng vấn trực tiếp tại văn phòng nhé. Bên mình không thu bất kỳ khoản phí nào."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "02_high_pay_vague",
+    "title": "Lương cao nhưng thiếu thông tin",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên mình tuyển cộng tác viên online, không cần kinh nghiệm nha bạn"
+      },
+      {
+        "sender": "other",
+        "text": "Việc nhẹ lương cao, làm tại nhà, chỉ cần điện thoại, thu nhập 500k-1tr/ngày"
+      },
+      {
+        "sender": "self",
+        "text": "Công việc cụ thể là gì vậy ạ?"
+      },
+      {
+        "sender": "other",
+        "text": "Đơn giản lắm, khi nào bạn sẵn sàng mình hướng dẫn chi tiết"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "unrealistic_pay"
+      ]
+    }
+  },
+  {
+    "id": "03_upfront_fee",
+    "title": "Yêu cầu chuyển tiền/phí trước khi nhận việc",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chúc mừng em đã trúng tuyển vị trí nhân viên bán hàng."
+      },
+      {
+        "sender": "other",
+        "text": "Để nhận việc em cần đóng phí hồ sơ 350k nhé."
+      },
+      {
+        "sender": "other",
+        "text": "Em chuyển khoản vào STK 0123456789 giúp chị, ghi nội dung là tên em."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee",
+        "money_transfer"
+      ]
+    }
+  },
+  {
+    "id": "04_otp_request",
+    "title": "Xin mã OTP",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chị đang tạo tài khoản nhận lương cho em trên hệ thống."
+      },
+      {
+        "sender": "other",
+        "text": "Em đọc giúp chị mã OTP vừa gửi về điện thoại nhé, để kích hoạt."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "otp_password_request"
+      ]
+    }
+  },
+  {
+    "id": "05_no_fee_then_fee",
+    "title": "Tuyên bố không thu phí rồi yêu cầu phí",
+    "messages": [
+      {
+        "sender": "self",
+        "text": "Chị ơi bên mình có thu phí gì không ạ?"
+      },
+      {
+        "sender": "other",
+        "text": "Bên chị hoàn toàn miễn phí, không thu phí gì của ứng viên đâu em."
+      },
+      {
+        "sender": "other",
+        "text": "Em làm thử 2 ngày rồi chị duyệt hồ sơ nhé."
+      },
+      {
+        "sender": "other",
+        "text": "Giờ em chỉ cần đóng phí kích hoạt 500k là được nhận việc luôn."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee",
+        "possible_contradiction"
+      ]
+    }
+  },
+  {
+    "id": "06_changing_details",
+    "title": "Thay đổi tên công ty, địa điểm, mức lương",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chị bên Công ty Hoàng Long, lương 8 triệu/tháng, làm việc tại Hà Nội."
+      },
+      {
+        "sender": "self",
+        "text": "Dạ em cảm ơn chị."
+      },
+      {
+        "sender": "other",
+        "text": "Công ty Minh Phát bên chị trả 15 triệu/tháng, làm việc ở Bắc Ninh nhé."
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "possible_contradiction"
+      ]
+    }
+  },
+  {
+    "id": "07_original_docs_travel",
+    "title": "Giao giấy tờ gốc, đi nơi khác",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên anh lo hết vé xe, có xe xuống đón em tận nơi."
+      },
+      {
+        "sender": "other",
+        "text": "Sang Campuchia làm, lương cao gấp 3 ở nhà."
+      },
+      {
+        "sender": "other",
+        "text": "Em mang theo căn cước gốc, đến nơi công ty sẽ giữ giấy tờ giúp em cho an toàn."
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "urgent_relocation",
+        "original_documents"
+      ]
+    }
+  },
+  {
+    "id": "08_secrecy_family",
+    "title": "Giữ bí mật, không nói với gia đình, đi gấp",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chuyện này em đừng nói với bố mẹ nhé, người lớn không hiểu đâu."
+      },
+      {
+        "sender": "other",
+        "text": "Tối nay chị cho người đón em lên Sài Gòn, đi luôn kẻo mất suất."
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "secrecy_from_family",
+        "urgent_relocation",
+        "urgency_pressure"
+      ]
+    }
+  },
+  {
+    "id": "09_vague_benign",
+    "title": "Tin nhắn mơ hồ nhưng không có dấu hiệu rõ",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bạn còn tìm việc không?"
+      },
+      {
+        "sender": "self",
+        "text": "Dạ còn ạ"
+      },
+      {
+        "sender": "other",
+        "text": "Bên mình có vài vị trí, khi nào rảnh mình gọi trao đổi nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "10_reasonable_correction",
+    "title": "Sửa sai hợp lý — không được kết luận mâu thuẫn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Công ty Cổ phần Thực phẩm An Bình tuyển nhân viên kho, có hợp đồng lao động đầy đủ."
+      },
+      {
+        "sender": "other",
+        "text": "Lương khởi điểm 80 triệu/tháng."
+      },
+      {
+        "sender": "other",
+        "text": "Xin lỗi em, chị gõ nhầm, lương 8 triệu/tháng thôi nhé."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "possible_contradiction"
+      ]
+    }
+  },
+  {
+    "id": "11_task_scam",
+    "title": "Nạp tiền làm nhiệm vụ",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Công việc là like video và chốt đơn trên sàn, làm tại nhà."
+      },
+      {
+        "sender": "other",
+        "text": "Nhiệm vụ đầu tiên em nạp 200k, hệ thống hoàn tiền kèm hoa hồng 30%."
+      },
+      {
+        "sender": "other",
+        "text": "Chỉ còn 2 suất hôm nay thôi em."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "task_deposit",
+        "urgency_pressure"
+      ]
+    }
+  },
+  {
+    "id": "12_sextortion",
+    "title": "Đòi ảnh nhạy cảm và đe dọa",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Vị trí người mẫu ảnh cần kiểm tra body, em gửi ảnh nóng cho anh xem trước."
+      },
+      {
+        "sender": "self",
+        "text": "Em không muốn ạ"
+      },
+      {
+        "sender": "other",
+        "text": "Không chuyển 5 triệu thì anh tung ảnh của em lên mạng cho cả trường biết."
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "intimate_image_request",
+        "threat_coercion"
+      ]
+    }
+  },
+  {
+    "id": "13_user_asks_about_fee",
+    "title": "Người dùng tự hỏi về phí — không gắn cờ tin của người dùng",
+    "messages": [
+      {
+        "sender": "self",
+        "text": "Bên mình có thu phí không ạ? Em có phải đặt cọc không?"
+      },
+      {
+        "sender": "other",
+        "text": "Không em nhé, bên chị không thu phí. Công ty TNHH Bao Bì Thành Công, có hợp đồng rõ ràng."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "14_id_and_bank_card",
+    "title": "Xin ảnh căn cước và thẻ ngân hàng",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em gửi ảnh 2 mặt căn cước và chụp thẻ ATM mặt sau để làm hồ sơ nhận lương nhé."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "id_document_request",
+        "bank_credentials"
+      ]
+    }
+  },
+  {
+    "id": "15_teencode_fee",
+    "title": "Teencode: ck trc 500k phí giữ chỗ",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "e ck trc 500k phí giữ chỗ cho a nha, ko thì mất suất"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee",
+        "urgency_pressure"
+      ]
+    }
+  },
+  {
+    "id": "16_tc01_task_freeze",
+    "title": "TC_01: kẹt lệnh sai cú pháp, đơn cuối gỡ vốn",
+    "source": "tonghopkichban.md Phần 6",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chị chuyển khoản đơn cuối 15 triệu này vào STK công ty nhé, do đơn trước chị ghi sai cú pháp nên hệ thống đóng băng, xong đơn này kế toán hoàn cả gốc lẫn lãi 42 triệu trong 5 phút ạ."
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "task_freeze_extortion"
+      ]
+    }
+  },
+  {
+    "id": "17_tc02_police_apk",
+    "title": "TC_02: giả công an, cài .apk, bật trợ năng",
+    "source": "tonghopkichban.md Phần 6",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tôi là công an khu vực, thông tin định danh mức 2 của anh bị lỗi. Anh bấm vào link vneid-capnhat.top tải file .apk về rồi bật Quyền trợ năng lên để tôi duyệt hồ sơ."
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "malware_apk",
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "18_tc03_friend_borrow",
+    "title": "TC_03: giả người thân mượn tiền gấp",
+    "source": "tonghopkichban.md Phần 6",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mày ơi cứu tao gấp, chuyển tạm qua STK 19038472910 Nguyễn Văn Hùng 5 triệu hộ tao, app ngân hàng tao đang bảo trì. Nãy tao gọi video mạng lag quá, chiều tao trả liền."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "account_takeover_borrow"
+      ]
+    }
+  },
+  {
+    "id": "19_tc04_split_bill",
+    "title": "TC_04 (bình thường): chia tiền cơm trưa",
+    "source": "tonghopkichban.md Phần 6",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Ê trưa nay tiền cơm tấm với trà sữa của mày hết 65k nha, ck vô stk 9988776655 MB Bank của tao đi, nội dung ghi tên mày là được."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "money_transfer",
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "20_tc05_shop_deposit",
+    "title": "TC_05 (bình thường): shop thu cọc nhỏ, còn lại COD",
+    "source": "tonghopkichban.md Phần 6",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Dạ shop nhận được đơn đặt áo khoác size L của mình rồi ạ. Anh chuyển cọc giúp shop 100k vào STK cửa hàng nhé, phần còn lại nhận hàng kiểm tra rồi thanh toán COD cho shipper ạ."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "21_r01_police_scam",
+    "title": "R01: giả cơ quan điều tra, tài khoản tạm giữ, bảo mật tuyệt đối",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Đây là Cơ quan cảnh sát điều tra Công an TP. Anh có liên quan đến đường dây rửa tiền, đã có lệnh bắt tạm giam."
+      },
+      {
+        "sender": "self",
+        "text": "Tôi không biết gì cả"
+      },
+      {
+        "sender": "other",
+        "text": "Anh phải chuyển toàn bộ tiền vào tài khoản tạm giữ để chứng minh nguồn tiền trong sạch. Bảo mật tuyệt đối, không được nói với ai."
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "authority_impersonation"
+      ]
+    }
+  },
+  {
+    "id": "22_r01_benign_police",
+    "title": "R01 bình thường: nhắc lên công an phường làm căn cước",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hôm qua công an phường báo lịch làm căn cước cho khu mình rồi, sáng thứ 7 nhớ đi nhé."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "authority_impersonation"
+      ]
+    }
+  },
+  {
+    "id": "23_r02_benign_vneid",
+    "title": "R02 bình thường: hướng dẫn cài VNeID từ CH Play",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bạn tải app VNeID trên CH Play rồi đăng nhập để kích hoạt định danh mức 2 nhé."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "malware_apk"
+      ]
+    }
+  },
+  {
+    "id": "24_r03_task_ctv",
+    "title": "R03: tuyển CTV like video, hoa hồng, nhóm Telegram",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tuyển cộng tác viên online, chỉ cần like video TikTok, mỗi lượt 15k/video."
+      },
+      {
+        "sender": "other",
+        "text": "Hoàn tiền kèm hoa hồng 20%, vào nhóm Telegram để nhận nhiệm vụ nhé."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "task_recruitment",
+        "channel_migration"
+      ]
+    }
+  },
+  {
+    "id": "25_r03_benign_ctv",
+    "title": "R03 bình thường: tuyển CTV bán hàng tại cửa hàng",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên mình tuyển cộng tác viên bán hàng, lương cứng 5 triệu/tháng, làm tại cửa hàng ở Quận 3, có hợp đồng thử việc."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "task_recruitment"
+      ]
+    }
+  },
+  {
+    "id": "26_r04_benign_wrong_note",
+    "title": "R04 bình thường: bạn bè chuyển khoản ghi sai nội dung",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hôm qua mình chuyển khoản bị sai nội dung, mình chuyển lại cho bạn 200k nha."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "task_freeze_extortion"
+      ]
+    }
+  },
+  {
+    "id": "27_r05_invest_scam",
+    "title": "R05: thầy đọc lệnh, cam kết bảo lỗ, nạp USDT",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em vào room VIP thầy đọc lệnh, kéo 1-1, cam kết bảo lỗ, lợi nhuận 30%/tuần."
+      },
+      {
+        "sender": "other",
+        "text": "Nạp USDT là bắt đầu được ngay nha em."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "investment_scam"
+      ]
+    }
+  },
+  {
+    "id": "28_r05_benign_gold",
+    "title": "R05 bình thường: trò chuyện về giá vàng",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Dạo này giá vàng tăng quá, chị có định đầu tư vàng không? Mua ở tiệm uy tín thôi nhé."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "investment_scam"
+      ]
+    }
+  },
+  {
+    "id": "29_r06_benign_coffee",
+    "title": "R06 bình thường: rủ cafe, trả tiền sau",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Ê chiều nay mày rảnh không, đi cafe rồi tao trả tiền cho."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "account_takeover_borrow"
+      ]
+    }
+  },
+  {
+    "id": "30_r07_loan_trap",
+    "title": "R07: khoản vay đóng băng, nộp phí kích hoạt giải ngân",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Khoản vay 50 triệu của anh đã được duyệt nhưng anh nhập sai số tài khoản nên khoản vay bị đóng băng."
+      },
+      {
+        "sender": "other",
+        "text": "Anh nộp 20% phí bảo hiểm để kích hoạt lại mã giải ngân trong hôm nay nhé."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "loan_app_trap"
+      ]
+    }
+  },
+  {
+    "id": "31_r07_benign_mortgage",
+    "title": "R07 bình thường: ngân hàng duyệt vay, mời ký tại chi nhánh",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hồ sơ vay mua nhà của anh đã được ngân hàng phê duyệt, mời anh đến chi nhánh ký hợp đồng vào thứ Hai."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "loan_app_trap"
+      ]
+    }
+  },
+  {
+    "id": "32_r08_customs_gift",
+    "title": "R08: quà nước ngoài, hải quan đòi phí thông quan",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Anh đã gửi em thùng quà có đô la và trang sức về Việt Nam rồi nhé."
+      },
+      {
+        "sender": "other",
+        "text": "Đây là Hải quan sân bay, kiện hàng của chị phát hiện ngoại tệ không khai báo, chị phải nộp phí thông quan 15 triệu."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "romance_customs_gift"
+      ]
+    }
+  },
+  {
+    "id": "33_r08_benign_parcel",
+    "title": "R08 bình thường: gửi quà sinh nhật qua giao hàng",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mình gửi bạn món quà sinh nhật qua Giao Hàng Nhanh rồi, mai tới nha."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "romance_customs_gift"
+      ]
+    }
+  },
+  {
+    "id": "34_r09_recovery_scam",
+    "title": "R09: luật sư công nghệ hứa lấy lại tiền, đòi phí",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chúng tôi là văn phòng luật sư công nghệ, hỗ trợ lấy lại tiền bị lừa."
+      },
+      {
+        "sender": "other",
+        "text": "Tiền của bạn đang bị treo trên hệ thống liên ngân hàng, cần đóng phí kích hoạt hoàn tiền 3 triệu."
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "recovery_scam"
+      ]
+    }
+  },
+  {
+    "id": "35_r09_benign_advice",
+    "title": "R09 bình thường: khuyên báo công an khi bị lừa",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bạn nên báo công an nơi cư trú và liên hệ ngân hàng để được hướng dẫn, đừng tin ai hứa lấy lại tiền."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "recovery_scam"
+      ]
+    }
+  },
+  {
+    "id": "36_r10_vote_otp",
+    "title": "R10: nhờ bình chọn, đăng nhập Zalo, đọc mã 6 số",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bình chọn giúp bé nhà chị với, em đăng nhập Zalo qua link chị gửi rồi đọc giúp chị mã 6 số vừa gửi nhé."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "phishing_vote_qr"
+      ]
+    }
+  },
+  {
+    "id": "37_r10_benign_vote",
+    "title": "R10 bình thường: nhờ bình chọn trên fanpage trường",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Cuộc thi ảnh của trường đang mở, bạn vào fanpage trường bình chọn giúp mình nhé."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "phishing_vote_qr"
+      ]
+    }
+  },
+  {
+    "id": "38_short_link_gift",
+    "title": "Thực thể: link rút gọn nhận quà",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bạn nhận quà tri ân tại https://bit.ly/qua-tri-an trước 12h nhé."
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "39_spaced_letters",
+    "title": "Chuẩn hóa: chữ ngắt quãng né lọc (c.h.u.y.ể.n, s.t.k, nạp ti3n)",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em c.h.u.y.ể.n khoản vào s.t.k này để nạp ti3n làm nhiệm vụ đầu tiên nhé."
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "task_deposit",
+        "money_transfer"
+      ]
+    }
+  },
+  {
+    "id": "40_benign_official_link",
+    "title": "Thực thể bình thường: link trang chính thức",
+    "source": "v0.3 R",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bạn tra cứu thông tin tại https://dichvucong.gov.vn nhé, trang chính thức đó."
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "41_borrow_verified_small",
+    "title": "Mượn tiền nhỏ, người dùng đã yêu cầu gọi điện và có cuộc gọi → Thấp",
+    "source": "v0.4 xác minh",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "À mà tao hỏi cái, mày cho tao mượn tạm 300k được không, ví tao để quên ở nhà"
+      },
+      {
+        "sender": "self",
+        "text": "Mày gọi điện thoại cho tao cái, tao xác nhận đã"
+      },
+      {
+        "sender": "other",
+        "text": "[cuộc gọi thoại 1 phút] Đó, tao nè, yên tâm chưa"
+      },
+      {
+        "sender": "self",
+        "text": "Rồi, gửi stk đi"
+      },
+      {
+        "sender": "other",
+        "text": "0071000123456 Vietcombank, chiều tao trả liền"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "account_takeover_borrow",
+        "borrow_request",
+        "money_transfer"
+      ]
+    }
+  },
+  {
+    "id": "42_borrow_unverified",
+    "title": "Nhờ mượn tiền qua tin nhắn, chưa xác minh → Cần chú ý",
+    "source": "v0.4 xác minh",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Ê cho mình mượn tạm 500k nha, mai mình trả"
+      },
+      {
+        "sender": "self",
+        "text": "Có việc gì vậy?"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "borrow_request"
+      ]
+    }
+  },
+  {
+    "id": "43_borrow_call_with_lag",
+    "title": "Có 'cuộc gọi' nhưng mạng lag, không nghe rõ → xác minh không hợp lệ, vẫn Cao",
+    "source": "v0.4 xác minh",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Cứu tao gấp, chuyển tạm 5 triệu qua STK 19038472910 hộ tao"
+      },
+      {
+        "sender": "self",
+        "text": "Gọi video cho tao xem nào"
+      },
+      {
+        "sender": "other",
+        "text": "[cuộc gọi video 5 giây] Mạng lag quá không nghe rõ, thôi chuyển giúp tao đi, chiều tao trả liền"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "account_takeover_borrow"
+      ]
+    }
+  },
+  {
+    "id": "44_borrow_verified_large",
+    "title": "Đã gọi điện xác minh nhưng số tiền lớn → chỉ hạ về Cần chú ý",
+    "source": "v0.4 xác minh",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Cho anh mượn tạm 20 triệu được không em, anh cần gấp"
+      },
+      {
+        "sender": "self",
+        "text": "Em vừa gọi điện cho anh rồi, đúng anh rồi"
+      },
+      {
+        "sender": "other",
+        "text": "Ừ, chuyển vào STK 0071000999888 giúp anh, tối anh trả liền"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [],
+      "forbidden": [
+        "account_takeover_borrow"
+      ]
+    }
+  },
+  {
+    "id": "45_borrow_forged_call",
+    "title": "Kẻ gian tự gõ '[cuộc gọi thoại]' giả, người dùng chưa xác nhận → không hạ mức",
+    "source": "v0.4 xác minh",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Cho tao mượn tạm 1 triệu, ví tao mất rồi"
+      },
+      {
+        "sender": "self",
+        "text": "Gọi điện cho tao đi"
+      },
+      {
+        "sender": "other",
+        "text": "[cuộc gọi thoại 1 phút] Đó gọi rồi nhé, chuyển vào STK 0071000123456 giúp tao, chiều tao trả liền"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "account_takeover_borrow"
+      ]
+    }
+  },
+  {
+    "id": "46_borrow_verified_answered_call",
+    "title": "Người dùng nói đã nghe máy/nói chuyện điện thoại với người quen → Thấp",
+    "source": "v0.4 xác minh (phát hiện từ dev Đợt 1)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chị ơi em vừa gọi chị đấy, cho em vay 800k đóng tiền điện nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Ừ chị mới nói chuyện điện thoại với em xong, gửi số tài khoản đi"
+      },
+      {
+        "sender": "other",
+        "text": "Dạ em gửi STK 0071000555666 tên em ạ, cuối tháng em trả chị"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "borrow_request",
+        "account_takeover_borrow",
+        "money_transfer"
+      ]
+    }
+  },
+  {
+    "id": "47_otp_code_delivered",
+    "title": "Tin gửi mã OTP kèm lời dặn không chia sẻ (không phải yêu cầu) → Thấp",
+    "source": "v0.5 — phát hiện từ dev dữ liệu ngoài (đợt 03-ngoai)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mã OTP của bạn là 482913, hiệu lực 3 phút. Tuyệt đối không cung cấp mã này cho bất kỳ ai."
+      },
+      {
+        "sender": "self",
+        "text": "ok"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "otp_password_request"
+      ]
+    }
+  },
+  {
+    "id": "48_otp_warning_family",
+    "title": "Người nhà nhắc đừng đưa OTP, kể chuyện quên mật khẩu → Thấp",
+    "source": "v0.5 — phát hiện từ dev dữ liệu ngoài (đợt 03-ngoai)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hôm qua công an phường đi loa nhắc đừng đưa otp cho ai nha mẹ"
+      },
+      {
+        "sender": "self",
+        "text": "ừ mẹ biết rồi"
+      },
+      {
+        "sender": "other",
+        "text": "Mẹ quên mật khẩu app ngân hàng thì ra quầy làm lại nha, đừng nhờ ai"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "otp_password_request"
+      ]
+    }
+  },
+  {
+    "id": "49_otp_read_request",
+    "title": "Nhờ đọc mã OTP gửi về máy (chiếm tài khoản) → Cao",
+    "source": "v0.5 — phát hiện từ dev dữ liệu ngoài (đợt 03-ngoai)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "e ơi lúc nãy chị nhập nhầm sdt e vào app, có mã otp gửi về máy e thì đọc chị với"
+      },
+      {
+        "sender": "self",
+        "text": "mã gì vậy chị"
+      },
+      {
+        "sender": "other",
+        "text": "đọc giúp chị mã xác nhận đó nhanh nha, chị đang cần gấp"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "otp_password_request"
+      ]
+    }
+  },
+  {
+    "id": "50_official_carrier_links",
+    "title": "Link chính thức của nhà mạng / tên miền có chữ giống thương hiệu → Thấp",
+    "source": "v0.5 — phát hiện từ dev dữ liệu ngoài (đợt 03-ngoai)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Viettel tặng data nè, đổi điểm tại https://myvt.page.link/km hoặc vào vietteltelecom.vn"
+      },
+      {
+        "sender": "self",
+        "text": "để tối t xem"
+      },
+      {
+        "sender": "other",
+        "text": "tối nay chơi game ko, tải ở agame.vn nè"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "suspicious_link"
+      ]
+    }
+  },
+  {
+    "id": "51_casual_hurry",
+    "title": "Giục nhau đời thường (nhanh lên, khẩn cấp thì gọi) → Thấp",
+    "source": "v0.5 — phát hiện từ dev dữ liệu ngoài (đợt 03-ngoai)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "nhanh lên nhé, sắp mưa rồi"
+      },
+      {
+        "sender": "self",
+        "text": "đang ra đây"
+      },
+      {
+        "sender": "other",
+        "text": "điểm tích lũy hết hạn cuối tháng đấy, nhớ dùng. Có việc gì khẩn cấp thì gọi anh"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "urgency_pressure"
+      ]
+    }
+  },
+  {
+    "id": "52_urgent_transfer",
+    "title": "Thúc chuyển khoản ngay kẻo mất suất → vẫn phải bắt thúc ép",
+    "source": "v0.5 — phát hiện từ dev dữ liệu ngoài (đợt 03-ngoai)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hồ sơ của em được duyệt rồi, em chuyển khoản phí giữ chỗ 300k ngay bây giờ nhé"
+      },
+      {
+        "sender": "other",
+        "text": "hết hạn trong hôm nay đấy, không thì mất suất cho người khác"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "urgency_pressure"
+      ]
+    }
+  },
+  {
+    "id": "53_loan_offer_app",
+    "title": "Mời vay lãi thấp không thế chấp, dẫn tải app qua link và điền thông tin → Cao",
+    "source": "v0.5 — phát hiện từ dev dữ liệu ngoài (đợt 03-ngoai)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chào anh, em bên bộ phận cho vay của ngân hàng. Bên em có gói vay tín chấp lãi suất chỉ 0,9%/tháng, không cần thế chấp, duyệt nhanh trong ngày ạ"
+      },
+      {
+        "sender": "self",
+        "text": "vậy hả em"
+      },
+      {
+        "sender": "other",
+        "text": "Anh tải app theo link em gửi rồi điền thông tin cá nhân là bên em giải ngân luôn ạ: vaynhanh-uudai.vip"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "loan_offer_app"
+      ]
+    }
+  },
+  {
+    "id": "54_loan_offer_zalo",
+    "title": "Mời vay ưu đãi qua tin nhắn, rủ kết bạn Zalo / quét QR → Cao",
+    "source": "v0.5 — phát hiện từ dev dữ liệu ngoài (đợt 03-ngoai)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Dạ em là quản lý khách hàng bên tài chính, gói vay ưu đãi không cần chứng minh thu nhập, giải ngân ngay ạ"
+      },
+      {
+        "sender": "other",
+        "text": "Anh kết bạn zalo em hoặc quét mã QR này để em gửi hồ sơ vay nhé"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "loan_offer_app"
+      ]
+    }
+  },
+  {
+    "id": "55_loan_legit_branch",
+    "title": "Ngân hàng hẹn ra chi nhánh ký hồ sơ vay đã nộp → Thấp",
+    "source": "v0.5 — phát hiện từ dev dữ liệu ngoài (đợt 03-ngoai)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Dạ hồ sơ vay mua nhà anh nộp tuần trước đã được duyệt ạ"
+      },
+      {
+        "sender": "self",
+        "text": "ok em"
+      },
+      {
+        "sender": "other",
+        "text": "Mời anh mang căn cước bản gốc ra chi nhánh Nguyễn Trãi ký hợp đồng, nhân viên sẽ đối chiếu trực tiếp ạ"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "loan_offer_app"
+      ]
+    }
+  },
+  {
+    "id": "56_refund_link_info",
+    "title": "Giả CSKH sàn báo hoàn tiền, dẫn bấm link và điền tài khoản ngân hàng → Cao",
+    "source": "v0.5 — phát hiện từ dev dữ liệu ngoài (đợt 03-ngoai)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Dạ em bên chăm sóc khách hàng của sàn, đơn hàng của chị bị lỗi nên bên em hoàn tiền gấp đôi cho chị ạ"
+      },
+      {
+        "sender": "self",
+        "text": "thế à, làm sao em"
+      },
+      {
+        "sender": "other",
+        "text": "Chị bấm vào đường link em gửi, điền số tài khoản ngân hàng nhận tiền vào là bên em xử lý ngay ạ"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "refund_link_info"
+      ]
+    }
+  },
+  {
+    "id": "57_refund_official_app",
+    "title": "Shop hướng dẫn trả hàng/hoàn tiền trong app sàn chính thức → Thấp",
+    "source": "v0.5 — phát hiện từ dev dữ liệu ngoài (đợt 03-ngoai)",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Shop xin lỗi vì giao nhầm size ạ"
+      },
+      {
+        "sender": "other",
+        "text": "Chị vào mục Trả hàng/Hoàn tiền trong app Shopee gửi yêu cầu, shop duyệt hoàn tiền ngay cho chị nha"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "refund_link_info"
+      ]
+    }
+  },
+  {
+    "id": "58_card_fake_alert_callback",
+    "title": "Cảnh báo giả: thẻ bị trừ tiền ở nước ngoài, dụ gọi số lạ để khóa thẻ → Cao",
+    "source": "v0.5 — phát hiện từ dev SMS (dữ liệu ngoài), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Vietcombank thong bao: the tin dung cua ban vua bi tru 12.500.000d tai nuoc ngoai. Neu khong phai ban thuc hien, goi gap 0901234567 de khoa the"
+      },
+      {
+        "sender": "self",
+        "text": "hả, t có dùng đâu"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "bank_alert_callback"
+      ]
+    }
+  },
+  {
+    "id": "59_card_limit_service",
+    "title": "Dịch vụ nâng hạn mức / rút tiền thẻ tín dụng, đòi ảnh thẻ và mã → Cao",
+    "source": "v0.5 — phát hiện từ dev SMS (dữ liệu ngoài), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chị ơi bên em hỗ trợ nâng hạn mức thẻ tín dụng và rút tiền mặt từ thẻ, phí chỉ 1,5% thôi ạ"
+      },
+      {
+        "sender": "self",
+        "text": "làm sao em"
+      },
+      {
+        "sender": "other",
+        "text": "Chị gửi em ảnh mặt trước mặt sau thẻ là bên em làm liền trong ngày ạ"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "card_cash_service"
+      ]
+    }
+  },
+  {
+    "id": "60_card_friend_chat",
+    "title": "Bạn bè kể chuyện mở thẻ tín dụng ở quầy, khóa thẻ qua tổng đài → Thấp",
+    "source": "v0.5 — phát hiện từ dev SMS (dữ liệu ngoài), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tháng này t mới mở thẻ tín dụng ở quầy VIB, hạn mức 30tr, hoàn tiền 6% đó m"
+      },
+      {
+        "sender": "self",
+        "text": "ngon vậy"
+      },
+      {
+        "sender": "other",
+        "text": "Hôm trước t bị mất ví, gọi tổng đài ngân hàng khóa thẻ liền, may là chưa bị trừ đồng nào"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "bank_alert_callback",
+        "card_cash_service"
+      ]
+    }
+  },
+  {
+    "id": "61_parcel_fee",
+    "title": "Đơn hàng bị giữ do thiếu cước, đòi chuyển khoản trước giờ hẹn → Cao",
+    "source": "v0.5 — phát hiện từ dev SMS (dữ liệu ngoài), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Buu cuc thong bao: don hang cua ban dang bi giu do thieu cuoc 35.000d. Vui long chuyen khoan vao STK 0123456789 truoc 17h hom nay de duoc giao"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "parcel_fee_scam"
+      ]
+    }
+  },
+  {
+    "id": "62_parcel_legal_threat",
+    "title": "Bưu phẩm chứa tài liệu pháp lý, quá hạn sẽ chuyển công an → Cao",
+    "source": "v0.5 — phát hiện từ dev SMS (dữ liệu ngoài), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Buu dien: ban co 1 buu pham chua tai lieu phap ly chua nhan. Lien he tong dai 02812345678 de duoc huong dan, qua han se chuyen Bo Cong an"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "parcel_fee_scam"
+      ]
+    }
+  },
+  {
+    "id": "63_shipper_cod",
+    "title": "Shipper giao hàng COD hỏi chuyển khoản hay tiền mặt → Thấp",
+    "source": "v0.5 — phát hiện từ dev SMS (dữ liệu ngoài), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em shipper GHN đây ạ, đơn của chị COD 250k, em tới cổng rồi"
+      },
+      {
+        "sender": "self",
+        "text": "ok e đợi chị xíu"
+      },
+      {
+        "sender": "other",
+        "text": "Chị chuyển khoản hay đưa tiền mặt cũng được nha"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "parcel_fee_scam"
+      ]
+    }
+  },
+  {
+    "id": "64_order_delay_shop",
+    "title": "Shop báo đơn giao chậm, mai shipper gọi → Thấp",
+    "source": "v0.5 — phát hiện từ dev SMS (dữ liệu ngoài), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Shop báo bạn: đơn hàng của bạn bị giao chậm 1 ngày do kho quá tải, mai shipper sẽ gọi bạn nha"
+      },
+      {
+        "sender": "self",
+        "text": "dạ ok shop"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "parcel_fee_scam"
+      ]
+    }
+  },
+  {
+    "id": "65_loan_offer_short_msg",
+    "title": "Tin mời vay gấp, chỉ cần căn cước, không thẩm định, nhắn Zalo → Cao",
+    "source": "v0.5 — phát hiện từ dev SMS (dữ liệu ngoài), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "VAY GAP trong ngay, chi can CCCD + SDT, no xau van vay duoc, khong tham dinh nguoi than. Goi/Zalo 0912345678 gap Tam"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "loan_offer_app"
+      ]
+    }
+  },
+  {
+    "id": "66_debt_threat_contacts",
+    "title": "Đòi nợ dọa báo toàn bộ danh bạ / khởi kiện → Cao",
+    "source": "v0.5 — phát hiện từ dev SMS (dữ liệu ngoài), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Khoan vay cua ban da qua han. Vui long thanh toan trong hom nay, neu khong chung toi se thong bao toi toan bo danh ba cua ban"
+      },
+      {
+        "sender": "self",
+        "text": "tôi có vay gì đâu?"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "debt_collection_threat"
+      ]
+    }
+  },
+  {
+    "id": "67_bank_loan_reminder",
+    "title": "Bạn nhắc khoản vay sắp đến hạn, ra chi nhánh trả → Thấp",
+    "source": "v0.5 — phát hiện từ dev SMS (dữ liệu ngoài), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tháng này khoản vay mua xe của t đến hạn ngày 15 rồi, phải ra chi nhánh đóng"
+      },
+      {
+        "sender": "self",
+        "text": "nhớ đóng đúng hạn kẻo bị phạt nha"
+      },
+      {
+        "sender": "other",
+        "text": "ừ, ngân hàng cũng nhắn nhắc thanh toán rồi"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "debt_collection_threat",
+        "loan_offer_app"
+      ]
+    }
+  },
+  {
+    "id": "68_phone_topup_chat",
+    "title": "Nạp tiền điện thoại / thẻ cào đời thường → Thấp",
+    "source": "v0.5 — phát hiện từ dev SMS (sau khi thay token [MONEY])",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mẹ nạp 50k card điện thoại cho con rồi nhé, dùng tiết kiệm thôi"
+      },
+      {
+        "sender": "self",
+        "text": "dạ con cảm ơn mẹ"
+      },
+      {
+        "sender": "other",
+        "text": "Tin nhà mạng báo tài khoản của con đã được nạp 50.000đ đó, kiểm tra đi"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "task_deposit"
+      ]
+    }
+  },
+  {
+    "id": "69_ctv_chot_don_zalo",
+    "title": "Tuyển CTV chốt đơn tại nhà, lương trả trong ngày, kết bạn Zalo → Cần chú ý",
+    "source": "v0.5 — phát hiện từ dev SMS + bộ đề nhóm (tuyển CTV), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên mình cần tuyển 10 bạn làm CTV chốt đơn Shopee tại nhà, lương trả trong ngày nha"
+      },
+      {
+        "sender": "self",
+        "text": "làm sao ạ"
+      },
+      {
+        "sender": "other",
+        "text": "Bạn quan tâm thì kết bạn Zalo 0987654321 để chị hướng dẫn nhé"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "task_recruitment"
+      ]
+    }
+  },
+  {
+    "id": "70_viec_tai_nha_zalo",
+    "title": "Việc làm thêm tại nhà, không cần kinh nghiệm, liên hệ Zalo → Cần chú ý",
+    "source": "v0.5 — phát hiện từ dev SMS + bộ đề nhóm (tuyển CTV), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Viec lam them tai nha, moi ngay 2 tieng, khong can kinh nghiem. Lien he zalo chi Huong 0912345678 de duoc huong dan"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "task_recruitment"
+      ]
+    }
+  },
+  {
+    "id": "71_cafe_part_time",
+    "title": "Quán cà phê tuyển ca tối, hẹn phỏng vấn trực tiếp tại quán → Thấp",
+    "source": "v0.5 — phát hiện từ dev SMS + bộ đề nhóm (tuyển CTV), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Quán cà phê bên mình tuyển nhân viên bán thời gian ca tối, lương 25k/giờ ạ"
+      },
+      {
+        "sender": "self",
+        "text": "dạ em quan tâm"
+      },
+      {
+        "sender": "other",
+        "text": "Bạn qua quán ở 12 Nguyễn Trãi phỏng vấn trực tiếp nhé, có gì nhắn zalo quán"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "task_recruitment"
+      ]
+    }
+  },
+  {
+    "id": "72_content_ctv_contract",
+    "title": "Công ty tuyển CTV viết content làm tại nhà, có hợp đồng, nộp CV qua email → Thấp",
+    "source": "v0.5 — phát hiện từ dev SMS + bộ đề nhóm (tuyển CTV), viết lại dạng tin nhắn chat",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Công ty t đang tuyển CTV viết content làm tại nhà, có hợp đồng, lương trả cuối tháng"
+      },
+      {
+        "sender": "self",
+        "text": "nghe ổn đó"
+      },
+      {
+        "sender": "other",
+        "text": "m gửi CV qua mail HR nhé, bên t phỏng vấn online rồi ký hợp đồng"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "task_recruitment"
+      ]
+    }
+  }
+]

@@ -1,0 +1,159 @@
+// Client OpenRouter (OpenAI-compatible) cho nghiên cứu:
+//  - giới hạn 20 req/phút (khoảng cách tối thiểu giữa các lượt), đếm lượt/ngày (lưu file), dừng khi chạm trần;
+//  - thử lại khi 429/5xx (lùi dần);
+//  - cache phản hồi theo sha256(model + prompt) → chạy lại không tốn lượt;
+//  - thử `response_format: json_object`, nếu model không hỗ trợ (400) thì gọi lại không có.
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+/** Có thể đổi bằng OPENROUTER_BASE_URL (vd. server giả lập khi thử đường ống). */
+export const OPENROUTER_URL = process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1';
+
+export interface ChatRequest {
+  model: string;
+  system: string;
+  user: string;
+  /** Phân biệt các lần chạy lặp (đo độ ổn định) trong cache; không gửi lên API. */
+  variant?: number;
+}
+
+export interface ChatResult {
+  content: string;
+  cached: boolean;
+  latencyMs: number;
+  promptTokens?: number;
+  completionTokens?: number;
+}
+
+export interface ProviderOptions {
+  apiKey: string;
+  cacheDir: string;
+  /** Trần lượt gọi thật mỗi ngày (cache trúng không tính). */
+  dailyCap: number;
+  minIntervalMs?: number;
+  maxRetries?: number;
+  fetchImpl?: typeof fetch;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+}
+
+export class DailyCapReached extends Error {}
+
+export class OpenRouterClient {
+  private lastCallAt = 0;
+  private readonly fetchImpl: typeof fetch;
+  private readonly sleep: (ms: number) => Promise<void>;
+  private readonly now: () => number;
+
+  constructor(private readonly o: ProviderOptions) {
+    this.fetchImpl = o.fetchImpl ?? fetch;
+    this.sleep = o.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+    this.now = o.now ?? Date.now;
+    mkdirSync(join(o.cacheDir, 'responses'), { recursive: true });
+  }
+
+  static key(req: ChatRequest): string {
+    return createHash('sha256').update(JSON.stringify([req.model, req.system, req.user, req.variant ?? 0])).digest('hex');
+  }
+
+  private usagePath() {
+    return join(this.o.cacheDir, 'usage.json');
+  }
+
+  usedToday(): number {
+    const today = new Date(this.now()).toISOString().slice(0, 10);
+    if (!existsSync(this.usagePath())) return 0;
+    const u = JSON.parse(readFileSync(this.usagePath(), 'utf8')) as { date: string; count: number };
+    return u.date === today ? u.count : 0;
+  }
+
+  private addUsage() {
+    const today = new Date(this.now()).toISOString().slice(0, 10);
+    writeFileSync(this.usagePath(), JSON.stringify({ date: today, count: this.usedToday() + 1 }));
+  }
+
+  async chat(req: ChatRequest): Promise<ChatResult> {
+    const file = join(this.o.cacheDir, 'responses', `${OpenRouterClient.key(req)}.json`);
+    if (existsSync(file)) {
+      const c = JSON.parse(readFileSync(file, 'utf8')) as Omit<ChatResult, 'cached'>;
+      return { ...c, cached: true };
+    }
+    if (this.usedToday() >= this.o.dailyCap) throw new DailyCapReached(`Đã chạm trần ${this.o.dailyCap} lượt/ngày`);
+
+    let jsonMode = true;
+    const maxRetries = this.o.maxRetries ?? 4;
+    for (let attempt = 0; ; attempt++) {
+      const wait = (this.o.minIntervalMs ?? 3200) - (this.now() - this.lastCallAt);
+      if (wait > 0) await this.sleep(wait);
+      this.lastCallAt = this.now();
+      const t0 = this.now();
+      const res = await this.fetchImpl(`${OPENROUTER_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.o.apiKey}`,
+          'X-Title': 'SafeChat AI research benchmark',
+        },
+        body: JSON.stringify({
+          model: req.model,
+          temperature: 0.1, // giống cấu hình sản phẩm (background/groq.ts)
+          ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+          messages: [
+            { role: 'system', content: req.system },
+            { role: 'user', content: req.user },
+          ],
+        }),
+      });
+      this.addUsage();
+      if (res.ok) {
+        const data = (await res.json()) as {
+          choices?: { message?: { content?: string } }[];
+          usage?: { prompt_tokens?: number; completion_tokens?: number };
+          error?: { message?: string };
+        };
+        const content = data.choices?.[0]?.message?.content;
+        if (content == null) throw new Error(`Phản hồi rỗng: ${data.error?.message ?? 'không có nội dung'}`);
+        const out = {
+          content,
+          latencyMs: this.now() - t0,
+          promptTokens: data.usage?.prompt_tokens,
+          completionTokens: data.usage?.completion_tokens,
+        };
+        writeFileSync(file, JSON.stringify(out));
+        return { ...out, cached: false };
+      }
+      const body = await res.text().catch(() => '');
+      if (res.status === 400 && jsonMode && /response_format|json/i.test(body)) {
+        jsonMode = false; // model không hỗ trợ chế độ JSON → gọi lại thường
+        continue;
+      }
+      if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
+        await this.sleep(Math.min(60_000, 5_000 * 2 ** attempt));
+        continue;
+      }
+      throw new Error(`OpenRouter HTTP ${res.status}: ${body.slice(0, 200)}`);
+    }
+  }
+
+  /** Danh sách model miễn phí (id kết thúc bằng ":free") kèm giá bản trả phí tương ứng nếu có. */
+  async listFreeModels(): Promise<{ id: string; name: string; context: number; paidPrice?: { prompt: number; completion: number } }[]> {
+    const res = await this.fetchImpl(`${OPENROUTER_URL}/models`, { headers: { Authorization: `Bearer ${this.o.apiKey}` } });
+    if (!res.ok) throw new Error(`OpenRouter HTTP ${res.status}`);
+    const data = (await res.json()) as {
+      data: { id: string; name: string; context_length: number; pricing?: { prompt: string; completion: string } }[];
+    };
+    const byId = new Map(data.data.map((m) => [m.id, m]));
+    return data.data
+      .filter((m) => m.id.endsWith(':free'))
+      .map((m) => {
+        const paid = byId.get(m.id.replace(/:free$/, ''));
+        return {
+          id: m.id,
+          name: m.name,
+          context: m.context_length,
+          paidPrice: paid?.pricing ? { prompt: Number(paid.pricing.prompt), completion: Number(paid.pricing.completion) } : undefined,
+        };
+      });
+  }
+}

@@ -1,0 +1,79 @@
+import type { Rule } from './rule';
+
+// Nhóm 1.2, 4.2 (tonghopkichban.md): mã độc .apk giả dịch vụ công, link bình chọn/QR chiếm tài khoản,
+// và điều hướng sang kênh kín.
+export const technicalRules: Rule[] = [
+  {
+    ref: 'R02',
+    type: 'malware_apk',
+    category: 'technical',
+    severity: 'critical',
+    direct_danger: true,
+    title: 'Dẫn dụ cài ứng dụng ngoài/bật quyền trợ năng',
+    explanation:
+      'Có hướng dẫn tải file cài đặt (.apk) qua link hoặc bật Quyền trợ năng/chia sẻ màn hình, thường giả danh VNeID, thuế, điện lực. Kẻ gian dùng cách này để điều khiển điện thoại và đọc trộm OTP.',
+    recommended_action:
+      'Không tải file .apk, không bật Quyền trợ năng. Ứng dụng chính thức chỉ tải từ CH Play/App Store. Nếu đã cài, ngắt mạng và liên hệ ngân hàng ngay.',
+    requireOneOf: [0, 2],
+    exclude: [/\b(ch play|google play|app store|appstore|cua hang ung dung)\b/],
+    groups: [
+      [
+        /\bapk\b/,
+        /\bfile cai dat\b/,
+        /\bcai (dat )?(ung dung|app|phan mem)\b.{0,15}\b(qua|tu|theo|bang) (link|duong dan)\b/,
+        /\btai (file|app|ung dung|phan mem)\b.{0,15}\b(link|duong dan)\b/,
+      ],
+      [/\b(vneid|dich vu cong|thue dien tu|etax|hoan thue|dien luc|evn|bao hiem xa hoi|bhxh|cuc thue|tong cuc thue|cong an (phuong|xa|khu vuc))\b/],
+      [/\b(quyen tro nang|tro nang|accessibility|nguon khong xac dinh|cap quyen (man hinh|dieu khien|truy cap)|chia se man hinh|dieu khien tu xa|ultraviewer|teamviewer|anydesk)\b/],
+      [/\b(dong bo (du lieu|thong tin)|dinh danh (dien tu )?muc 2|cap nhat (sinh trac|thong tin|dinh danh|can cuoc)|xac thuc sinh trac|nang cap (tai khoan|dinh danh))\b/],
+    ],
+  },
+  {
+    ref: 'R10',
+    type: 'phishing_vote_qr',
+    category: 'account',
+    severity: 'high',
+    title: 'Link bình chọn/nhận quà, quét QR hoặc đọc mã — nguy cơ chiếm tài khoản',
+    explanation:
+      'Có lời nhờ bình chọn/nhận quà kèm yêu cầu đăng nhập, quét mã QR hoặc đọc mã xác thực. Đây là cách chiếm phiên đăng nhập Zalo/Facebook.',
+    recommended_action: 'Không đăng nhập qua link lạ, không quét QR theo hướng dẫn của người khác, không đọc mã xác thực cho ai.',
+    requireOneOf: [1, 2],
+    groups: [
+      [/\b(binh chon|vote|cuoc thi (anh|anh dep|tai nang|be)|nhan qua (tri an|mien phi)|trung thuong|qua tang (tri an|khach hang))\b/],
+      [/\b(quet (ma )?qr|ma qr|dang nhap (lai )?(zalo|facebook|tai khoan)|nhap ma (xac thuc|xac nhan))\b/],
+      [/\b(xac nhan (thiet bi|dang nhap)|thiet bi moi|doc (giup|cho|lai)\b.{0,12}\b(ma|otp)|ma \d+ so|gui (lai )?ma (vua|da) (nhan|gui))\b/],
+    ],
+  },
+  {
+    type: 'channel_migration',
+    category: 'technical',
+    severity: 'medium',
+    title: 'Rủ chuyển sang kênh chat kín',
+    explanation:
+      'Đối phương muốn chuyển cuộc trò chuyện sang Telegram/Zalo cá nhân/nhóm kín — nơi khó tra cứu và dễ thao túng hơn (giai đoạn "điều hướng kênh kín").',
+    recommended_action: 'Giữ trao đổi ở kênh có thể kiểm chứng; không vào nhóm kín theo lời mời của người lạ.',
+    patterns: [
+      /\b(chuyen|qua|sang|vao|add|ket ban|nhan tin|lien he|inbox)\b.{0,12}\b(telegram|whatsapp|signal|line|zalo (rieng|ca nhan)|nhom kin|group kin)\b/,
+      /\b(vao|tham gia|add)\b.{0,6}\b(nhom|group)\b.{0,10}\b(telegram|zalo|kin|vip|nhiem vu)\b/,
+    ],
+  },
+  {
+    // Giả CSKH sàn/vận chuyển "hoàn tiền": dẫn bấm link / tải app / kết bạn riêng rồi điền tài khoản, số thẻ, mã.
+    // Phát hiện từ dev dữ liệu ngoài (nhóm giả sàn TMĐT, thanh toán tiền giao hàng). Không bắt khi hướng dẫn
+    // dùng mục Trả hàng/Hoàn tiền trong ứng dụng chính thức (không có link/app lạ).
+    type: 'refund_link_info',
+    category: 'technical',
+    severity: 'high',
+    title: 'Lấy cớ hoàn tiền / đơn hàng lỗi, dẫn bấm link và điền thông tin tài khoản',
+    explanation:
+      'Đối phương báo đơn hàng lỗi, được hoàn tiền hoặc bồi thường rồi hướng dẫn bấm link, tải app hay kết bạn riêng để điền số tài khoản, số thẻ hoặc mã xác nhận. Sàn thương mại điện tử hoàn tiền qua chính ứng dụng/ví của bạn, không qua link do nhân viên gửi.',
+    recommended_action:
+      'Không bấm link, không điền thông tin tài khoản. Tự mở ứng dụng chính thức của sàn/đơn vị vận chuyển để kiểm tra đơn hàng.',
+    minGroups: 3,
+    groups: [
+      [/\b(hoan (tien|lai tien|phi)|boi thuong|den bu|don hang\b.{0,15}\b(loi|bi huy|that lac|that bai|co van de)|giao (hang )?(that bai|khong thanh cong)|xu ly (don|hoan))\b/],
+      [/\b((bam|nhan|click|vao) (vao )?(cai )?(link|duong link)|link (em|ben em|minh|nay)|tai (app|ung dung)|cai (app|ung dung)|ket ban (zalo|xong)|zalo ben em)\b/],
+      [/\b(dien|nhap|cung cap)\b.{0,30}\b(thong tin|so tai khoan|tai khoan ngan hang|so the|ma (xac nhan|xac thuc|otp|do|vao)|otp)\b/],
+    ],
+  },
+];
