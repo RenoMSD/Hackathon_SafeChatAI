@@ -13,3 +13,5 @@ Tự sinh bằng `npm run bench:experiment -- --ledger`. Không sửa tay. Cách
 | [EXP-004](EXP-004/README.md) | Mô hình học từ dữ liệu, không dùng luật | ML ký tự TF-IDF + hồi quy logistic | `2f0e1c7+dirty` | 6.5% (2/31) | 3.1% (1/32) | chưa xem | chưa xem | 38.3% | 66.1% | 2 |
 | [EXP-005](EXP-005/README.md) | Luật HOẶC mô hình học máy | ML ký tự TF-IDF + hồi quy logistic HOẶC luật EXP-001 | `2f0e1c7+dirty` | 0.0% (0/31) | 12.5% (4/32) | chưa xem | chưa xem | 38.3% | 66.1% | 2 |
 | [EXP-006](EXP-006/README.md) | Kiểm tra mô hình học văn phong hay học dấu hiệu | Kiểm tra rò rỉ trên tune | `2f0e1c7+dirty` | – (–) | – (–) | chưa xem | chưa xem | – | – | 2 |
+| [EXP-007](EXP-007/README.md) | Mô hình học trên SMS thật, áp sang hội thoại | ML ký tự TF-IDF + hồi quy logistic, học trên SMS dev | `ca76683` | 0.0% (0/31) | 100.0% (32/32) | chưa xem | chưa xem | 5.8% | 96.2% | 2 |
+| [EXP-008](EXP-008/README.md) | Đợt 1: phủ định liệt kê, chiều tiền, giấu gia đình, ứng tiền | rules | `ca76683+dirty` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |

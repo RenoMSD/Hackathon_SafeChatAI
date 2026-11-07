@@ -1,6 +1,7 @@
 import type { Rule } from './rule';
 
-const FAMILY = '(ai|gia dinh|bo me|ba me|nguoi nha|nguoi than|ban be|ong ba|anh chi)';
+// Không thêm "co" (cô) vì sau khi bỏ dấu trùng với "có": "đừng nói có" sẽ báo nhầm ở mức Nghiêm trọng.
+const FAMILY = '(ai|gia dinh|bo me|ba me|me|ba|chu|vo|chong|nguoi nha|nguoi than|ban be|ong ba|anh chi)';
 
 export const isolationRules: Rule[] = [
   {
@@ -13,7 +14,7 @@ export const isolationRules: Rule[] = [
       'Có yêu cầu không cho gia đình, bạn bè biết. Đây là dấu hiệu cô lập thường gặp trong lừa đảo và mua bán người.',
     recommended_action: 'Hãy kể cho người bạn tin tưởng. Một công việc hợp pháp không cần bạn giấu gia đình.',
     patterns: [
-      new RegExp(`\\b(dung|khong (duoc|nen)|cam) (noi|ke|bao|cho)( voi| cho)? ${FAMILY}\\b`),
+      new RegExp(`\\b(dung|khong (duoc|nen)|cam) (noi|ke|bao|cho|hoi)( voi| cho)? ${FAMILY}\\b`),
       new RegExp(`\\bgiau ${FAMILY}\\b`),
       new RegExp(`\\bgiu bi mat (voi|ca voi) ${FAMILY}\\b`),
       /\b(gia dinh|bo me|nguoi nha)\b.{0,15}\b(khong (can|duoc|nen) biet|dung de biet)\b/,

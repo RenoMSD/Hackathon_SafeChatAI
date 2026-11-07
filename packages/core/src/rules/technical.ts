@@ -15,6 +15,8 @@ export const technicalRules: Rule[] = [
     recommended_action:
       'Không tải file .apk, không bật Quyền trợ năng. Ứng dụng chính thức chỉ tải từ CH Play/App Store. Nếu đã cài, ngắt mạng và liên hệ ngân hàng ngay.',
     requireOneOf: [0, 2],
+    // "không cần quyền trợ năng" là lời trấn an đúng, không phải yêu cầu bật
+    negatable: true,
     exclude: [/\b(ch play|google play|app store|appstore|cua hang ung dung)\b/],
     groups: [
       [

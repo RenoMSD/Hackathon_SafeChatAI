@@ -16,7 +16,8 @@ export const financeRules: Rule[] = [
       /\b(dong|nop|chuyen|gui) (truoc )?(tien |them )?(coc|phi|le phi|tien coc)\b/,
       /\bdat coc\b/,
       /\bcoc truoc\b/,
-      /\b(dong|nop|chuyen) (truoc )?\d+(?:[.,]\d+)? (nghin|trieu)\b/,
+      // "chuyển 100k tiền công" là trả cho người nhận, không phải đòi người nhận nộp tiền
+      /\b(dong|nop|chuyen) (truoc )?\d+(?:[.,]\d+)? (nghin|trieu)\b(?! (tien )?(cong|luong)\b)/,
     ],
   },
   {
@@ -28,9 +29,12 @@ export const financeRules: Rule[] = [
     recommended_action: 'Chỉ chuyển tiền khi đã xác minh người nhận qua kênh độc lập và có lý do rõ ràng bằng văn bản.',
     negatable: true,
     patterns: [
-      /\bchuyen khoan\b.{0,30}\b(vao|qua|cho|truoc|so tai khoan)\b/,
+      // "chuyển khoản lương cho em" là trả cho người nhận
+      /\bchuyen khoan\b(?! (tien )?(luong|cong)\b).{0,30}\b(vao|qua|cho|truoc|so tai khoan)\b/,
       /\b(chuyen|gui) (tien )?(truoc )?(vao|qua|cho) (so tai khoan|tai khoan|ben (minh|em|anh|chi|cong ty))\b/,
       /\bchuyen (tien )?truoc\b/,
+      // "bạn chuyển STK 123456789": có số ngay sau để không bắt "chuyển số tài khoản cho công ty làm lương"
+      /\bchuyen (tien )?so tai khoan \d/,
     ],
   },
   {
@@ -46,6 +50,8 @@ export const financeRules: Rule[] = [
       /(?<!\b(da|vua|duoc) (duoc )?)\bnap (tien|them|\d+)(?!.{0,25}\b(vao (tkc|tai khoan chinh|thue bao|sim|so dien thoai|dien thoai)|card|the cao|data|goi cuoc|dien thoai)\b)/,
       /\b(lam|nhan) nhiem vu\b.{0,40}\b(hoa hong|hoan tien|nap|thuong)\b/,
       /\bhoan (lai )?(tien|von)\b.{0,30}\bhoa hong\b/,
+      // Ứng tiền trước rồi hứa hoàn kèm hoa hồng. Bắt buộc có "hoàn/hoa hồng" để không bắt "tạm ứng lương"
+      /\bung (truoc )?\d+(?:[.,]\d+)? (nghin|trieu)\b.{0,60}\b(hoan|hoa hong)\b/,
       /\bhoa hong \d+(?:[.,]\d+)? ?%/,
       /\b(chot|tao) don (ao|hang)\b/,
       /\b(dau tu|gop von)\b.{0,40}\b(loi nhuan|lai|hoa hong)\b/,

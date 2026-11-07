@@ -8,6 +8,10 @@ Trong bộ v2, ca nguy hiểm gần như đều là chuyển thể, ca bình th�
 
 **Cách giảm:** tạo **cặp đối chứng**. Với mỗi ca lừa đảo, viết một ca bình thường cùng văn phong, cùng độ dài, cùng chủ đề, chỉ khác điểm then chốt, ví dụ cùng là tuyển CTV nhưng không đòi nạp tiền. Cả hai phải cùng người viết và dùng cùng kiểu dữ liệu giả.
 
+**Trạng thái (2026-11-07):** chưa có bộ cặp đối chứng dùng để đo, nên hạn chế này **chưa được giải quyết**. Bộ nháp đầu tiên, do AI hỗ trợ soạn và người sửa, đã lộ với phía viết luật nên chỉ dùng làm nguồn gợi ý luật, không đo và không báo số trên đó. Đang chờ cặp viết tay mới.
+
+Khi đọc bộ nháp đó, nhóm thấy luật dễ báo nhầm khi cùng văn phong, nhất là câu phủ định và tin nói về chiều tiền ngược lại. Vì vậy số báo nhầm trên bộ v2 có thể thấp hơn thực tế.
+
 ## Sáu hạn chế đã biết
 
 | # | Hạn chế | Cách giảm | Trạng thái |
@@ -27,7 +31,7 @@ Trong bộ v2, ca nguy hiểm gần như đều là chuyển thể, ca bình th�
 | 2 | Gán lại khoảng 30 ca bằng phiếu ẩn nhãn, gồm cả mốc | Danh | 1 giờ |
 | 3 | Soạn bộ kín 15 ca từ bài báo mới | Đạt | 1 giờ |
 | 4 | Đọc lại 10 lỗi, xếp nguyên nhân độc lập | Danh hoặc Đạt | 20 phút |
-| 5 | Chạy so sánh AI trên tune, xác nhận trên check, cặp đối chứng và bộ kín | Duy | Sau khi có AWS |
+| 5 | Chạy so sánh AI trên tune, xác nhận trên check, cặp đối chứng và bộ kín | Duy | Sau khi có khóa Groq |
 
 Phiếu ẩn nhãn nằm ở `research/results/labeling/phieu_gan_nhan_doc_lap.csv` trên máy Duy, vì có nội dung hội thoại nên chỉ gửi qua kênh riêng. Người viết luật không dùng phiếu này.
 

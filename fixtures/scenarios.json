@@ -2171,5 +2171,392 @@
         "original_documents"
       ]
     }
+  },
+  {
+    "id": "96_neg_list_no_deposit",
+    "title": "Không cần đóng hay đặt cọc gì → Thấp",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên anh cần người nhập liệu, nộp CV qua mail là được"
+      },
+      {
+        "sender": "self",
+        "text": "Có phải đóng gì không anh"
+      },
+      {
+        "sender": "other",
+        "text": "Không cần đóng hay đặt cọc gì nhé, trúng tuyển thì ký hợp đồng"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "97_neg_list_no_otp",
+    "title": "Dặn không phải gửi tiền hay đưa OTP → Thấp",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Phường có lịch cấp đổi giấy tờ vào sáng thứ Hai"
+      },
+      {
+        "sender": "self",
+        "text": "Có cần làm gì trước không"
+      },
+      {
+        "sender": "other",
+        "text": "Bác cứ đến phường, không phải gửi tiền hay cung cấp mã OTP gì qua chat cả"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "98_neg_list_evasion_comma",
+    "title": "Phủ định vế trước rồi đòi cọc ở vế sau → vẫn Cao",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Việc này không mất phí hay rủi ro, bạn đặt cọc 500k giữ suất là xong"
+      },
+      {
+        "sender": "self",
+        "text": "Sao lại cọc"
+      },
+      {
+        "sender": "other",
+        "text": "Cọc để giữ suất thôi bạn"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "99_neg_list_evasion_no_comma",
+    "title": "Không có dấu phẩy, câu liệt kê dài vẫn đòi cọc → vẫn Cao",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Không mất phí hay rủi ro gì đâu đặt cọc 500k là nhận việc"
+      },
+      {
+        "sender": "self",
+        "text": "Cọc gì vậy"
+      },
+      {
+        "sender": "other",
+        "text": "Cọc để nhận việc thôi"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "100_salary_paid_to_user",
+    "title": "Công ty trả lương và tiền công cho người nhận → Thấp",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em làm thử một buổi, xong chị chuyển 150k tiền công cho em nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Dạ còn lương thì sao chị"
+      },
+      {
+        "sender": "other",
+        "text": "Cuối tháng công ty chuyển khoản lương cho em theo hợp đồng"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "101_fee_to_receive_salary",
+    "title": "Đòi chuyển phí để được nhận lương → vẫn Cao",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Lương của em đã duyệt rồi nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Dạ vậy khi nào em nhận được"
+      },
+      {
+        "sender": "other",
+        "text": "Em chuyển 300k phí xử lý vào tài khoản bên chị thì lương mới về"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "102_no_accessibility_needed",
+    "title": "Nói rõ không cần quyền trợ năng → không báo mã độc",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Anh tải app theo hướng dẫn của ngân hàng nhé"
+      },
+      {
+        "sender": "self",
+        "text": "App này có đòi gì không"
+      },
+      {
+        "sender": "other",
+        "text": "Không cần quyền trợ năng đâu anh, chỉ xin quyền thông báo thôi"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": [],
+      "forbidden": [
+        "malware_apk"
+      ]
+    }
+  },
+  {
+    "id": "103_accessibility_requested",
+    "title": "Tải app rồi yêu cầu bật trợ năng → vẫn Nghiêm trọng",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Anh tải app theo link em gửi nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Rồi làm gì nữa em"
+      },
+      {
+        "sender": "other",
+        "text": "Anh bật quyền trợ năng để app quét virus giúp anh"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "malware_apk"
+      ]
+    }
+  },
+  {
+    "id": "104_secret_from_mother",
+    "title": "Bảo đừng báo mẹ → Nghiêm trọng",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tuần sau em đi làm xa với chị nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Để em báo mẹ em đã"
+      },
+      {
+        "sender": "other",
+        "text": "Đừng báo mẹ em, biết rồi lại cản"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "secrecy_from_family"
+      ]
+    }
+  },
+  {
+    "id": "105_dont_ask_anyone",
+    "title": "Bảo đừng hỏi ai → Nghiêm trọng",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bạn giúp mình chuyện này nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Để mình hỏi mấy bạn khác đã"
+      },
+      {
+        "sender": "other",
+        "text": "Đừng hỏi ai cả, chuyện này chỉ hai đứa mình biết"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "secrecy_from_family"
+      ]
+    }
+  },
+  {
+    "id": "106_tell_mother_ok",
+    "title": "Khuyến khích báo mẹ → Thấp",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Chị gửi lịch phỏng vấn tại văn phòng cho em nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Để em báo mẹ em đã"
+      },
+      {
+        "sender": "other",
+        "text": "Em cứ báo mẹ, mẹ muốn đi cùng cũng được"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "107_say_yes",
+    "title": "Từ 'có' không bị hiểu nhầm là 'cô' → Thấp",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Mai họp lúc mấy giờ vậy"
+      },
+      {
+        "sender": "self",
+        "text": "Chưa rõ, sếp có hỏi thì sao"
+      },
+      {
+        "sender": "other",
+        "text": "Đừng nói có họp vội, để mình xác nhận lại lịch đã"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "108_advance_then_refund",
+    "title": "Ứng tiền trước rồi hứa hoàn kèm hoa hồng → Cao",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Đơn đầu tiên bạn ứng 300k, mười phút sau mình hoàn lại đủ kèm hoa hồng"
+      },
+      {
+        "sender": "self",
+        "text": "Sao phải ứng trước"
+      },
+      {
+        "sender": "other",
+        "text": "Để hệ thống ghi nhận đơn thôi bạn"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "task_deposit"
+      ]
+    }
+  },
+  {
+    "id": "109_salary_advance_ok",
+    "title": "Tạm ứng lương đời thường → Thấp",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tháng này em muốn ứng lương được không chị"
+      },
+      {
+        "sender": "self",
+        "text": "Được bao nhiêu chị"
+      },
+      {
+        "sender": "other",
+        "text": "Kế toán cho ứng 2 triệu, cuối tháng trừ vào lương em nhé"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "110_transfer_to_account_number",
+    "title": "Giục chuyển vào STK → Cần chú ý",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bạn gửi tiền hàng giúp mình nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Gửi vào đâu vậy"
+      },
+      {
+        "sender": "other",
+        "text": "Bạn chuyển STK 987654321012 giúp mình"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "money_transfer"
+      ]
+    }
+  },
+  {
+    "id": "111_send_account_for_salary",
+    "title": "Xin điền STK để nhận lương → Thấp",
+    "source": "v0.7: phát hiện khi đọc bộ gợi ý nội bộ, viết lại không chép nguyên văn",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hợp đồng có mục nhận lương em nhé"
+      },
+      {
+        "sender": "self",
+        "text": "Em ghi vào đâu ạ"
+      },
+      {
+        "sender": "other",
+        "text": "Em ghi số tài khoản của em vào hợp đồng giấy khi ký"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
   }
 ]

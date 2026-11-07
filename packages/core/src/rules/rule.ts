@@ -36,6 +36,11 @@ export interface Rule {
 export const GROUP_WINDOW = 6;
 
 const NEGATION = /\b(khong|chang|cha|mien|chua|khoi)\s+(\S+\s+){0,2}$/;
+/**
+ * Phủ định liệt kê: "không cần nạp hay đặt cọc" phủ định cả vế sau. Chỉ trong cùng một vế câu và tối đa một từ
+ * sau "hay/hoặc", để "không mất phí hay rủi ro, đặt cọc 500k" hay "không mất phí hay rủi ro đặt cọc 500k" vẫn bị bắt.
+ */
+const LIST_NEGATION = /\b(khong|chang|mien)\b[^,.;!?]*\s(hay|hoac)\s+(\S+\s+)?$/;
 
 function firstMatch(re: RegExp, normalized: string, negatable: boolean): number {
   const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
@@ -43,7 +48,7 @@ function firstMatch(re: RegExp, normalized: string, negatable: boolean): number 
     const idx = m.index ?? 0;
     if (negatable) {
       const before = normalized.slice(Math.max(0, idx - 30), idx);
-      if (NEGATION.test(before)) continue;
+      if (NEGATION.test(before) || LIST_NEGATION.test(normalized.slice(Math.max(0, idx - 60), idx))) continue;
     }
     return idx;
   }
