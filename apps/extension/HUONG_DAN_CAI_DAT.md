@@ -1,49 +1,52 @@
 # Hướng dẫn cài đặt & kiểm thử SafeChat AI (Developer mode)
-
+ 
 ## 1. Build
-
+ 
 ```bash
 npm install
 npm run build:extension
 ```
-
+ 
 Kết quả nằm trong `apps/extension/dist/`.
-
+ 
 ## 2. Nạp extension vào Chrome
-
+ 
 1. Mở `chrome://extensions`.
 2. Bật **Developer mode** (góc trên bên phải).
 3. Bấm **Load unpacked** và chọn thư mục `apps/extension/dist`.
 4. Ghim biểu tượng SafeChat AI (hình khiên xanh) lên thanh công cụ.
-
 Sau mỗi lần sửa code: chạy `npm run build:extension`, bấm nút ↻ của extension trong `chrome://extensions`, rồi **tải lại tab chat** để content script mới được nạp.
-
+ 
 ## 3. Chạy chat giả lập
-
+ 
 ```bash
 npm run dev:extension
 ```
-
+ 
 Mở `http://localhost:5178/mock-chat/`. Nếu cổng 5178 đang bận, Vite sẽ báo cổng khác.
-
+ 
 ## 4. Bật AI (tùy chọn)
-
+ 
 Trong side panel, chọn **Cài đặt**:
-
+ 
 | Tầng | Cách bật | Ghi chú |
 |---|---|---|
 | Bộ quy tắc | Luôn chạy | Miễn phí, chạy trên máy |
 | Gemini Nano (trên máy) | Bấm **Tải mô hình & bật** | Cần Chrome máy tính, khoảng 22 GB trống, GPU trên 4 GB VRAM hoặc 16 GB RAM. Chỉ chạy khi side panel đang mở. Tiếng Việt chưa được hỗ trợ chính thức, nên đây là chế độ thử nghiệm (`en`). |
-| Groq | Dán API key → **Bật Groq** → cho phép quyền `api.groq.com` | Mô hình nhỏ `llama-3.1-8b-instant` chạy mặc định; mô hình lớn `llama-3.3-70b-versatile` chỉ chạy khi mức ≥ Cần chú ý. Giới hạn lượt gọi mỗi ngày đặt trong Cài đặt. |
-
+| Máy chủ SafeChat (gateway) | Nhập địa chỉ máy chủ (HTTPS) → **Bật máy chủ SafeChat** → đồng ý hộp thoại → cho phép quyền truy cập địa chỉ đó | **Không cần API key.** Khóa mô hình nằm ở máy chủ, extension không giữ khóa nào. Extension tự xin token thiết bị khi dùng lần đầu. Giới hạn lượt gọi mỗi ngày đặt trong Cài đặt. |
+ 
+**Địa chỉ máy chủ SafeChat:** lấy từ người phụ trách gateway (staging hoặc production): `https://<địa-chỉ-gateway>`. Chỉ chấp nhận HTTPS (riêng `localhost` được dùng `http` khi phát triển). Địa chỉ phải thuộc `*.amazonaws.com`, `*.cloudfront.net` hoặc `*.on.aws`; nếu dùng tên miền riêng thì phải thêm tên miền đó vào `optional_host_permissions` trong `apps/extension/public/manifest.json` rồi build lại. Có thể gắn sẵn địa chỉ mặc định lúc build bằng biến `VITE_SAFECHAT_GATEWAY_URL` (PowerShell: `$env:VITE_SAFECHAT_GATEWAY_URL="https://…"; npm run build:extension`); nếu để trống, người dùng tự nhập trong Cài đặt. Dù có địa chỉ sẵn, người dùng vẫn phải bấm **Bật máy chủ SafeChat** và cấp quyền.
+ 
 **Khi nào AI chạy:** khi mức cảnh báo tăng, khi có loại tín hiệu quy tắc mới, hoặc khi tích đủ N tin mới (mặc định 5). Hai lần gọi cách nhau ít nhất 10 giây.
-
-**Gửi đi những gì:** chỉ các tin mới, kèm 4 tin ngữ cảnh và bản tóm tắt do AI viết lần trước. Số điện thoại, số tài khoản và email được che trước khi gửi.
-
+ 
+**Gửi đi những gì:** chỉ các tin mới, kèm 4 tin ngữ cảnh và bản tóm tắt do AI viết lần trước. Số điện thoại, số tài khoản và email được che trước khi gửi. Gemini Nano chạy trên máy nên dữ liệu không rời máy; máy chủ SafeChat nhận dữ liệu đã che. **Dừng và xóa phiên** xóa dữ liệu trên máy này nhưng không thu hồi được dữ liệu đã gửi tới máy chủ. Có thể tắt máy chủ SafeChat bất cứ lúc nào; khi tắt, token thiết bị bị xóa khỏi máy.
+ 
+**Khi AI không dùng được** (hết lượt, máy chủ lỗi, mất mạng): extension báo lỗi bằng tiếng Việt, bộ quy tắc vẫn chạy bình thường và mức cảnh báo **không** bị hạ. Sau lỗi, extension tạm nghỉ một lúc (30 giây đến 10 phút tùy loại lỗi) rồi mới gọi lại.
+ 
 ## 5. Checklist kiểm thử thủ công
-
+ 
 Dùng chat giả lập. Với mỗi bước, đánh dấu ✅ hoặc ❌.
-
+ 
 | # | Thao tác | Kỳ vọng |
 |---|---|---|
 | 1 | Mở side panel trên trang không hỗ trợ (ví dụ google.com) | Báo "chưa hỗ trợ"; nút Bắt đầu bị khóa |
@@ -60,9 +63,9 @@ Dùng chat giả lập. Với mỗi bước, đánh dấu ✅ hoặc ❌.
 | 12 | Tạm dừng → gửi thêm tin → Tiếp tục | Tin gửi trong lúc tạm dừng không được tính; tin sau khi tiếp tục được tính |
 | 13 | Đóng tab chat | Side panel báo "Tạm dừng — tab đã đóng" |
 | 14 | **Dừng và xóa phiên** | Có thông báo đã xóa. Kiểm tra trong DevTools của service worker: `chrome.storage.session.get(null)` trả về `{}` |
-| 15 | (Groq) Bật Groq, chạy kịch bản `03` | Dòng trạng thái AI hiện "Groq (mô hình lớn)"; tab Phân tích có tóm tắt AI; số lượt hôm nay tăng |
-| 16 | (Groq) Nhập key sai | Báo "API key Groq không hợp lệ (401)"; kết quả quy tắc giữ nguyên |
-| 17 | (Nano) Bật AI trên máy, giữ side panel mở, chạy một kịch bản | Trạng thái AI hiện "Gemini Nano trên máy" (hoặc lỗi kèm chuyển sang Groq) |
+| 15 | (Gateway) Nhập địa chỉ máy chủ → Bật máy chủ SafeChat → cho phép quyền → chạy kịch bản `03` | Dòng trạng thái AI hiện "Máy chủ SafeChat" (kèm tên model nếu có); tab Phân tích có tóm tắt AI; số lượt hôm nay tăng; **không** có ô nhập API key nào |
+| 16 | (Gateway) Nhập địa chỉ sai (không phải `https://…`) rồi bấm Bật; sau đó thử địa chỉ đúng dạng nhưng không tồn tại | Địa chỉ sai dạng: báo "Địa chỉ máy chủ không hợp lệ (cần dạng https://…)", không bật. Địa chỉ không tồn tại: báo "Không kết nối được máy chủ SafeChat"; kết quả quy tắc giữ nguyên, mức không bị hạ |
+| 17 | (Nano) Bật AI trên máy, giữ side panel mở, chạy một kịch bản | Trạng thái AI hiện "Gemini Nano trên máy" (hoặc lỗi kèm chuyển sang máy chủ SafeChat nếu đã bật) |
 | 18 | Kịch bản `16_tc01_task_freeze` | **Nghiêm trọng**, khung an toàn hướng dẫn *dừng giao dịch / gọi ngân hàng* (không phải hướng dẫn di chuyển) |
 | 19 | Kịch bản `17_tc02_police_apk` | **Nghiêm trọng**; tab Bằng chứng có thẻ R02 và "Đường link đáng ngờ" |
 | 20 | Kịch bản `20_tc05_shop_deposit` | **Thấp**; thẻ "Đặt cọc trong giao dịch thông thường" có nhãn *Đã hạ mức theo ngữ cảnh* |
@@ -76,13 +79,42 @@ Dùng chat giả lập. Với mỗi bước, đánh dấu ✅ hoặc ❌.
 | 28 | Facebook thật: mở 2 khung chat → Kiểm tra lại | Panel liệt kê 2 tên để chọn; chỉ cuộc được chọn được đọc |
 | 29 | Đang theo dõi → đóng khung chat → mở lại | Panel hiện "Đang chờ mở lại khung chat", mở lại thì đọc tiếp, bản nháp không trùng tin |
 | 30 | Facebook thật: kiểm tra bản nháp | Tin của mình là "Tôi", của đối phương là người kia; không lẫn chữ "Nhập, bản sao trợ năng" |
-
+| 31 | Facebook thật: mở facebook.com, **chưa** tích đồng ý, chưa bấm Bắt đầu | **Không** có khung SafeChat nổi nào trên trang (mặc định tắt) |
+| 32 | Tích đồng ý → Bắt đầu theo dõi một cuộc chat | Khung nổi hiện, trạng thái "LIVE", chỉ có **mức và điểm** (không có nội dung chat, tên người, bằng chứng). Chi tiết xem ở side panel |
+| 33 | Tải lại trang Facebook khi đang theo dõi | Khung nổi hiện lại với mức và điểm hiện tại; bản nháp vẫn nhận tin mới sau khi tải lại |
+| 34 | Tạm dừng, hoặc chuyển sang chat khác | Khung nổi biến mất. Trong Console của trang, `document.body.lastElementChild.shadowRoot` trả về `null` (Shadow DOM đóng) |
+ 
 **Xem log:** vào `chrome://extensions`, bấm **service worker** để mở DevTools của background. Mở DevTools của side panel bằng cách chuột phải vào panel và chọn **Inspect**. Extension không ghi nội dung chat ra console.
-
+ 
 ## 6. Messenger thật (thử nghiệm)
-
+ 
 Messenger web hiện chỉ còn **khung chat popup** trên facebook.com. Mở khung chat (không thu nhỏ) → panel → Kiểm tra lại → (đang mở nhiều khung thì chọn một người) → Bắt đầu theo dõi.
 - Cuộc trò chuyện được xác định bằng ID tài khoản người kia (link ở phần đầu khung), không bằng tên; mọi mã tin phải khớp ID đó, lệch là bộ đọc tự ngừng và báo trong panel.
 - Đóng khung chat: phiên được giữ ở trạng thái **Đang chờ mở lại khung chat**; mở lại đúng người đó thì đọc tiếp. Mở thêm khung khác không ảnh hưởng.
 - Chat nhóm, ảnh/sticker/tin thoại: chưa hỗ trợ.
+- Khung cảnh báo nổi chỉ hiện sau khi bắt đầu theo dõi (xem mục 7).
 - Selector dò trên giao diện thật 11/2026 (`apps/extension/dev/dom-probe.js`, chỉ in cấu trúc). Facebook đổi giao diện → chạy lại script và chỉnh `apps/extension/src/content/messengerAdapter.ts`.
+## 7. Khung cảnh báo nổi trên trang
+ 
+- Khung nổi **không bao giờ tự hiện khi tải trang**. Chỉ hiện sau khi người dùng tích đồng ý và bấm **Bắt đầu theo dõi** trong side panel. Vì vậy trên Facebook, extension mặc định không hiện gì cho tới khi bắt đầu theo dõi.
+- Khung chỉ nhận **mức cảnh báo, điểm và trạng thái** (đang theo dõi, chờ mở lại khung chat, tạm dừng). Nội dung tin nhắn, tên người, tóm tắt và bằng chứng không bao giờ được gửi tới khung này; muốn xem chi tiết thì mở side panel.
+- Khung nằm trong Shadow DOM ở chế độ đóng, script của trang không truy cập được nội dung bên trong.
+- Khung biến mất khi tạm dừng, đổi chat, dừng và xóa phiên, hoặc đóng tab. Bấm nút **—** để thu nhỏ thành nút nổi.
+## 8. Ghi kết quả thử Facebook thật (mục 28–34)
+ 
+Dùng **tài khoản thử**, không dùng tài khoản chính hoặc hội thoại thật của người khác. Ghi kết quả vào bảng dưới (hoặc `docs/test-facebook.md`).
+ 
+- Phiên bản Chrome: …
+- Ngày thử: …
+- Phiên bản extension (`manifest.json`): …
+| Mục | Kỳ vọng | Thực tế | Đạt / Không đạt | Ảnh chụp / ghi chú |
+|---|---|---|---|---|
+| 28 | | | | |
+| 29 | | | | |
+| 30 | | | | |
+| 31 | | | | |
+| 32 | | | | |
+| 33 | | | | |
+| 34 | | | | |
+ 
+Nếu không đạt, ghi thêm lỗi trong Console (trang và service worker) và các bước tái hiện. Không dán nội dung chat thật vào báo cáo.

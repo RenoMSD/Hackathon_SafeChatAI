@@ -1,7 +1,8 @@
-// Floating Widget nổi trên trang (Shadow DOM cô lập hoàn toàn, không dùng innerHTML, không can thiệp DOM của Messenger).
-import { createSnapshot, serializeSnapshot } from '@safechat/core/context-manager';
-import { RISK_LEVEL_LABEL, RISK_LEVEL_ORDER, type AnalysisResult, type RiskLevel } from '@safechat/core/types';
-import { SESSION_KEY, type PanelRequest, type ProbeResult, type Session } from '../shared/protocol';
+// Widget nổi trên trang. Shadow DOM `closed`; không dùng innerHTML; không can thiệp DOM của Messenger.
+// Widget CHỈ nhận RiskBadge (mức, điểm, trạng thái). Không đọc storage, không đọc Session,
+// không có transcript, bằng chứng, tên người gửi, lời khuyên hay giao diện đồng ý.
+import { RISK_LEVEL_LABEL, RISK_LEVEL_ORDER, type RiskLevel } from '@safechat/core/types';
+import type { RiskBadge } from '../shared/protocol';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -92,52 +93,6 @@ const WIDGET_CSS = `
   animation: pop-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Launcher Card */
-.launcher {
-  background: #ffffff;
-  border: 1px solid #e1e7f0;
-  border-radius: 20px;
-  padding: 14px;
-  box-shadow: 0 16px 36px -8px rgba(29, 78, 216, 0.18), 0 4px 12px -2px rgba(22, 30, 46, 0.06);
-}
-.launcher-grid {
-  display: grid;
-  grid-template-columns: 82px 1fr;
-  gap: 10px;
-  align-items: center;
-}
-.cat-anim { animation: float-breathe 3.2s ease-in-out infinite; }
-.title-row { display: flex; align-items: center; justify-content: space-between; }
-.brand-title {
-  font-size: 16.5px;
-  font-weight: 800;
-  position: relative;
-  z-index: 1;
-}
-.brand-title::after {
-  content: '';
-  position: absolute;
-  left: -2px; right: -2px; bottom: 1px;
-  height: 6px;
-  background: rgba(250, 204, 21, 0.55);
-  border-radius: 4px;
-  z-index: -1;
-}
-.sub { font-size: 12px; color: #5a6578; margin: 3px 0 8px; }
-.btn-start {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: #fff;
-  border: 0;
-  border-radius: 99px;
-  padding: 7px 18px;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 6px 14px -3px rgba(37, 99, 235, 0.45);
-  transition: transform 150ms ease, opacity 150ms ease;
-}
-.btn-start:disabled { opacity: 0.48; cursor: not-allowed; box-shadow: none; }
-.btn-start:hover:not(:disabled) { transform: translateY(-1px); }
 .icon-btn {
   width: 26px; height: 26px;
   border-radius: 7px;
@@ -150,16 +105,6 @@ const WIDGET_CSS = `
   justify-content: center;
   font-size: 13px;
 }
-.consent-box {
-  margin-top: 9px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: #f7f9fc;
-  border: 1px solid #e1e7f0;
-  font-size: 11.5px;
-  color: #475569;
-}
-.consent-label { display: flex; gap: 6px; align-items: flex-start; cursor: pointer; margin-top: 4px; }
 
 /* Peeking Bar & Live Widget */
 .peek-bar {
@@ -285,78 +230,9 @@ const WIDGET_CSS = `
 .seg.on.attention { background: #3b82f6; }
 .seg.on.low { background: #16a34a; }
 
-.advice-box {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 14px;
-  padding: 10px 12px;
-}
-.advice-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 700;
-  color: #1d4ed8;
-  font-size: 13px;
-  cursor: pointer;
-}
-.advice-list { margin: 6px 0 0; padding-left: 16px; font-size: 11.5px; color: #1e293b; }
-.advice-list li { margin: 3px 0; }
 
-.quota-box {
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: 14px;
-  padding: 9px 11px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.quota-title { font-size: 12px; font-weight: 700; color: #ea580c; }
-.quota-sub { font-size: 11px; color: #64748b; line-height: 1.3; margin-top: 1px; }
-.btn-orange {
-  background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
-  color: #fff;
-  border: 0;
-  border-radius: 10px;
-  padding: 7px 11px;
-  font: inherit;
-  font-size: 11.5px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  box-shadow: 0 4px 12px -2px rgba(234, 88, 12, 0.38);
-}
+.note { font-size: 11px; color: #64748b; text-align: center; line-height: 1.35; }
 `;
-
-function catHeroSvg(): SVGElement {
-  return svg(
-    'svg',
-    { viewBox: '0 0 110 110', width: 78, height: 78, class: 'cat-anim', 'aria-hidden': 'true' },
-    svg('path', { d: 'M18 76 C8 68, 8 52, 18 48', stroke: '#1e2433', 'stroke-width': 8, 'stroke-linecap': 'round', fill: 'none' }),
-    svg('ellipse', { cx: 48, cy: 74, rx: 24, ry: 22, fill: '#1e2433' }),
-    svg('ellipse', { cx: 48, cy: 76, rx: 14, ry: 16, fill: '#ffffff' }),
-    svg('polygon', { points: '24,42 20,16 40,28', fill: '#1e2433' }),
-    svg('polygon', { points: '25,38 23,21 37,29', fill: '#fda4af' }),
-    svg('polygon', { points: '72,42 76,16 56,28', fill: '#1e2433' }),
-    svg('polygon', { points: '71,38 73,21 59,29', fill: '#fda4af' }),
-    svg('ellipse', { cx: 48, cy: 44, rx: 26, ry: 22, fill: '#1e2433' }),
-    svg('path', { d: 'M48 34 L34 56 Q48 64 62 56 Z', fill: '#ffffff' }),
-    svg('circle', { cx: 37, cy: 41, r: 5.5, fill: '#facc15' }),
-    svg('circle', { cx: 37, cy: 41, r: 2.8, fill: '#111827' }),
-    svg('circle', { cx: 59, cy: 41, r: 5.5, fill: '#facc15' }),
-    svg('circle', { cx: 59, cy: 41, r: 2.8, fill: '#111827' }),
-    svg('ellipse', { cx: 48, cy: 48, rx: 3, ry: 2.2, fill: '#fb7185' }),
-    svg('path', {
-      d: 'M72 48 L96 54 L96 72 C96 86 84 96 72 100 C60 96 48 86 48 72 L48 54 Z',
-      fill: '#2563eb',
-      stroke: '#eff6ff',
-      'stroke-width': 3,
-    }),
-    svg('path', { d: 'M65 73 L71 79 L82 66', stroke: '#ffffff', 'stroke-width': 3.5, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
-  );
-}
 
 function catPeekSvg(): SVGElement {
   return svg(
@@ -392,226 +268,107 @@ const PILL_TEXT: Record<RiskLevel, string> = {
   critical: '🚨 Rủi ro rất cao',
 };
 
-function segCountFor(r: AnalysisResult, rowLevel: RiskLevel): number {
-  const cur = RISK_LEVEL_ORDER[r.risk_level];
+function segCountFor(level: RiskLevel, score: number, rowLevel: RiskLevel): number {
+  const cur = RISK_LEVEL_ORDER[level];
   const row = RISK_LEVEL_ORDER[rowLevel];
-  if (rowLevel === r.risk_level) {
+  if (rowLevel === level) {
     if (rowLevel === 'critical') return 4;
-    if (rowLevel === 'high') return r.score >= 80 ? 4 : 3;
-    if (rowLevel === 'attention') return r.score >= 45 ? 3 : 2;
-    return r.score > 0 ? 2 : 1;
+    if (rowLevel === 'high') return score >= 80 ? 4 : 3;
+    if (rowLevel === 'attention') return score >= 45 ? 3 : 2;
+    return score > 0 ? 2 : 1;
   }
   return row < cur ? (rowLevel === 'low' ? 1 : 2) : 0;
 }
 
-export function initFloatingWidget(probeLocal: () => ProbeResult) {
-  if (typeof document === 'undefined' || !document.body) return;
-  if (document.getElementById('safechat-ai-overlay-host')) return;
+export interface FloatingWidget {
+  update(badge: RiskBadge): void;
+  destroy(): void;
+}
+
+let active: FloatingWidget | null = null;
+
+/** Tạo widget; nếu đang có một widget thì trả về chính nó (không tạo trùng). */
+export function initFloatingWidget(initial: RiskBadge): FloatingWidget | null {
+  if (active) {
+    active.update(initial);
+    return active;
+  }
+  if (typeof document === 'undefined' || !document.body) return null;
 
   const host = document.createElement('div');
-  host.id = 'safechat-ai-overlay-host';
-  const shadow = host.attachShadow({ mode: 'open' });
+  // `closed`: script của trang không lấy được host.shadowRoot (sẽ là null). Không lưu `shadow` ở đâu ngoài closure này.
+  const shadow = host.attachShadow({ mode: 'closed' });
   const styleEl = document.createElement('style');
   styleEl.textContent = WIDGET_CSS;
   const mount = document.createElement('div');
   shadow.append(styleEl, mount);
   document.body.append(host);
 
-  let session: Session | null = null;
+  let badge = initial;
   let minimized = false;
-  let consent = false;
-  let expandedAdvice = false;
   let animScore = 0;
   let rafId = 0;
 
-  function sendReq<T = { ok: boolean; reason?: string }>(req: PanelRequest): Promise<T> {
-    return chrome.runtime.sendMessage(req) as Promise<T>;
-  }
+  function render() {
+    const { level: lv, score: targetScore } = badge;
 
-  function downloadSnap(s: Session) {
-    const snap = createSnapshot({
-      threadLabel: s.threadLabel,
-      platform: s.platform,
-      startedAt: s.resumedFrom?.startedAt ?? s.startedAt,
-      maxMessages: s.maxMessages,
-      transcript: s.transcript,
-      ai: {
-        summary: s.ai.summary,
-        signals: s.ai.signals,
-        uncertainties: s.ai.uncertainties,
-        lastSeq: s.ai.lastSeq,
-        calls: s.ai.calls,
-        downgrade: s.ai.downgrade,
-      },
-      marks: s.marks,
-      timeline: s.timeline,
-      stability: s.stability,
-    });
-    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
-    const url = URL.createObjectURL(new Blob([serializeSnapshot(snap)], { type: 'application/json' }));
-    const a = h('a', { href: url, download: `safechat-phien-${stamp}.json` });
-    shadow.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  }
-
-  function renderWidget() {
     if (minimized) {
-      const lv: RiskLevel = session?.result?.risk_level ?? 'low';
-      const sc = session?.result?.score ?? 0;
       mount.replaceChildren(
         h(
           'button',
           {
             class: 'orb-btn',
-            title: 'Mở bảng điều khiển SafeChat AI',
+            title: 'Mở SafeChat AI',
             onclick: () => {
               minimized = false;
-              renderWidget();
+              render();
             },
           },
           h('span', {}, '🛡️ SafeChat AI'),
-          session && h('span', { class: `orb-pct ${lv}` }, `${sc}% · ${RISK_LEVEL_LABEL[lv]}`),
+          h('span', { class: `orb-pct ${lv}` }, `${targetScore}% · ${RISK_LEVEL_LABEL[lv]}`),
         ),
       );
       return;
     }
 
-    if (!session) {
-      const p = probeLocal();
-      const firstThread = p.supported ? (p.threads?.[0] ?? (p.threadId ? { threadId: p.threadId, threadLabel: p.threadLabel ?? '' } : null)) : null;
-      mount.replaceChildren(
-        h(
-          'div',
-          { class: 'wrap' },
-          h(
-            'section',
-            { class: 'launcher' },
-            h(
-              'div',
-              { class: 'launcher-grid' },
-              catHeroSvg(),
-              h(
-                'div',
-                {},
-                h(
-                  'div',
-                  { class: 'title-row' },
-                  h('span', { class: 'brand-title' }, 'SafeChat AI'),
-                  h(
-                    'button',
-                    {
-                      class: 'icon-btn',
-                      title: 'Thu gọn thành nút nổi',
-                      onclick: () => {
-                        minimized = true;
-                        renderWidget();
-                      },
-                    },
-                    '—',
-                  ),
-                ),
-                h('div', { class: 'sub' }, 'Bảo vệ bạn khỏi lừa đảo trực tuyến'),
-                h(
-                  'button',
-                  {
-                    class: 'btn-start',
-                    disabled: !consent || !firstThread,
-                    onclick: async () => {
-                      if (!firstThread) return;
-                      await sendReq({ kind: 'start', tabId: -1, threadId: firstThread.threadId });
-                    },
-                  },
-                  '▶ Bắt đầu',
-                ),
-              ),
-            ),
-            h(
-              'div',
-              { class: 'consent-box' },
-              h('div', {}, firstThread ? `Đoạn chat: ${firstThread.threadLabel}` : p.reason ?? 'Hãy mở một khung chat để bắt đầu.'),
-              h(
-                'label',
-                { class: 'consent-label' },
-                h('input', {
-                  type: 'checkbox',
-                  checked: consent,
-                  onchange: (e: Event) => {
-                    consent = (e.target as HTMLInputElement).checked;
-                    renderWidget();
-                  },
-                }),
-                h('span', {}, 'Đồng ý đọc văn bản cuộc trò chuyện đang mở.'),
-              ),
-            ),
-          ),
-        ),
-      );
-      return;
-    }
-
-    const r = session.result;
-    const lv: RiskLevel = r?.risk_level ?? 'low';
-    const targetScore = r?.score ?? 0;
     const radius = 42;
     const circum = 2 * Math.PI * radius;
     const arcLen = (240 / 360) * circum;
     const startOff = arcLen - (animScore / 100) * arcLen;
     const endOff = arcLen - (targetScore / 100) * arcLen;
-
     const track = svg('circle', {
-      cx: 59,
-      cy: 54,
-      r: radius,
-      fill: 'none',
-      stroke: '#e1e7f0',
-      'stroke-width': 9,
-      'stroke-linecap': 'round',
-      'stroke-dasharray': `${arcLen} ${circum}`,
-      transform: 'rotate(150 59 54)',
+      cx: 59, cy: 54, r: radius, fill: 'none', stroke: '#e1e7f0', 'stroke-width': 9, 'stroke-linecap': 'round',
+      'stroke-dasharray': `${arcLen} ${circum}`, transform: 'rotate(150 59 54)',
     });
     const arc = svg('circle', {
-      cx: 59,
-      cy: 54,
-      r: radius,
-      fill: 'none',
-      stroke: STROKE_COLOR[lv],
-      'stroke-width': 9,
-      'stroke-linecap': 'round',
-      'stroke-dasharray': `${arcLen} ${circum}`,
-      'stroke-dashoffset': String(startOff),
+      cx: 59, cy: 54, r: radius, fill: 'none', stroke: STROKE_COLOR[lv], 'stroke-width': 9, 'stroke-linecap': 'round',
+      'stroke-dasharray': `${arcLen} ${circum}`, 'stroke-dashoffset': String(startOff),
       style: 'transition: stroke-dashoffset 650ms cubic-bezier(0.22, 1, 0.36, 1), stroke 350ms ease',
       transform: 'rotate(150 59 54)',
     });
     const pctText = h('div', { class: 'pct-num' }, `${Math.round(animScore)}%`);
-
-    requestAnimationFrame(() => {
-      arc.setAttribute('stroke-dashoffset', String(endOff));
-    });
+    requestAnimationFrame(() => arc.setAttribute('stroke-dashoffset', String(endOff)));
     cancelAnimationFrame(rafId);
     const fromVal = animScore;
     const t0 = performance.now();
     const step = (now: number) => {
       const p = Math.min(1, (now - t0) / 550);
-      const ease = 1 - Math.pow(1 - p, 3);
-      animScore = fromVal + (targetScore - fromVal) * ease;
+      animScore = fromVal + (targetScore - fromVal) * (1 - Math.pow(1 - p, 3));
       pctText.textContent = `${Math.round(animScore)}%`;
       if (p < 1) rafId = requestAnimationFrame(step);
       else animScore = targetScore;
     };
     rafId = requestAnimationFrame(step);
 
+    const paused = !badge.tracking;
+    const statusText = badge.tracking ? 'Đang theo dõi tin nhắn...' : badge.waiting ? 'Chờ mở lại khung chat' : 'Tạm dừng theo dõi';
+    const liveText = badge.tracking ? 'LIVE' : badge.waiting ? 'CHỜ' : 'PAUSED';
     const tierRows: { level: RiskLevel; label: string }[] = [
       { level: 'critical', label: 'Rất cao' },
       { level: 'high', label: 'Cao' },
       { level: 'attention', label: 'Trung bình' },
       { level: 'low', label: 'Thấp' },
     ];
-
-    const usagePct = Math.min(100, Math.round((session.transcript.messages.length / Math.max(1, session.maxMessages)) * 100));
-    const actions = r?.advice.actions.slice(0, expandedAdvice ? 5 : 2) ?? [];
-    const questions = r?.advice.questions.slice(0, 2) ?? [];
 
     mount.replaceChildren(
       h(
@@ -621,12 +378,7 @@ export function initFloatingWidget(probeLocal: () => ProbeResult) {
           'div',
           { class: 'peek-bar' },
           catPeekSvg(),
-          h(
-            'div',
-            { class: 'status-pill' },
-            h('span', { class: `dot${session.status !== 'tracking' ? ' paused' : ''}` }),
-            session.status === 'tracking' ? 'Đang theo dõi tin nhắn...' : 'Tạm dừng theo dõi',
-          ),
+          h('div', { class: 'status-pill' }, h('span', { class: `dot${paused ? ' paused' : ''}` }), statusText),
         ),
         h(
           'section',
@@ -634,12 +386,7 @@ export function initFloatingWidget(probeLocal: () => ProbeResult) {
           h(
             'div',
             { class: 'live-head' },
-            h(
-              'div',
-              { class: 'live-title' },
-              h('span', {}, '🛡️ SafeChat AI'),
-              h('span', { class: `badge-live${session.status !== 'tracking' ? ' paused' : ''}` }, session.status === 'tracking' ? 'LIVE' : 'PAUSED'),
-            ),
+            h('div', { class: 'live-title' }, h('span', {}, '🛡️ SafeChat AI'), h('span', { class: `badge-live${paused ? ' paused' : ''}` }, liveText)),
             h(
               'div',
               { class: 'win-btns' },
@@ -650,21 +397,10 @@ export function initFloatingWidget(probeLocal: () => ProbeResult) {
                   title: 'Thu nhỏ thành nút nổi',
                   onclick: () => {
                     minimized = true;
-                    renderWidget();
+                    render();
                   },
                 },
                 '—',
-              ),
-              h(
-                'button',
-                {
-                  class: 'icon-btn',
-                  title: 'Dừng và xóa phiên',
-                  onclick: async () => {
-                    await sendReq({ kind: 'stop_and_clear' });
-                  },
-                },
-                '✕',
               ),
             ),
           ),
@@ -674,87 +410,41 @@ export function initFloatingWidget(probeLocal: () => ProbeResult) {
             h(
               'div',
               { class: 'sub-card' },
-              h(
-                'div',
-                { class: 'gauge-box' },
-                svg('svg', { viewBox: '0 0 118 102', width: 118, height: 102 }, track, arc),
-                h('div', { class: 'gauge-center' }, pctText),
-              ),
+              h('div', { class: 'gauge-box' }, svg('svg', { viewBox: '0 0 118 102', width: 118, height: 102 }, track, arc), h('div', { class: 'gauge-center' }, pctText)),
               h('div', { class: `risk-pill ${lv}` }, PILL_TEXT[lv]),
             ),
             h(
               'div',
               { class: 'sub-card tiers-list' },
               ...tierRows.map(({ level, label }) => {
-                const lit = r ? segCountFor(r, level) : 0;
+                const lit = segCountFor(lv, targetScore, level);
                 return h(
                   'div',
                   { class: `tier-item ${level}${lv === level ? ' active' : ''}` },
                   h('span', { style: 'display:inline-flex;align-items:center' }, h('span', { class: `tdot ${level}` }), label),
-                  h(
-                    'span',
-                    { class: 'segs' },
-                    ...[0, 1, 2, 3].map((i) => h('span', { class: `seg ${level}${i < lit ? ' on' : ''}` })),
-                  ),
+                  h('span', { class: 'segs' }, ...[0, 1, 2, 3].map((i) => h('span', { class: `seg ${level}${i < lit ? ' on' : ''}` }))),
                 );
               }),
             ),
           ),
-          h(
-            'div',
-            { class: 'advice-box' },
-            h(
-              'div',
-              {
-                class: 'advice-head',
-                onclick: () => {
-                  expandedAdvice = !expandedAdvice;
-                  renderWidget();
-                },
-              },
-              h('span', {}, '💡 Gợi ý để làm rõ ý định'),
-              h('span', {}, expandedAdvice ? '⌄' : '›'),
-            ),
-            h(
-              'ul',
-              { class: 'advice-list' },
-              ...(questions.length ? [h('li', {}, `Bạn có thể hỏi rõ: "${questions[0]}"`)] : []),
-              ...actions.map((act) => h('li', {}, act)),
-            ),
-          ),
-          h(
-            'div',
-            { class: 'quota-box' },
-            h(
-              'div',
-              {},
-              h('div', { class: 'quota-title' }, usagePct >= 80 ? `🕒 Gần đến giới hạn quét (${usagePct}%)` : `🕒 Đã quét ${session.transcript.messages.length}/${session.maxMessages} tin (${usagePct}%)`),
-              h('div', { class: 'quota-sub' }, 'Vui lòng tải bản lưu thông tin để bảo toàn bằng chứng.'),
-            ),
-            h(
-              'button',
-              {
-                class: 'btn-orange',
-                onclick: () => session && downloadSnap(session),
-              },
-              '⬇ Tải ngay',
-            ),
-          ),
+          h('div', { class: 'note' }, 'Chi tiết và bằng chứng xem trong bảng bên (side panel). Khung này chỉ hiện mức và điểm.'),
         ),
       ),
     );
   }
 
-  // Đồng bộ thời gian thực với chrome.storage.session
-  chrome.storage?.session?.get?.(SESSION_KEY).then((res) => {
-    session = (res?.[SESSION_KEY] as Session | undefined) ?? null;
-    renderWidget();
-  }).catch(() => renderWidget());
-
-  chrome.storage?.session?.onChanged?.addListener?.((changes) => {
-    if (SESSION_KEY in changes) {
-      session = (changes[SESSION_KEY]?.newValue as Session | undefined) ?? null;
-      renderWidget();
-    }
-  });
+  const api: FloatingWidget = {
+    update(next) {
+      badge = next;
+      render();
+    },
+    destroy() {
+      cancelAnimationFrame(rafId);
+      host.remove();
+      if (active === api) active = null;
+    },
+  };
+  active = api;
+  render();
+  return api;
 }

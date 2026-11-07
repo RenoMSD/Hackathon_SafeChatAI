@@ -33,6 +33,23 @@ export async function updateBadge(s: Session | null) {
   await chrome.action.setBadgeBackgroundColor({ color: b.color });
 }
 
+/**
+ * Gửi cho content script ĐÚNG mức, điểm và trạng thái theo dõi.
+ * Không gửi transcript, tên người, tóm tắt, bằng chứng hay bất kỳ nội dung tin nhắn nào.
+ */
+export async function sendRiskToTab(s: Session | null): Promise<void> {
+  if (!s) return;
+  await sendToTab(s.tabId, {
+    kind: 'cs_risk_update',
+    risk: {
+      level: s.result?.risk_level ?? 'low',
+      score: s.result?.score ?? 0,
+      tracking: s.status === 'tracking' && !s.waiting,
+      waiting: s.waiting,
+    },
+  });
+}
+
 /** Phân tích lại toàn bộ bản nháp (quy tắc + tín hiệu AI đã có) và ghi diễn biến nếu có thay đổi. */
 export function recompute(s: Session) {
   const before = s.result;

@@ -13,11 +13,11 @@ import {
   type StopResult,
 } from '../shared/protocol';
 import { cancelAi, handleNanoResult, kickAi, setPanelNanoStatus } from './ai';
-import { recompute, sendToTab, serial, updateBadge } from './runtime';
+import { recompute, sendRiskToTab, sendToTab, serial, updateBadge } from './runtime';
+import { clearDevice } from './gateway';
 import { clearSessionVerified, loadSession, loadSettings, saveSession } from './store';
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => { });
 
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
-chrome.storage.session.setAccessLevel?.({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
 
 async function probe(tabId: number): Promise<ProbeResult> {
   const r = (await sendToTab(tabId, { kind: 'cs_probe' })) as ProbeResult | undefined;
@@ -60,6 +60,7 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
       await saveSession(s);
       await updateBadge(s);
       await sendToTab(req.tabId, { kind: 'cs_start', threadId: s.threadId });
+      await sendRiskToTab(s);
       return { ok: true };
     }
 
@@ -108,6 +109,7 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
       await updateBadge(s);
       // Content script đọc lại các tin đang hiển thị; tin đã có trong bản nháp được khử trùng lặp theo khóa
       await sendToTab(req.tabId, { kind: 'cs_start', threadId: s.threadId });
+      await sendRiskToTab(s);
       kickAi(500);
       return { ok: true };
     }
@@ -171,12 +173,15 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
       const s = await loadSession();
       if (!s) return { ok: false };
       const settings = await loadSettings();
-      if (!settings.nanoEnabled && !(settings.groqEnabled && settings.groqApiKey)) {
+      const gatewayOn = settings.gatewayEnabled && !!settings.gatewayUrl;
+      if (!settings.nanoEnabled && !gatewayOn) {
         s.ai = { ...emptyAiState(), calls: s.ai.calls };
       }
+      if (!gatewayOn) await clearDevice(); // bỏ token cũ khi tắt gateway
       recompute(s);
       await saveSession(s);
       await updateBadge(s);
+      await sendRiskToTab(s);
       kickAi(300);
       return { ok: true };
     }
@@ -194,7 +199,15 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
 
 async function handleContent(ev: ContentEvent, tabId: number | undefined): Promise<void> {
   const s = await loadSession();
-  if (!s || tabId !== s.tabId) return;
+  if (!s || tabId !== s.tabId) return; // tab khác hoặc chưa có phiên: không làm gì
+
+  if (ev.kind === 'cs_ready') {
+    if (s.status === 'tracking') {
+      await sendToTab(s.tabId, { kind: 'cs_start', threadId: s.threadId });
+      await sendRiskToTab(s);
+    }
+    return;
+  }
 
   if (ev.kind === 'cs_thread_changed') {
     if (ev.threadId === s.threadId) return;
@@ -202,6 +215,7 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
     s.pauseReason = ev.threadId ? 'thread_changed' : 'page_unsupported';
     s.pendingThread = ev.threadId ? { threadId: ev.threadId, threadLabel: ev.threadLabel } : undefined;
     await saveSession(s);
+    await sendToTab(s.tabId, { kind: 'cs_stop' }); // gỡ widget khi tạm dừng
     return;
   }
 
@@ -209,6 +223,7 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
     if (ev.threadId !== s.threadId || s.status !== 'tracking') return;
     s.waiting = ev.waiting || undefined;
     await saveSession(s);
+    await sendRiskToTab(s);
     return;
   }
 
@@ -224,6 +239,7 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
   recompute(s);
   await saveSession(s);
   if (RISK_LEVEL_ORDER[s.result!.risk_level] !== RISK_LEVEL_ORDER[before]) await updateBadge(s);
+  await sendRiskToTab(s); // điểm có thể đổi dù mức không đổi
   kickAi(300);
 }
 
@@ -253,5 +269,8 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   });
 });
 
-// Khi SW khởi động lại (trình duyệt vẫn mở), khôi phục badge theo phiên còn trong storage.session
-void loadSession().then(updateBadge);
+// Khi SW khởi động lại, khôi phục badge và widget theo phiên còn trong storage.session
+void loadSession().then(async (s) => {
+  await updateBadge(s);
+  if (s?.status === 'tracking') await sendRiskToTab(s);
+});

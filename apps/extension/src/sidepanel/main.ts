@@ -28,6 +28,7 @@ import {
   type Settings,
   type StopResult,
 } from '../shared/protocol';
+import { gatewayOriginPattern, normalizeGatewayUrl } from '../background/gateway';
 import { downloadNano, nanoStatus, runNano, type NanoStatus } from './nano';
 
 type View = 'overview' | 'analysis' | 'evidence' | 'draft' | 'settings';
@@ -494,6 +495,7 @@ function introView(): Node {
         ),
         h('li', {}, `Giới hạn: tối đa ${state.settings.maxMessages} tin gần nhất; có thể bỏ sót khi Messenger tải từng phần.`),
         h('li', {}, aiDisclosure()),
+        h('li', {}, 'Khung cảnh báo nổi trên trang chỉ hiện sau khi bạn bấm \"Bắt đầu theo dõi\", và chỉ hiển thị mức và điểm, không chứa nội dung chat.'),
         h('li', {}, 'Bạn có thể tạm dừng, xuất báo cáo, hoặc dừng và xóa phiên bất cứ lúc nào.'),
       ),
     ),
@@ -535,42 +537,42 @@ function resumeCard(): Node {
     }),
     r && 'error' in r && h('p', { class: 'err small' }, r.error),
     info &&
+    h(
+      'div',
+      { style: 'margin-top:8px' },
       h(
-        'div',
-        { style: 'margin-top:8px' },
-        h(
-          'ul',
-          { class: 'small' },
-          h('li', {}, `Cuộc trò chuyện: ${info.label || '(không tên)'}`),
-          h('li', {}, `Lưu lúc: ${new Date(info.savedAt).toLocaleString('vi-VN')}`),
-          h('li', {}, `${info.messages} tin · mức cao nhất: ${RISK_LEVEL_LABEL[info.maxLevel]} · ${info.aiSignals} tín hiệu AI`),
-        ),
-        labelDiffers &&
-          h(
-            'p',
-            { class: 'banner small' },
-            `Chat đang chọn là "${target!.threadLabel}", khác với chat trong file. Chỉ tiếp tục nếu đây đúng là cùng một cuộc trò chuyện — dữ liệu hai cuộc khác nhau sẽ bị trộn lẫn.`,
-          ),
-        h(
-          'button',
-          {
-            class: 'primary',
-            disabled: !state.consent || !target,
-            onclick: async () => {
-              if (state.tabId === null || !(r && 'text' in r)) return;
-              if (labelDiffers && !confirm('Tên cuộc trò chuyện khác với file. Vẫn tiếp tục?')) return;
-              const res = await send({ kind: 'resume_snapshot', tabId: state.tabId, snapshot: r.text, threadId: target?.threadId });
-              if (!res.ok) setNotice('err', res.reason ?? 'Không tiếp tục được.');
-              else {
-                state.resume = null;
-                state.notice = null;
-              }
-            },
-          },
-          'Tiếp tục phiên này',
-        ),
-        (!state.consent || !target) && h('p', { class: 'muted small' }, 'Cần tích đồng ý ở trên và mở (chọn) đúng cuộc trò chuyện.'),
+        'ul',
+        { class: 'small' },
+        h('li', {}, `Cuộc trò chuyện: ${info.label || '(không tên)'}`),
+        h('li', {}, `Lưu lúc: ${new Date(info.savedAt).toLocaleString('vi-VN')}`),
+        h('li', {}, `${info.messages} tin · mức cao nhất: ${RISK_LEVEL_LABEL[info.maxLevel]} · ${info.aiSignals} tín hiệu AI`),
       ),
+      labelDiffers &&
+      h(
+        'p',
+        { class: 'banner small' },
+        `Chat đang chọn là "${target!.threadLabel}", khác với chat trong file. Chỉ tiếp tục nếu đây đúng là cùng một cuộc trò chuyện — dữ liệu hai cuộc khác nhau sẽ bị trộn lẫn.`,
+      ),
+      h(
+        'button',
+        {
+          class: 'primary',
+          disabled: !state.consent || !target,
+          onclick: async () => {
+            if (state.tabId === null || !(r && 'text' in r)) return;
+            if (labelDiffers && !confirm('Tên cuộc trò chuyện khác với file. Vẫn tiếp tục?')) return;
+            const res = await send({ kind: 'resume_snapshot', tabId: state.tabId, snapshot: r.text, threadId: target?.threadId });
+            if (!res.ok) setNotice('err', res.reason ?? 'Không tiếp tục được.');
+            else {
+              state.resume = null;
+              state.notice = null;
+            }
+          },
+        },
+        'Tiếp tục phiên này',
+      ),
+      (!state.consent || !target) && h('p', { class: 'muted small' }, 'Cần tích đồng ý ở trên và mở (chọn) đúng cuộc trò chuyện.'),
+    ),
   );
 }
 
@@ -618,16 +620,16 @@ function sessionHeader(s: Session): Node {
           s.status === 'tracking'
             ? h('button', { class: 'small', title: 'Tạm dừng theo dõi', onclick: () => void send({ kind: 'pause' }) }, '— Tạm dừng')
             : h(
-                'button',
-                {
-                  class: 'small primary',
-                  onclick: async () => {
-                    const r = await send({ kind: 'resume' });
-                    if (!r.ok) setNotice('err', r.reason ?? 'Không tiếp tục được.');
-                  },
+              'button',
+              {
+                class: 'small primary',
+                onclick: async () => {
+                  const r = await send({ kind: 'resume' });
+                  if (!r.ok) setNotice('err', r.reason ?? 'Không tiếp tục được.');
                 },
-                '▶ Tiếp tục',
-              ),
+              },
+              '▶ Tiếp tục',
+            ),
           h('button', { class: 'danger small', title: 'Dừng và xóa phiên', onclick: () => void stopAndClear() }, '✕ Dừng & xóa'),
         ),
       ),
@@ -638,39 +640,39 @@ function sessionHeader(s: Session): Node {
         h('span', {}, `${s.transcript.messages.length}/${s.maxMessages} tin · ${duration(s.startedAt)}`),
       ),
       s.resumedFrom &&
-        h('div', { class: 'muted small', style: 'margin-top:4px' }, `Tiếp tục từ bản nháp lưu lúc ${new Date(s.resumedFrom.savedAt).toLocaleString('vi-VN')}`),
+      h('div', { class: 'muted small', style: 'margin-top:4px' }, `Tiếp tục từ bản nháp lưu lúc ${new Date(s.resumedFrom.savedAt).toLocaleString('vi-VN')}`),
       s.status === 'tracking' &&
-        s.waiting &&
-        h(
-          'div',
-          { class: 'banner small', style: 'margin-top:8px' },
-          `Khung chat với "${s.threadLabel}" đang đóng. Phiên và bản nháp vẫn được giữ; mở lại đúng khung chat này để đọc tiếp. Không đọc các cuộc trò chuyện khác. Tin đến lúc khung đóng có thể bị bỏ sót.`,
-        ),
+      s.waiting &&
+      h(
+        'div',
+        { class: 'banner small', style: 'margin-top:8px' },
+        `Khung chat với "${s.threadLabel}" đang đóng. Phiên và bản nháp vẫn được giữ; mở lại đúng khung chat này để đọc tiếp. Không đọc các cuộc trò chuyện khác. Tin đến lúc khung đóng có thể bị bỏ sót.`,
+      ),
       s.status === 'tracking' &&
-        s.readerError &&
-        h('div', { class: 'banner small err', style: 'margin-top:8px' }, `Bộ đọc tạm ngừng: ${s.readerError}`),
+      s.readerError &&
+      h('div', { class: 'banner small err', style: 'margin-top:8px' }, `Bộ đọc tạm ngừng: ${s.readerError}`),
       s.pendingThread &&
+      h(
+        'div',
+        { class: 'banner', style: 'margin-top:8px' },
+        h('div', {}, `Bạn đã chuyển sang cuộc trò chuyện khác (${s.pendingThread.threadLabel || 'không rõ tên'}). Dữ liệu hai cuộc trò chuyện không được trộn lẫn.`),
         h(
           'div',
-          { class: 'banner', style: 'margin-top:8px' },
-          h('div', {}, `Bạn đã chuyển sang cuộc trò chuyện khác (${s.pendingThread.threadLabel || 'không rõ tên'}). Dữ liệu hai cuộc trò chuyện không được trộn lẫn.`),
+          { class: 'row', style: 'margin-top:6px' },
           h(
-            'div',
-            { class: 'row', style: 'margin-top:6px' },
-            h(
-              'button',
-              {
-                onclick: async () => {
-                  if (!confirm('Xóa phiên hiện tại và bắt đầu theo dõi cuộc trò chuyện mới?')) return;
-                  const r = await send({ kind: 'switch_to_pending' });
-                  if (!r.ok) setNotice('err', r.reason ?? 'Không đổi được cuộc trò chuyện.');
-                },
+            'button',
+            {
+              onclick: async () => {
+                if (!confirm('Xóa phiên hiện tại và bắt đầu theo dõi cuộc trò chuyện mới?')) return;
+                const r = await send({ kind: 'switch_to_pending' });
+                if (!r.ok) setNotice('err', r.reason ?? 'Không đổi được cuộc trò chuyện.');
               },
-              'Xóa phiên này & theo dõi chat mới',
-            ),
+            },
+            'Xóa phiên này & theo dõi chat mới',
           ),
-          h('div', { class: 'muted small' }, 'Hoặc quay lại cuộc trò chuyện cũ rồi bấm "Tiếp tục".'),
         ),
+        h('div', { class: 'muted small' }, 'Hoặc quay lại cuộc trò chuyện cũ rồi bấm "Tiếp tục".'),
+      ),
       // Gắn trực tiếp Cụm Đo lường Rủi ro Kép (Vòng cung % + 4 Thanh phân cấp) vào trong bảng LIVE
       riskCard(s),
     ),
@@ -701,11 +703,11 @@ function riskCard(s: Session): Node {
       h('div', { class: `meter`, style: `color:var(--${r.risk_level})` }, h('span', { style: `width:${r.score}%` })),
       r.stability_note && h('div', { class: 'hold small', role: 'status' }, r.stability_note),
       r.raw_level &&
-        r.raw_level !== r.risk_level &&
-        h('div', { class: 'muted small' }, `Mức tính theo tin mới nhất: ${RISK_LEVEL_LABEL[r.raw_level]}`),
+      r.raw_level !== r.risk_level &&
+      h('div', { class: 'muted small' }, `Mức tính theo tin mới nhất: ${RISK_LEVEL_LABEL[r.raw_level]}`),
       s.stability &&
-        RISK_LEVEL_ORDER[s.stability.maxLevel] > RISK_LEVEL_ORDER[r.risk_level] &&
-        h('div', { class: 'small' }, h('b', {}, 'Mức cao nhất trong phiên: '), RISK_LEVEL_LABEL[s.stability.maxLevel]),
+      RISK_LEVEL_ORDER[s.stability.maxLevel] > RISK_LEVEL_ORDER[r.risk_level] &&
+      h('div', { class: 'small' }, h('b', {}, 'Mức cao nhất trong phiên: '), RISK_LEVEL_LABEL[s.stability.maxLevel]),
       h('div', { class: 'small', style: 'margin-top:4px' }, h('span', { class: 'muted' }, 'Vì sao: '), r.level_reason),
       latest && h('div', { class: 'small' }, h('span', { class: 'muted' }, 'Tín hiệu mới nhất: '), latest.title),
       h('div', { class: 'muted small', style: 'margin-top:3px' }, aiStatusText(s)),
@@ -713,12 +715,12 @@ function riskCard(s: Session): Node {
   );
 }
 
-const PROVIDER_LABEL = { nano: 'Gemini Nano trên máy', groq: 'Groq' } as const;
+const PROVIDER_LABEL = { nano: 'Gemini Nano trên máy', gateway: 'Máy chủ SafeChat' } as const;
 
 function aiStatusText(s: Session): string {
   const ai = s.ai;
   const via = ai.lastProvider
-    ? `${PROVIDER_LABEL[ai.lastProvider]}${ai.lastProvider === 'groq' ? ` (${ai.lastTier === 'large' ? 'mô hình lớn' : 'mô hình nhỏ'})` : ''}`
+    ? `${PROVIDER_LABEL[ai.lastProvider]}${ai.lastProvider === 'gateway' && ai.lastModel ? ` (${ai.lastModel})` : ''}`
     : '';
   switch (ai.status) {
     case 'off':
@@ -738,8 +740,8 @@ function aiDisclosure(): string {
   const st = state.settings;
   const parts: string[] = [];
   if (st.nanoEnabled) parts.push('AI trên máy (Gemini Nano) — dữ liệu không rời máy');
-  if (st.groqEnabled && st.groqApiKey)
-    parts.push('Groq — chỉ gửi tin mới kèm vài tin ngữ cảnh và bản tóm tắt, đã che số điện thoại, số tài khoản, email');
+  if (st.gatewayEnabled && st.gatewayUrl)
+    parts.push('Máy chủ SafeChat — chỉ gửi tin mới kèm vài tin ngữ cảnh và bản tóm tắt, đã che số điện thoại, số tài khoản, email');
   return parts.length
     ? `Phân tích AI đang BẬT: ${parts.join('; ')}.`
     : 'Phân tích chạy hoàn toàn trên máy bằng bộ quy tắc. AI đang tắt.';
@@ -788,23 +790,23 @@ function analysisView(s: Session): Node {
       r.score_breakdown.length === 0
         ? h('p', { class: 'muted small' }, 'Chưa có tín hiệu.')
         : h(
-            'table',
-            { class: 'tbl' },
-            h('thead', {}, h('tr', {}, h('th', {}, 'Tín hiệu'), h('th', {}, 'Mức'), h('th', { class: 'num' }, 'Điểm'))),
-            h(
-              'tbody',
-              {},
-              ...r.score_breakdown.map((b) =>
-                h(
-                  'tr',
-                  {},
-                  h('td', {}, b.title),
-                  h('td', {}, SEVERITY_LABEL[b.severity]),
-                  h('td', { class: 'num' }, `${b.base_points}${b.weight < 1 ? ' × 25%' : ''} = ${b.contribution}`),
-                ),
+          'table',
+          { class: 'tbl' },
+          h('thead', {}, h('tr', {}, h('th', {}, 'Tín hiệu'), h('th', {}, 'Mức'), h('th', { class: 'num' }, 'Điểm'))),
+          h(
+            'tbody',
+            {},
+            ...r.score_breakdown.map((b) =>
+              h(
+                'tr',
+                {},
+                h('td', {}, b.title),
+                h('td', {}, SEVERITY_LABEL[b.severity]),
+                h('td', { class: 'num' }, `${b.base_points}${b.weight < 1 ? ' × 25%' : ''} = ${b.contribution}`),
               ),
             ),
           ),
+        ),
       h(
         'p',
         { class: 'muted small' },
@@ -818,18 +820,18 @@ function analysisView(s: Session): Node {
       counts.length === 0
         ? h('p', { class: 'muted small' }, 'Chưa có.')
         : h(
-            'div',
-            { class: 'bars' },
-            ...counts.map(([c, n]) =>
-              h(
-                'div',
-                { class: 'bar' },
-                h('span', { class: 'bar-label' }, CATEGORY_LABEL[c]),
-                h('span', { class: 'bar-track' }, h('span', { class: 'bar-fill', style: `width:${(n / maxCount) * 100}%` })),
-                h('span', { class: 'bar-num' }, String(n)),
-              ),
+          'div',
+          { class: 'bars' },
+          ...counts.map(([c, n]) =>
+            h(
+              'div',
+              { class: 'bar' },
+              h('span', { class: 'bar-label' }, CATEGORY_LABEL[c]),
+              h('span', { class: 'bar-track' }, h('span', { class: 'bar-fill', style: `width:${(n / maxCount) * 100}%` })),
+              h('span', { class: 'bar-num' }, String(n)),
             ),
           ),
+        ),
     ),
     h(
       'section',
@@ -838,18 +840,18 @@ function analysisView(s: Session): Node {
       s.timeline.length === 0
         ? h('p', { class: 'muted small' }, 'Chưa có thay đổi.')
         : h(
-            'ol',
-            { class: 'timeline' },
-            ...[...s.timeline].reverse().map((t) =>
-              h(
-                'li',
-                { class: `tl ${t.level}` },
-                h('div', {}, h('b', {}, `${RISK_LEVEL_LABEL[t.level]} · ${t.score}`), h('span', { class: 'muted small' }, ` sau ${t.messageId}`)),
-                t.newSignals.length > 0 && h('div', { class: 'small' }, `+ ${t.newSignals.join(', ')}`),
-                t.note && h('div', { class: 'muted small' }, t.note),
-              ),
+          'ol',
+          { class: 'timeline' },
+          ...[...s.timeline].reverse().map((t) =>
+            h(
+              'li',
+              { class: `tl ${t.level}` },
+              h('div', {}, h('b', {}, `${RISK_LEVEL_LABEL[t.level]} · ${t.score}`), h('span', { class: 'muted small' }, ` sau ${t.messageId}`)),
+              t.newSignals.length > 0 && h('div', { class: 'small' }, `+ ${t.newSignals.join(', ')}`),
+              t.note && h('div', { class: 'muted small' }, t.note),
             ),
           ),
+        ),
     ),
     h(
       'section',
@@ -857,14 +859,14 @@ function analysisView(s: Session): Node {
       h('h2', {}, 'Phân tích AI'),
       h('p', { class: 'small' }, aiStatusText(s)),
       ai.status !== 'off' &&
-        h(
-          'ul',
-          { class: 'small' },
-          h('li', {}, `Lượt gọi trong phiên: ${ai.calls}`),
-          h('li', {}, `Lượt Groq hôm nay: ${state.usageToday}/${state.settings.dailyBudget}`),
-          ai.lastReason && h('li', {}, `Lần gọi gần nhất vì: ${ai.lastReason}`),
-          h('li', {}, `Đã phân tích đến: ${ai.lastSeq ? `msg-${String(ai.lastSeq).padStart(3, '0')}` : 'chưa'}`),
-        ),
+      h(
+        'ul',
+        { class: 'small' },
+        h('li', {}, `Lượt gọi trong phiên: ${ai.calls}`),
+        h('li', {}, `Lượt AI qua máy chủ hôm nay: ${state.usageToday}/${state.settings.dailyBudget}`),
+        ai.lastReason && h('li', {}, `Lần gọi gần nhất vì: ${ai.lastReason}`),
+        h('li', {}, `Đã phân tích đến: ${ai.lastSeq ? `msg-${String(ai.lastSeq).padStart(3, '0')}` : 'chưa'}`),
+      ),
       ai.summary && h('div', {}, h('div', { class: 'muted small' }, 'Tóm tắt do AI viết (đã che dữ liệu cá nhân):'), h('blockquote', {}, ai.summary)),
     ),
   );
@@ -921,7 +923,7 @@ function adviceCard(s: Session): Node | null {
   const a = s.result?.advice;
   if (!a) return null;
   const msgPct = Math.min(100, Math.round((s.transcript.messages.length / Math.max(1, s.maxMessages)) * 100));
-  const aiPct = state.settings.groqEnabled ? Math.min(100, Math.round((state.usageToday / Math.max(1, state.settings.dailyBudget)) * 100)) : 0;
+  const aiPct = state.settings.gatewayEnabled ? Math.min(100, Math.round((state.usageToday / Math.max(1, state.settings.dailyBudget)) * 100)) : 0;
   const usagePct = Math.max(msgPct, aiPct);
   const nearLimit = usagePct >= 80;
 
@@ -950,31 +952,31 @@ function adviceCard(s: Session): Node | null {
         ...a.actions.slice(0, state.adviceExpanded ? 6 : 2).map((x) => h('li', {}, x)),
       ),
       state.adviceExpanded &&
-        a.questions.length > 0 &&
-        h(
-          'div',
-          { style: 'margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)' },
-          h('div', { class: 'small', style: 'font-weight:700;margin-bottom:4px' }, 'Câu hỏi bạn có thể tự gửi:'),
-          h('p', { class: 'muted small', style: 'margin:0 0 6px' }, 'SafeChat AI không tự gửi tin. Hãy sao chép và tự quyết định có gửi hay không.'),
-          ...a.questions.map((q) =>
+      a.questions.length > 0 &&
+      h(
+        'div',
+        { style: 'margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)' },
+        h('div', { class: 'small', style: 'font-weight:700;margin-bottom:4px' }, 'Câu hỏi bạn có thể tự gửi:'),
+        h('p', { class: 'muted small', style: 'margin:0 0 6px' }, 'SafeChat AI không tự gửi tin. Hãy sao chép và tự quyết định có gửi hay không.'),
+        ...a.questions.map((q) =>
+          h(
+            'div',
+            { class: 'q' },
+            h('span', { class: 'small' }, q),
             h(
-              'div',
-              { class: 'q' },
-              h('span', { class: 'small' }, q),
-              h(
-                'button',
-                {
-                  class: 'link',
-                  onclick: async () => {
-                    await navigator.clipboard.writeText(q);
-                    setNotice('ok', 'Đã sao chép câu hỏi.');
-                  },
+              'button',
+              {
+                class: 'link',
+                onclick: async () => {
+                  await navigator.clipboard.writeText(q);
+                  setNotice('ok', 'Đã sao chép câu hỏi.');
                 },
-                'Sao chép',
-              ),
+              },
+              'Sao chép',
             ),
           ),
         ),
+      ),
     ),
     // Khối 5: Hộp Giới hạn quét & Nút Tải ngay (màu vàng cam như ảnh thiết kế)
     h(
@@ -1011,7 +1013,7 @@ function adviceCard(s: Session): Node | null {
       ),
     ),
     (s.result?.uncertainties.length ?? 0) > 0 &&
-      h('section', { class: 'card' }, h('h2', {}, 'Chưa đủ thông tin'), h('ul', {}, ...s.result!.uncertainties.map((u) => h('li', {}, u)))),
+    h('section', { class: 'card' }, h('h2', {}, 'Chưa đủ thông tin'), h('ul', {}, ...s.result!.uncertainties.map((u) => h('li', {}, u)))),
   );
 }
 
@@ -1078,27 +1080,27 @@ function evidenceView(s: Session): Node {
       ...sigs.map((x) => signalCard(s, x)),
     ),
     ledger.length > 0 &&
+    h(
+      'section',
+      { class: 'card' },
+      h('h2', {}, 'Sổ đối chiếu phát biểu'),
       h(
-        'section',
-        { class: 'card' },
-        h('h2', {}, 'Sổ đối chiếu phát biểu'),
-        h(
-          'ul',
-          {},
-          ...ledger.map((c) =>
+        'ul',
+        {},
+        ...ledger.map((c) =>
+          h(
+            'li',
+            {},
+            `${c.claim_text} — ${c.source_message_id} `,
             h(
-              'li',
-              {},
-              `${c.claim_text} — ${c.source_message_id} `,
-              h(
-                'span',
-                { class: 'tag' },
-                { unverified: 'chưa xác minh', consistent: 'nhất quán', possible_contradiction: 'chưa nhất quán', explained: 'đã đính chính' }[c.status],
-              ),
+              'span',
+              { class: 'tag' },
+              { unverified: 'chưa xác minh', consistent: 'nhất quán', possible_contradiction: 'chưa nhất quán', explained: 'đã đính chính' }[c.status],
             ),
           ),
         ),
       ),
+    ),
   );
 }
 
@@ -1207,81 +1209,58 @@ function settingsCard(): Node {
       'Chạy ngay trong Chrome, dữ liệu không rời máy, không tốn phí hay hạn mức. Cần Chrome máy tính (Windows/macOS/Linux), khoảng 22 GB trống và GPU trên 4 GB hoặc 16 GB RAM. Chỉ chạy khi side panel đang mở. Tiếng Việt chưa được hỗ trợ chính thức nên đây là chế độ thử nghiệm.',
     ),
     nanoControls(st, save),
-    // ----- Tầng 2: Groq -----
-    h('h3', { style: 'margin-top:12px' }, '2. Groq — dự phòng / khi đóng side panel'),
+    // ----- Tầng 2: Máy chủ SafeChat -----
+    h('h3', { style: 'margin-top:12px' }, '2. Máy chủ SafeChat — dự phòng / khi đóng side panel'),
     h(
       'p',
       { class: 'muted small' },
-      'Chỉ gửi tin MỚI kèm 4 tin ngữ cảnh và bản tóm tắt do AI viết, đã che số điện thoại, số tài khoản, email. Mô hình nhỏ chạy mặc định; mô hình lớn chỉ chạy khi mức ≥ Cần chú ý hoặc mô hình nhỏ thấy dấu hiệu nặng. Dữ liệu đã gửi chịu chính sách của Groq; "Dừng và xóa" không xóa được dữ liệu phía Groq. API key lưu trên máy này.',
+      'Không cần khóa API. Chỉ gửi tin MỚI kèm vài tin ngữ cảnh và bản tóm tắt do AI viết, đã che số điện thoại, số tài khoản, email, tới máy chủ SafeChat. Máy chủ giữ khóa mô hình, extension không giữ. \"Dừng và xóa\" xóa dữ liệu phiên trên máy này nhưng không thu hồi được dữ liệu đã gửi tới máy chủ. Bạn có thể tắt bất cứ lúc nào.',
     ),
     h(
       'div',
       { class: 'field' },
-      h('label', { for: 'key' }, 'Groq API key'),
+      h('label', { for: 'gw' }, 'Địa chỉ máy chủ SafeChat (HTTPS)'),
       h('input', {
-        id: 'key',
-        type: 'password',
-        value: st.groqApiKey,
+        id: 'gw',
+        type: 'url',
+        placeholder: 'https://…',
+        value: st.gatewayUrl,
         autocomplete: 'off',
-        onchange: (e: Event) => void save({ ...st, groqApiKey: (e.target as HTMLInputElement).value.trim() }),
+        onchange: (e: Event) => void save({ ...st, gatewayUrl: (e.target as HTMLInputElement).value.trim() }),
       }),
     ),
     h(
       'div',
-      { class: 'grid2' },
-      h(
-        'div',
-        { class: 'field' },
-        h('label', { for: 'ms' }, 'Mô hình nhỏ'),
-        h('input', {
-          id: 'ms',
-          type: 'text',
-          value: st.groqSmallModel,
-          onchange: (e: Event) => void save({ ...st, groqSmallModel: (e.target as HTMLInputElement).value.trim() || DEFAULT_SETTINGS.groqSmallModel }),
-        }),
-      ),
-      h(
-        'div',
-        { class: 'field' },
-        h('label', { for: 'ml' }, 'Mô hình lớn'),
-        h('input', {
-          id: 'ml',
-          type: 'text',
-          value: st.groqLargeModel,
-          onchange: (e: Event) => void save({ ...st, groqLargeModel: (e.target as HTMLInputElement).value.trim() || DEFAULT_SETTINGS.groqLargeModel }),
-        }),
-      ),
-    ),
-    h(
-      'div',
       { class: 'row' },
-      st.groqEnabled
-        ? h('button', { onclick: () => void save({ ...st, groqEnabled: false }) }, 'Tắt Groq')
+      st.gatewayEnabled
+        ? h('button', { onclick: () => void save({ ...st, gatewayEnabled: false }) }, 'Tắt máy chủ SafeChat')
         : h(
-            'button',
-            {
-              disabled: !st.groqApiKey,
-              onclick: async () => {
-                if (!confirm('Bật Groq: tin nhắn mới (đã che dữ liệu cá nhân) và bản tóm tắt sẽ được gửi tới Groq (bên thứ ba). Bạn đồng ý?')) return;
-                const granted = await chrome.permissions.request({ origins: ['https://api.groq.com/*'] });
-                if (!granted) return setNotice('err', 'Chưa được cấp quyền truy cập api.groq.com.');
-                await save({ ...st, groqEnabled: true });
-              },
+          'button',
+          {
+            disabled: !st.gatewayUrl,
+            onclick: async () => {
+              const url = normalizeGatewayUrl(st.gatewayUrl);
+              if (!url) return setNotice('err', 'Địa chỉ máy chủ không hợp lệ (cần dạng https://…).');
+              if (!confirm('Bật máy chủ SafeChat: tin nhắn mới (đã che dữ liệu cá nhân) và bản tóm tắt sẽ được gửi tới máy chủ SafeChat. Bạn đồng ý?')) return;
+              const granted = await chrome.permissions.request({ origins: [gatewayOriginPattern(url)] });
+              if (!granted) return setNotice('err', 'Chưa được cấp quyền truy cập máy chủ SafeChat.');
+              await save({ ...st, gatewayUrl: url, gatewayEnabled: true });
             },
-            'Bật Groq',
-          ),
-      h('span', { class: st.groqEnabled ? 'ok small' : 'muted small' }, st.groqEnabled ? 'Đang bật' : 'Đang tắt'),
+          },
+          'Bật máy chủ SafeChat',
+        ),
+      h('span', { class: st.gatewayEnabled ? 'ok small' : 'muted small' }, st.gatewayEnabled ? 'Đang bật' : 'Đang tắt'),
     ),
     // ----- Tiết kiệm lượt gọi -----
     h('h3', { style: 'margin-top:12px' }, 'Tiết kiệm lượt gọi AI'),
     h(
       'div',
       { class: 'grid3' },
-      numField('budget', 'Lượt Groq/ngày', st.dailyBudget, 10, 5000, (v) => save({ ...st, dailyBudget: v })),
+      numField('budget', 'Lượt AI/ngày', st.dailyBudget, 10, 5000, (v) => save({ ...st, dailyBudget: v })),
       numField('batch', 'Gọi khi đủ N tin mới', st.batchSize, 1, 50, (v) => save({ ...st, batchSize: v })),
       numField('gap', 'Cách nhau tối thiểu (giây)', st.minIntervalSec, 3, 600, (v) => save({ ...st, minIntervalSec: v })),
     ),
-    h('p', { class: 'muted small' }, `Đã dùng hôm nay: ${state.usageToday}/${st.dailyBudget} lượt Groq. AI cũng chạy ngay khi mức cảnh báo tăng hoặc có loại tín hiệu mới.`),
+    h('p', { class: 'muted small' }, `Đã dùng hôm nay: ${state.usageToday}/${st.dailyBudget} lượt qua máy chủ SafeChat. AI cũng chạy ngay khi mức cảnh báo tăng hoặc có loại tín hiệu mới.`),
   );
 }
 
@@ -1305,7 +1284,7 @@ function nanoControls(st: Settings, save: (s: Settings) => Promise<void>): Node 
   const n = state.nano;
   if (!n) return h('p', { class: 'muted small' }, 'Đang kiểm tra khả năng của trình duyệt…');
   if (!n.supported || !n.lang)
-    return h('p', { class: 'small err' }, 'Trình duyệt/máy này chưa hỗ trợ Prompt API (Gemini Nano). Có thể dùng Groq thay thế.');
+    return h('p', { class: 'small err' }, 'Trình duyệt/máy này chưa hỗ trợ Prompt API (Gemini Nano). Có thể dùng máy chủ SafeChat thay thế.');
   const label: Record<string, string> = {
     available: 'Mô hình đã sẵn sàng',
     downloadable: 'Cần tải mô hình (một lần, vài GB)',
@@ -1327,30 +1306,30 @@ function nanoControls(st: Settings, save: (s: Settings) => Promise<void>): Node 
       st.nanoEnabled
         ? h('button', { onclick: () => void save({ ...st, nanoEnabled: false }).then(heartbeat) }, 'Tắt AI trên máy')
         : h(
-            'button',
-            {
-              onclick: async () => {
-                try {
-                  if (n.availability !== 'available') {
-                    state.nanoProgress = 0;
+          'button',
+          {
+            onclick: async () => {
+              try {
+                if (n.availability !== 'available') {
+                  state.nanoProgress = 0;
+                  render();
+                  await downloadNano(n.lang!, (p) => {
+                    state.nanoProgress = p;
                     render();
-                    await downloadNano(n.lang!, (p) => {
-                      state.nanoProgress = p;
-                      render();
-                    });
-                    state.nanoProgress = null;
-                    state.nano = await nanoStatus();
-                  }
-                  await save({ ...st, nanoEnabled: true });
-                  await heartbeat();
-                } catch (e) {
+                  });
                   state.nanoProgress = null;
-                  setNotice('err', `Không bật được AI trên máy: ${(e as Error).message}`);
+                  state.nano = await nanoStatus();
                 }
-              },
+                await save({ ...st, nanoEnabled: true });
+                await heartbeat();
+              } catch (e) {
+                state.nanoProgress = null;
+                setNotice('err', `Không bật được AI trên máy: ${(e as Error).message}`);
+              }
             },
-            n.availability === 'available' ? 'Bật AI trên máy' : 'Tải mô hình & bật',
-          ),
+          },
+          n.availability === 'available' ? 'Bật AI trên máy' : 'Tải mô hình & bật',
+        ),
       h('span', { class: st.nanoEnabled ? 'ok small' : 'muted small' }, st.nanoEnabled ? 'Đang bật' : 'Đang tắt'),
     ),
   );
@@ -1361,7 +1340,7 @@ let nanoBusy: string | null = null;
 
 async function heartbeat() {
   const ready = state.settings.nanoEnabled && state.nano?.availability === 'available' && !!state.nano.lang;
-  await send({ kind: 'panel_status', nanoReady: ready }).catch(() => {});
+  await send({ kind: 'panel_status', nanoReady: ready }).catch(() => { });
 }
 
 async function servePendingNano(s: Session | null) {
@@ -1472,6 +1451,7 @@ async function init() {
   const [sess, sett] = await Promise.all([chrome.storage.session.get(SESSION_KEY), chrome.storage.local.get(SETTINGS_KEY)]);
   state.session = (sess[SESSION_KEY] as Session | undefined) ?? null;
   state.settings = { ...DEFAULT_SETTINGS, ...((sett[SETTINGS_KEY] as Partial<Settings> | undefined) ?? {}) };
+  for (const k of ['groqEnabled', 'groqApiKey', 'groqSmallModel', 'groqLargeModel']) delete (state.settings as unknown as Record<string, unknown>)[k];
   await refreshUsage();
   render();
   await refreshProbe();

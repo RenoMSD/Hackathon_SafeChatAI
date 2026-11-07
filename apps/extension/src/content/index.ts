@@ -2,9 +2,10 @@
 // Chỉ đọc văn bản tin nhắn của cuộc trò chuyện đã chọn; không gửi tin, không thao tác giao diện.
 import type { ContentEvent, ContentRequest, ProbeResult } from '../shared/protocol';
 import type { ChatAdapter } from './adapter';
-import { initFloatingWidget } from './floatingWidget';
+import { initFloatingWidget, type FloatingWidget } from './floatingWidget';
 import { messengerAdapter } from './messengerAdapter';
 import { mockAdapter } from './mockAdapter';
+import { widgetAction, type WidgetAction } from './widgetPolicy';
 
 const DEBOUNCE_MS = 400;
 const CHECK_MS = 1000;
@@ -20,6 +21,19 @@ let checkTimer: ReturnType<typeof setInterval> | undefined;
 let debounce: ReturnType<typeof setTimeout> | undefined;
 let trackedThread: string | null = null;
 let waiting = false;
+let widget: FloatingWidget | null = null;
+
+/** Widget chỉ được tạo/gỡ qua đây, theo quyết định thuần của widgetPolicy. */
+function applyWidget(a: WidgetAction) {
+  if (a.type === 'show') widget = initFloatingWidget(a.badge);
+  else if (a.type === 'update') {
+    if (widget) widget.update(a.badge);
+    else widget = initFloatingWidget(a.badge);
+  } else if (a.type === 'hide') {
+    widget?.destroy();
+    widget = null;
+  }
+}
 
 function send(ev: ContentEvent) {
   chrome.runtime.sendMessage(ev).catch(() => {
@@ -96,6 +110,7 @@ function stop() {
   clearTimeout(debounce);
   trackedThread = null;
   waiting = false;
+  applyWidget({ type: 'hide' });
 }
 
 function probeLocal(): ProbeResult {
@@ -106,9 +121,9 @@ function probeLocal(): ProbeResult {
   return threads.length
     ? { supported: true, platform: adapter.platform, threads, threadId: one?.threadId, threadLabel: one?.threadLabel }
     : {
-        supported: false,
-        reason: adapter.whyNotDetected?.() ?? 'Chưa nhận diện chắc chắn cuộc trò chuyện. Hãy mở một đoạn chat cụ thể.',
-      };
+      supported: false,
+      reason: adapter.whyNotDetected?.() ?? 'Chưa nhận diện chắc chắn cuộc trò chuyện. Hãy mở một đoạn chat cụ thể.',
+    };
 }
 
 chrome.runtime.onMessage.addListener((req: ContentRequest, _sender, sendResponse) => {
@@ -118,17 +133,24 @@ chrome.runtime.onMessage.addListener((req: ContentRequest, _sender, sendResponse
       sendResponse(probeLocal());
       return false;
     case 'cs_start':
-      if (adapter) start(adapter, req.threadId);
+      if (adapter) {
+        start(adapter, req.threadId);
+        applyWidget(widgetAction(req, !!widget));
+      }
       sendResponse({ ok: !!adapter });
       return false;
     case 'cs_stop':
       stop();
       sendResponse({ ok: true });
       return false;
+    case 'cs_risk_update':
+      // Chỉ trên trang được hỗ trợ; widget chỉ hiện khi phiên đang theo dõi
+      if (adapter) applyWidget(widgetAction(req, !!widget));
+      sendResponse({ ok: true });
+      return false;
   }
 });
 
-// Khởi tạo Widget nổi SafeChat AI LIVE (Shadow DOM cô lập) trên trang được hỗ trợ
-if (pickAdapter()) {
-  initFloatingWidget(probeLocal);
-}
+// Không tạo widget khi tải trang. Chỉ báo cho background là đã sẵn sàng: nếu đang có phiên
+// theo dõi ở tab này, background gửi lại mức/điểm để khôi phục widget sau khi tải lại trang.
+if (pickAdapter()) send({ kind: 'cs_ready' });

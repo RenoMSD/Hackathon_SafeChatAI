@@ -14,6 +14,11 @@ function area() {
       data = { ...data, ...structuredClone(obj) };
       changeListeners.forEach((l) => l(Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, { newValue: v }]))));
     },
+    async remove(keys: string | string[]) {
+      const list = Array.isArray(keys) ? keys : [keys];
+      data = Object.fromEntries(Object.entries(data).filter(([k]) => !list.includes(k)));
+      changeListeners.forEach((l) => l(Object.fromEntries(list.map((k) => [k, { newValue: undefined }]))));
+    },
     async clear() {
       const keys = Object.keys(data);
       data = {};
@@ -42,6 +47,7 @@ export function installFakeChrome() {
     runtime: {
       onMessage: { addListener: (l: Listener) => runtimeListeners.push(l) },
       sendMessage: (msg: unknown) => dispatch(msg, {}),
+      getManifest: () => ({ version: '0.5.0' }),
     },
     tabs: {
       async sendMessage(tabId: number, msg: unknown) {
@@ -52,14 +58,14 @@ export function installFakeChrome() {
       onRemoved: { addListener: (l: (id: number) => void) => (chromeFake as any)._onRemoved.push(l) },
     },
     _onRemoved: [] as ((id: number) => void)[],
-    sidePanel: { setPanelBehavior: async () => {} },
+    sidePanel: { setPanelBehavior: async () => { } },
     action: {
       setBadgeText: async ({ text }: { text: string }) => {
         badge.text = text;
       },
-      setBadgeBackgroundColor: async () => {},
+      setBadgeBackgroundColor: async () => { },
     },
-    permissions: { contains: async () => false },
+    permissions: { contains: async () => false, request: async () => true },
   };
   (globalThis as any).chrome = chromeFake;
 
