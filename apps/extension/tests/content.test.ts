@@ -18,8 +18,13 @@ describe('adapter Messenger (phần thuần)', () => {
   it('ID người kia từ link hồ sơ; link ngoài Facebook hoặc trang khác bị bỏ', () => {
     expect(peerIdFromHref('/100012345678/')).toBe('100012345678');
     expect(peerIdFromHref('https://www.facebook.com/profile.php?id=4242')).toBe('4242');
+    expect(peerIdFromHref('https://www.facebook.com/people/Manh-Hung/1000999888/')).toBe('1000999888');
+    expect(peerIdFromHref('/messages/t/1000555666/')).toBe('1000555666');
+    expect(peerIdFromHref('/messages/e2ee/t/1000777888/')).toBe('1000777888');
+    expect(peerIdFromHref('https://www.facebook.com/manh.hung.99/')).toBe('manh.hung.99');
     expect(peerIdFromHref('https://evil.example/100012345678/')).toBeNull();
     expect(peerIdFromHref('/groups/123/')).toBeNull();
+    expect(peerIdFromHref('/watch/')).toBeNull();
     expect(peerIdFromHref('/profile.php?id=abc')).toBeNull();
   });
 

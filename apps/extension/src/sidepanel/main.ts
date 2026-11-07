@@ -4,13 +4,12 @@ import { createSnapshot, describeSnapshot, parseSnapshot, serializeSnapshot, Sna
 import { exportHtml, exportJson, type ExportScope } from '@safechat/core/export';
 import {
   CATEGORY_LABEL,
-  RISK_LEVEL_LABEL,
   RISK_LEVEL_ORDER,
-  SEVERITY_LABEL,
   STAGE_LABEL,
   type AnalysisResult,
   type RiskLevel,
   type ScamStage,
+  type Severity,
   type Signal,
   type SignalCategory,
   type UserMark,
@@ -35,17 +34,14 @@ type View = 'overview' | 'analysis' | 'evidence' | 'draft' | 'settings';
 const STAGES: ScamStage[] = ['S0', 'S1', 'S2', 'S3', 'S4'];
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-// Biến lưu trạng thái đồng hồ SVG để nội suy mượt 60fps mà không tạo lại phần tử
-let displayedScore = 0;
-let scoreAnimFrame = 0;
-let gaugeDomCache: {
-  root: HTMLElement;
-  arc: SVGElement;
-  pctEl: HTMLElement;
-  capEl: HTMLElement;
-  badgeEl: HTMLElement;
-  arcLen: number;
-} | null = null;
+/** 4 mức độ hiển thị thống nhất (không dùng điểm số dao động). */
+const LEVEL_DISPLAY: Record<RiskLevel | Severity, string> = {
+  low: 'Bình thường',
+  attention: 'Cần chú ý',
+  medium: 'Cần chú ý',
+  high: 'Cao',
+  critical: 'Nguy hiểm',
+};
 
 let tiersDomCache: {
   root: HTMLElement;
@@ -151,169 +147,149 @@ function svg(tag: string, attrs: Record<string, string | number> = {}, ...childr
   return el;
 }
 
-// ---------- Đồ họa SVG Mascot Mèo Tuxedo & Đồng hồ Vòng cung ----------
-function mascotHeroSvg(): SVGElement {
-  return svg(
-    'svg',
-    { viewBox: '0 0 110 110', width: 90, height: 90, 'aria-hidden': 'true' },
-    // Đuôi mèo
-    svg('path', { d: 'M18 76 C8 68, 8 52, 18 48', stroke: '#1e2433', 'stroke-width': 8, 'stroke-linecap': 'round', fill: 'none' }),
-    // Thân mèo tuxedo
-    svg('ellipse', { cx: 48, cy: 74, rx: 24, ry: 22, fill: '#1e2433' }),
-    svg('ellipse', { cx: 48, cy: 76, rx: 14, ry: 16, fill: '#ffffff' }),
-    // Tai trái & phải
-    svg('polygon', { points: '24,42 20,16 40,28', fill: '#1e2433' }),
-    svg('polygon', { points: '25,38 23,21 37,29', fill: '#fda4af' }),
-    svg('polygon', { points: '72,42 76,16 56,28', fill: '#1e2433' }),
-    svg('polygon', { points: '71,38 73,21 59,29', fill: '#fda4af' }),
-    // Đầu mèo
-    svg('ellipse', { cx: 48, cy: 44, rx: 26, ry: 22, fill: '#1e2433' }),
-    // Mảng trắng mặt tuxedo
-    svg('path', { d: 'M48 34 L34 56 Q48 64 62 56 Z', fill: '#ffffff' }),
-    // Mắt vàng hổ phách
-    svg('circle', { cx: 37, cy: 41, r: 5.5, fill: '#facc15', class: 'mascot-eye' }),
-    svg('circle', { cx: 37, cy: 41, r: 2.8, fill: '#111827', class: 'mascot-eye' }),
-    svg('circle', { cx: 35.5, cy: 39.5, r: 1.2, fill: '#ffffff' }),
-    svg('circle', { cx: 59, cy: 41, r: 5.5, fill: '#facc15', class: 'mascot-eye' }),
-    svg('circle', { cx: 59, cy: 41, r: 2.8, fill: '#111827', class: 'mascot-eye' }),
-    svg('circle', { cx: 57.5, cy: 39.5, r: 1.2, fill: '#ffffff' }),
-    // Mũi hồng & miệng
-    svg('ellipse', { cx: 48, cy: 48, rx: 3, ry: 2.2, fill: '#fb7185' }),
-    svg('path', { d: 'M44 52 Q48 55 48 51 Q48 55 52 52', stroke: '#374151', 'stroke-width': 1.6, fill: 'none', 'stroke-linecap': 'round' }),
-    // Khiên bảo vệ xanh dương bên phải
-    svg('path', {
-      d: 'M72 48 L96 54 L96 72 C96 86 84 96 72 100 C60 96 48 86 48 72 L48 54 Z',
-      fill: '#2563eb',
-      stroke: '#eff6ff',
-      'stroke-width': 3,
-    }),
-    svg('path', { d: 'M65 73 L71 79 L82 66', stroke: '#ffffff', 'stroke-width': 3.5, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
-    // Chân trắng
-    svg('ellipse', { cx: 34, cy: 93, rx: 7, ry: 5, fill: '#ffffff', stroke: '#cbd5e1', 'stroke-width': 1 }),
-    svg('ellipse', { cx: 54, cy: 68, rx: 6, ry: 4.5, fill: '#ffffff' }),
-  );
-}
-
-function peekingCatSvg(): SVGElement {
-  return svg(
-    'svg',
-    { viewBox: '0 0 120 68', class: 'peeking-cat-svg', 'aria-hidden': 'true' },
-    // Tai trái & phải
-    svg('polygon', { points: '28,38 22,10 46,24', fill: '#1e2433' }),
-    svg('polygon', { points: '30,35 26,15 43,25', fill: '#fda4af' }),
-    svg('polygon', { points: '92,38 98,10 74,24', fill: '#1e2433' }),
-    svg('polygon', { points: '90,35 94,15 77,25', fill: '#fda4af' }),
-    // Đầu mèo lấp ló
-    svg('ellipse', { cx: 60, cy: 46, rx: 34, ry: 25, fill: '#1e2433' }),
-    svg('path', { d: 'M60 32 L42 58 Q60 66 78 58 Z', fill: '#ffffff' }),
-    // Mắt
-    svg('circle', { cx: 46, cy: 43, r: 6, fill: '#facc15', class: 'mascot-eye' }),
-    svg('circle', { cx: 46, cy: 43, r: 3.2, fill: '#111827', class: 'mascot-eye' }),
-    svg('circle', { cx: 44.5, cy: 41, r: 1.4, fill: '#ffffff' }),
-    svg('circle', { cx: 74, cy: 43, r: 6, fill: '#facc15', class: 'mascot-eye' }),
-    svg('circle', { cx: 74, cy: 43, r: 3.2, fill: '#111827', class: 'mascot-eye' }),
-    svg('circle', { cx: 72.5, cy: 41, r: 1.4, fill: '#ffffff' }),
-    // Mũi
-    svg('ellipse', { cx: 60, cy: 50, rx: 3.2, ry: 2.3, fill: '#fb7185' }),
-    // Hai bàn chân trắng bám mép khung
-    svg('ellipse', { cx: 30, cy: 60, rx: 11, ry: 6.5, fill: '#ffffff', stroke: '#cbd5e1', 'stroke-width': 1.2 }),
-    svg('ellipse', { cx: 90, cy: 60, rx: 11, ry: 6.5, fill: '#ffffff', stroke: '#cbd5e1', 'stroke-width': 1.2 }),
-  );
-}
-
-const LEVEL_STROKE: Record<RiskLevel, string> = {
-  low: '#16a34a',
-  attention: '#3b82f6',
-  high: '#f59e0b',
-  critical: '#dc2626',
+// ---------- Chú mèo Pixel Art cầm khiên & 4 mức độ ----------
+const SHIELD_PIXEL_PALETTE: Record<RiskLevel, { main: string; light: string; dark: string }> = {
+  low: { main: '#16a34a', light: '#4ade80', dark: '#14532d' },
+  attention: { main: '#2563eb', light: '#60a5fa', dark: '#1e3a8a' },
+  high: { main: '#ea580c', light: '#fb923c', dark: '#7c2d12' },
+  critical: { main: '#dc2626', light: '#f87171', dark: '#7f1d1d' },
 };
 
 const LEVEL_BADGE_TEXT: Record<RiskLevel, string> = {
-  low: '✓ Chưa thấy dấu hiệu rõ',
-  attention: 'ℹ️ Cần chú ý xác minh',
-  high: '⚠️ Có dấu hiệu rủi ro',
-  critical: '🚨 Rủi ro rất cao',
+  low: 'Chưa thấy dấu hiệu bất thường',
+  attention: 'Có chi tiết cần xác minh',
+  high: 'Phát hiện dấu hiệu rủi ro',
+  critical: 'Cảnh báo nguy hiểm, cần cảnh giác',
 };
 
-function updateGaugeNode(targetScore: number, level: RiskLevel): HTMLElement {
-  const r = 46;
-  const circum = 2 * Math.PI * r;
-  const arcLen = (240 / 360) * circum;
-  const clamped = Math.max(0, Math.min(100, targetScore));
+function px(x: number, y: number, w: number, hgt: number, fill: string): SVGElement {
+  return svg('rect', { x, y, width: w, height: hgt, fill });
+}
 
-  if (!gaugeDomCache) {
-    const startOffset = arcLen - (displayedScore / 100) * arcLen;
-    const track = svg('circle', {
-      cx: 63,
-      cy: 58,
-      r,
-      class: 'gauge-track',
-      'stroke-dasharray': `${arcLen} ${circum}`,
-      transform: 'rotate(150 63 58)',
-    });
-    const arc = svg('circle', {
-      cx: 63,
-      cy: 58,
-      r,
-      class: 'gauge-arc',
-      stroke: LEVEL_STROKE[level],
-      'stroke-dasharray': `${arcLen} ${circum}`,
-      'stroke-dashoffset': String(startOffset),
-      transform: 'rotate(150 63 58)',
-    });
-    const pctEl = h('div', { class: 'gauge-pct' }, `${Math.round(displayedScore)}%`);
-    const capEl = h('div', { class: 'gauge-caption' }, `${RISK_LEVEL_LABEL[level]} (${clamped}/100)`);
-    const badgeEl = h('div', { class: `risk-pill-badge ${level}` }, LEVEL_BADGE_TEXT[level]);
-    const root = h(
-      'div',
-      { class: 'gauge-panel' },
-      h(
-        'div',
-        { class: 'gauge-wrap' },
-        svg('svg', { viewBox: '0 0 126 112', class: 'gauge-svg', 'aria-hidden': 'true' }, track, arc),
-        h('div', { class: 'gauge-center' }, pctEl, capEl),
-      ),
-      badgeEl,
-    );
-    gaugeDomCache = { root, arc, pctEl, capEl, badgeEl, arcLen };
-  }
+function catShieldSvg(level: RiskLevel): SVGElement {
+  const BK = '#090a0f';
+  const DK = '#1e222d';
+  const LT = '#343946';
+  const PK = '#f9a8ba';
+  const NS = '#fb7185';
+  const EY = level === 'critical' ? '#fde047' : '#f59e0b';
+  const WT = '#ffffff';
+  const WS = '#dbe4f0';
+  const pal = SHIELD_PIXEL_PALETTE[level];
+  const isAlert = level === 'high' || level === 'critical';
 
-  const { root, arc, pctEl, capEl, badgeEl } = gaugeDomCache;
-  const endOffset = arcLen - (clamped / 100) * arcLen;
+  return svg(
+    'svg',
+    {
+      viewBox: '0 0 24 17',
+      width: 96,
+      height: 68,
+      class: 'mascot-float',
+      'shape-rendering': 'crispEdges',
+      'aria-hidden': 'true',
+    },
+    svg('ellipse', { cx: 12, cy: 15.6, rx: 9.5, ry: 1.2, fill: 'rgba(15, 23, 42, 0.16)' }),
+    // Đuôi pixel bậc thang bên phải (có chóp đuôi trắng Tuxedo)
+    px(15, 12, 2, 1, BK),
+    px(16, 11, 2, 1, BK),
+    px(17, 10, 2, 1, BK),
+    px(18, 8, 2, 2, BK),
+    px(19, 7, 3, 1, BK),
+    px(21, 8, 2, 3, BK),
+    px(20, 11, 2, 1, BK),
+    px(19, 12, 2, 1, BK),
+    px(18, 13, 2, 1, BK),
+    px(16, 14, 3, 1, BK),
+    px(15, 13, 3, 1, DK),
+    px(17, 11, 3, 2, DK),
+    px(19, 10, 2, 1, DK),
+    px(19, 8, 2, 2, WT),
+    // Tai trái pixel
+    px(6, 1, 3, 1, BK),
+    px(5, 2, 1, 2, BK),
+    px(9, 2, 1, 2, BK),
+    px(6, 2, 1, 2, PK),
+    px(7, 3, 1, 1, PK),
+    px(7, 2, 2, 1, LT),
+    px(8, 3, 1, 1, DK),
+    // Tai phải pixel
+    px(14, 1, 3, 1, BK),
+    px(13, 2, 1, 2, BK),
+    px(17, 2, 1, 2, BK),
+    px(16, 2, 1, 2, PK),
+    px(15, 3, 1, 1, PK),
+    px(14, 2, 2, 1, LT),
+    px(14, 3, 1, 1, DK),
+    // Đầu, mặt nạ trắng Tuxedo, râu ngang & mắt 2 tầng pixel
+    px(10, 3, 3, 1, BK),
+    px(5, 4, 1, 5, BK),
+    px(17, 4, 1, 5, BK),
+    px(6, 4, 11, 5, DK),
+    px(16, 4, 1, 4, LT),
+    px(10, 5, 2, 1, WT),
+    px(9, 6, 4, 1, WT),
+    px(8, 7, 6, 2, WT),
+    px(7, 8, 8, 1, WT),
+    px(10, 6, 2, 1, NS),
+    px(10, 7, 2, 1, WS),
+    px(3, 6, 2, 1, BK),
+    px(3, 8, 2, 1, BK),
+    px(18, 6, 2, 1, BK),
+    px(18, 8, 2, 1, BK),
+    px(8, 5, 1, 1, EY),
+    px(8, 6, 1, 1, BK),
+    px(13, 5, 1, 1, EY),
+    px(13, 6, 1, 1, BK),
+    // Cằm & thân mèo Tuxedo (yếm ngực trắng + tất chân trắng)
+    px(6, 9, 2, 1, BK),
+    px(14, 9, 3, 1, BK),
+    px(8, 9, 6, 1, WT),
+    px(7, 10, 1, 5, BK),
+    px(8, 10, 6, 5, DK),
+    px(14, 10, 1, 2, BK),
+    px(15, 12, 1, 1, BK),
+    px(14, 12, 1, 3, DK),
+    px(15, 13, 1, 2, DK),
+    px(16, 14, 1, 1, BK),
+    px(9, 10, 4, 3, WT),
+    px(10, 13, 2, 1, WT),
+    px(9, 12, 1, 1, WS),
+    px(12, 12, 1, 1, WS),
+    px(8, 14, 2, 1, WT),
+    px(11, 14, 1, 1, WT),
+    px(13, 14, 2, 1, WT),
+    px(8, 15, 2, 1, BK),
+    px(10, 14, 1, 1, BK),
+    px(11, 15, 1, 1, BK),
+    px(12, 14, 1, 1, BK),
+    px(13, 15, 3, 1, BK),
+    // Khiên Pixel bên tay trái
+    px(2, 9, 5, 1, BK),
+    px(1, 10, 1, 4, BK),
+    px(7, 10, 1, 4, BK),
+    px(2, 14, 1, 1, BK),
+    px(6, 14, 1, 1, BK),
+    px(3, 15, 3, 1, BK),
+    px(2, 10, 5, 4, pal.main),
+    px(3, 14, 3, 1, pal.main),
+    px(2, 10, 2, 1, pal.light),
+    px(2, 11, 1, 2, pal.light),
+    px(6, 11, 1, 3, pal.dark),
+    px(5, 14, 1, 1, pal.dark),
+    isAlert
+      ? svg('g', {}, px(4, 10, 1, 2, WT), px(4, 13, 1, 1, WT))
+      : svg('g', {}, px(3, 12, 1, 1, WT), px(4, 13, 1, 1, WT), px(5, 11, 1, 2, WT)),
+  );
+}
 
-  arc.setAttribute('stroke', LEVEL_STROKE[level]);
-  capEl.textContent = `${RISK_LEVEL_LABEL[level]} (${clamped}/100)`;
-  badgeEl.className = `risk-pill-badge ${level}`;
-  badgeEl.textContent = LEVEL_BADGE_TEXT[level];
-
-  requestAnimationFrame(() => {
-    arc.setAttribute('stroke-dashoffset', String(endOffset));
-  });
-
-  cancelAnimationFrame(scoreAnimFrame);
-  const fromVal = displayedScore;
-  if (Math.abs(clamped - fromVal) < 0.5) {
-    displayedScore = clamped;
-    pctEl.textContent = `${clamped}%`;
-    return root;
-  }
-
-  const startTime = performance.now();
-  const durationMs = 580;
-  const tick = (now: number) => {
-    const t = Math.min(1, (now - startTime) / durationMs);
-    const eased = 1 - Math.pow(1 - t, 3);
-    displayedScore = fromVal + (clamped - fromVal) * eased;
-    pctEl.textContent = `${Math.round(displayedScore)}%`;
-    if (t < 1) {
-      scoreAnimFrame = requestAnimationFrame(tick);
-    } else {
-      displayedScore = clamped;
-      pctEl.textContent = `${clamped}%`;
-    }
-  };
-  scoreAnimFrame = requestAnimationFrame(tick);
-  return root;
+function updateGaugeNode(level: RiskLevel): HTMLElement {
+  return h(
+    'div',
+    { class: 'gauge-panel' },
+    catShieldSvg(level),
+    h('div', { class: `risk-pill-badge ${level}` }, LEVEL_DISPLAY[level]),
+    h('div', { class: 'gauge-caption', style: 'margin-top:4px;text-align:center' }, LEVEL_BADGE_TEXT[level]),
+  );
 }
 
 function tierSegmentsFor(r: AnalysisResult, rowLevel: RiskLevel): number {
@@ -321,9 +297,9 @@ function tierSegmentsFor(r: AnalysisResult, rowLevel: RiskLevel): number {
   const rowOrder = RISK_LEVEL_ORDER[rowLevel];
   if (rowLevel === r.risk_level) {
     if (rowLevel === 'critical') return 4;
-    if (rowLevel === 'high') return r.score >= 80 ? 4 : 3;
-    if (rowLevel === 'attention') return r.score >= 45 ? 3 : 2;
-    return r.score > 0 ? 2 : 1;
+    if (rowLevel === 'high') return 3;
+    if (rowLevel === 'attention') return 2;
+    return 1;
   }
   if (rowOrder < curOrder) {
     return rowLevel === 'low' ? 1 : 2;
@@ -333,10 +309,10 @@ function tierSegmentsFor(r: AnalysisResult, rowLevel: RiskLevel): number {
 
 function updateTiersNode(r: AnalysisResult): HTMLElement {
   const rowDefs: { level: RiskLevel; label: string }[] = [
-    { level: 'critical', label: 'Rất cao' },
-    { level: 'high', label: 'Cao' },
-    { level: 'attention', label: 'Trung bình' },
-    { level: 'low', label: 'Thấp' },
+    { level: 'critical', label: LEVEL_DISPLAY.critical },
+    { level: 'high', label: LEVEL_DISPLAY.high },
+    { level: 'attention', label: LEVEL_DISPLAY.attention },
+    { level: 'low', label: LEVEL_DISPLAY.low },
   ];
 
   if (!tiersDomCache) {
@@ -404,53 +380,48 @@ function introView(): Node {
   return h(
     'div',
     {},
-    // Khối 1: Launcher Hero Card theo đúng thiết kế Mockup
+    // Khối 1: Launcher Hero Card
     h(
       'section',
       { class: 'card launcher-card' },
       h(
         'div',
-        { class: 'launcher-top' },
-        h('div', { class: 'mascot-hero-wrap' }, mascotHeroSvg()),
+        { class: 'launcher-info' },
         h(
           'div',
-          { class: 'launcher-info' },
+          { class: 'launcher-title-row' },
+          h('span', { class: 'launcher-title' }, 'SafeChat AI'),
           h(
-            'div',
-            { class: 'launcher-title-row' },
-            h('span', { class: 'launcher-title' }, 'SafeChat AI'),
-            h(
-              'button',
-              {
-                class: 'icon-btn',
-                title: 'Mở cài đặt AI & hạn mức',
-                onclick: () => {
-                  document.getElementById('settings-section')?.scrollIntoView({ behavior: 'smooth' });
-                },
+            'button',
+            {
+              class: 'small',
+              title: 'Mở cài đặt AI & hạn mức',
+              onclick: () => {
+                document.getElementById('settings-section')?.scrollIntoView({ behavior: 'smooth' });
               },
-              '⚙',
-            ),
+            },
+            'Cài đặt',
           ),
-          h('div', { class: 'launcher-sub' }, 'Bảo vệ bạn khỏi lừa đảo trực tuyến'),
+        ),
+        h('div', { class: 'launcher-sub' }, 'Bảo vệ bạn khỏi lừa đảo trực tuyến'),
+        h(
+          'div',
+          { class: 'row', style: 'margin-top:8px' },
           h(
-            'div',
-            { class: 'row', style: 'margin-top:8px' },
-            h(
-              'button',
-              {
-                class: 'primary start-btn-pill',
-                disabled: !canStart,
-                onclick: async () => {
-                  if (state.tabId === null) return;
-                  const r = await send({ kind: 'start', tabId: state.tabId, threadId: targetThread()?.threadId });
-                  if (!r.ok) setNotice('err', r.reason ?? 'Không bắt đầu được.');
-                  else state.notice = null;
-                },
+            'button',
+            {
+              class: 'primary start-btn-pill',
+              disabled: !canStart,
+              onclick: async () => {
+                if (state.tabId === null) return;
+                const r = await send({ kind: 'start', tabId: state.tabId, threadId: targetThread()?.threadId });
+                if (!r.ok) setNotice('err', r.reason ?? 'Không bắt đầu được.');
+                else state.notice = null;
               },
-              '▶ Bắt đầu theo dõi',
-            ),
-            h('button', { onclick: () => void refreshProbe() }, 'Kiểm tra lại'),
+            },
+            'Khóa & Theo dõi',
           ),
+          h('button', { onclick: () => void refreshProbe() }, 'Bắt đầu quét'),
         ),
       ),
       h(
@@ -543,7 +514,7 @@ function resumeCard(): Node {
           { class: 'small' },
           h('li', {}, `Cuộc trò chuyện: ${info.label || '(không tên)'}`),
           h('li', {}, `Lưu lúc: ${new Date(info.savedAt).toLocaleString('vi-VN')}`),
-          h('li', {}, `${info.messages} tin · mức cao nhất: ${RISK_LEVEL_LABEL[info.maxLevel]} · ${info.aiSignals} tín hiệu AI`),
+          h('li', {}, `${info.messages} tin · mức cao nhất: ${LEVEL_DISPLAY[info.maxLevel]} · ${info.aiSignals} tín hiệu AI`),
         ),
         labelDiffers &&
           h(
@@ -591,12 +562,11 @@ function sessionHeader(s: Session): Node {
   return h(
     'div',
     { class: 'live-stage-wrapper' },
-    // Khối 2: Chú mèo lấp ló ở viền trên + Viên thuốc trạng thái
+    // Khối 2: Viên thuốc trạng thái
     h(
       'div',
-      { class: 'peeking-bar' },
-      peekingCatSvg(),
-      h('div', { class: 'tracking-pill' }, h('span', { class: `dot ${s.status}` }), label),
+      { class: 'peeking-bar', style: 'justify-content:flex-end;margin-bottom:6px' },
+      h('div', { class: 'tracking-pill', style: 'margin-bottom:0' }, h('span', { class: `dot ${s.status}` }), label),
     ),
     // Khối 3: Bảng SafeChat AI LIVE
     h(
@@ -608,7 +578,6 @@ function sessionHeader(s: Session): Node {
         h(
           'div',
           { class: 'live-brand' },
-          h('span', { 'aria-hidden': 'true' }, '🛡️'),
           h('span', {}, 'SafeChat AI'),
           h('span', { class: `live-badge${s.status !== 'tracking' ? ' paused' : ''}` }, s.status === 'tracking' ? 'LIVE' : 'PAUSED'),
         ),
@@ -616,7 +585,7 @@ function sessionHeader(s: Session): Node {
           'div',
           { class: 'row' },
           s.status === 'tracking'
-            ? h('button', { class: 'small', title: 'Tạm dừng theo dõi', onclick: () => void send({ kind: 'pause' }) }, '— Tạm dừng')
+            ? h('button', { class: 'small', title: 'Tạm dừng theo dõi', onclick: () => void send({ kind: 'pause' }) }, 'Tạm dừng')
             : h(
                 'button',
                 {
@@ -626,9 +595,9 @@ function sessionHeader(s: Session): Node {
                     if (!r.ok) setNotice('err', r.reason ?? 'Không tiếp tục được.');
                   },
                 },
-                '▶ Tiếp tục',
+                'Tiếp tục',
               ),
-          h('button', { class: 'danger small', title: 'Dừng và xóa phiên', onclick: () => void stopAndClear() }, '✕ Dừng & xóa'),
+          h('button', { class: 'danger small', title: 'Dừng và xóa phiên', onclick: () => void stopAndClear() }, 'Dừng & xóa'),
         ),
       ),
       h(
@@ -686,26 +655,22 @@ function riskCard(s: Session): Node {
   return h(
     'div',
     { class: `risk ${r.risk_level}`, style: 'border-left:0;margin-top:4px' },
-    // Cụm 2 cột chuẩn theo thiết kế: Trái (Đồng hồ vòng cung %) - Phải (4 Thanh mức độ Rất cao / Cao / Trung bình / Thấp)
-    h('div', { class: 'risk-dashboard' }, updateGaugeNode(r.score, r.risk_level), updateTiersNode(r)),
-    // Hộp giải thích ngắn gọn bên dưới
+    h('div', { class: 'risk-dashboard' }, updateGaugeNode(r.risk_level), updateTiersNode(r)),
     h(
       'div',
       { class: `reason-box${s.ai.status === 'running' ? ' ai-shimmer' : ''}` },
       h(
         'div',
         { class: 'row', style: 'justify-content:space-between' },
-        h('span', { class: 'level' }, `Mức cảnh báo: ${RISK_LEVEL_LABEL[r.risk_level]}`),
-        h('span', { class: 'muted small' }, `Điểm dấu hiệu ${r.score}/100`),
+        h('span', { class: 'level' }, `Mức đánh giá: ${LEVEL_DISPLAY[r.risk_level]}`),
       ),
-      h('div', { class: `meter`, style: `color:var(--${r.risk_level})` }, h('span', { style: `width:${r.score}%` })),
       r.stability_note && h('div', { class: 'hold small', role: 'status' }, r.stability_note),
       r.raw_level &&
         r.raw_level !== r.risk_level &&
-        h('div', { class: 'muted small' }, `Mức tính theo tin mới nhất: ${RISK_LEVEL_LABEL[r.raw_level]}`),
+        h('div', { class: 'muted small' }, `Mức tính theo tin mới nhất: ${LEVEL_DISPLAY[r.raw_level]}`),
       s.stability &&
         RISK_LEVEL_ORDER[s.stability.maxLevel] > RISK_LEVEL_ORDER[r.risk_level] &&
-        h('div', { class: 'small' }, h('b', {}, 'Mức cao nhất trong phiên: '), RISK_LEVEL_LABEL[s.stability.maxLevel]),
+        h('div', { class: 'small' }, h('b', {}, 'Mức cao nhất trong phiên: '), LEVEL_DISPLAY[s.stability.maxLevel]),
       h('div', { class: 'small', style: 'margin-top:4px' }, h('span', { class: 'muted' }, 'Vì sao: '), r.level_reason),
       latest && h('div', { class: 'small' }, h('span', { class: 'muted' }, 'Tín hiệu mới nhất: '), latest.title),
       h('div', { class: 'muted small', style: 'margin-top:3px' }, aiStatusText(s)),
@@ -783,14 +748,14 @@ function analysisView(s: Session): Node {
     h(
       'section',
       { class: 'card' },
-      h('h2', {}, 'Cách tính điểm'),
+      h('h2', {}, 'Tổng hợp dấu hiệu theo mức độ'),
       h('p', { class: 'small' }, r.level_reason),
       r.score_breakdown.length === 0
         ? h('p', { class: 'muted small' }, 'Chưa có tín hiệu.')
         : h(
             'table',
             { class: 'tbl' },
-            h('thead', {}, h('tr', {}, h('th', {}, 'Tín hiệu'), h('th', {}, 'Mức'), h('th', { class: 'num' }, 'Điểm'))),
+            h('thead', {}, h('tr', {}, h('th', {}, 'Tín hiệu'), h('th', { class: 'num' }, 'Mức độ'))),
             h(
               'tbody',
               {},
@@ -799,8 +764,7 @@ function analysisView(s: Session): Node {
                   'tr',
                   {},
                   h('td', {}, b.title),
-                  h('td', {}, SEVERITY_LABEL[b.severity]),
-                  h('td', { class: 'num' }, `${b.base_points}${b.weight < 1 ? ' × 25%' : ''} = ${b.contribution}`),
+                  h('td', { class: 'num' }, LEVEL_DISPLAY[b.severity]),
                 ),
               ),
             ),
@@ -808,7 +772,7 @@ function analysisView(s: Session): Node {
       h(
         'p',
         { class: 'muted small' },
-        'Quy ước: Thấp 10 · Trung bình 25 · Cao 60 · Nghiêm trọng 100. Tín hiệu nguy hiểm trực tiếp đưa thẳng lên mức Nghiêm trọng. Điểm tối đa 99 nếu không có tín hiệu nghiêm trọng.',
+        'Các mức độ được phân thành 4 cấp: Bình thường · Cần chú ý · Cao · Nguy hiểm.',
       ),
     ),
     h(
@@ -844,7 +808,7 @@ function analysisView(s: Session): Node {
               h(
                 'li',
                 { class: `tl ${t.level}` },
-                h('div', {}, h('b', {}, `${RISK_LEVEL_LABEL[t.level]} · ${t.score}`), h('span', { class: 'muted small' }, ` sau ${t.messageId}`)),
+                h('div', {}, h('b', {}, LEVEL_DISPLAY[t.level]), h('span', { class: 'muted small' }, ` sau ${t.messageId}`)),
                 t.newSignals.length > 0 && h('div', { class: 'small' }, `+ ${t.newSignals.join(', ')}`),
                 t.note && h('div', { class: 'muted small' }, t.note),
               ),
@@ -880,7 +844,7 @@ function safetyCard(s: Session): Node | null {
   return h(
     'section',
     { class: 'card safety', role: 'alert' },
-    h('h2', {}, '🚨 Ưu tiên an toàn của bạn'),
+    h('h2', {}, 'Ưu tiên an toàn của bạn'),
     h('p', {}, a.safety_message ?? ''),
     h('ul', {}, ...(a.support_resources ?? []).map((x) => h('li', {}, x))),
     h('p', { class: 'muted small' }, 'Ở mức này SafeChat AI không gợi ý câu hỏi thăm dò để tránh bạn tiếp tục tương tác nguy hiểm.'),
@@ -941,7 +905,7 @@ function adviceCard(s: Session): Node | null {
             render();
           },
         },
-        h('div', { class: 'advice-hero-title' }, h('span', { class: 'advice-bulb' }, '💡'), h('span', {}, 'Gợi ý để làm rõ ý định')),
+        h('div', { class: 'advice-hero-title' }, h('span', {}, 'Gợi ý để làm rõ ý định')),
         h('span', { class: `chevron${state.adviceExpanded ? ' open' : ''}` }, '›'),
       ),
       h(
@@ -983,7 +947,6 @@ function adviceCard(s: Session): Node | null {
       h(
         'div',
         { class: 'quota-left' },
-        h('span', { class: 'quota-icon', 'aria-hidden': 'true' }, '🕒'),
         h(
           'div',
           {},
@@ -1007,7 +970,7 @@ function adviceCard(s: Session): Node | null {
           class: 'cta-orange',
           onclick: () => saveSnapshotFile(s),
         },
-        '⬇ Tải ngay',
+        'Tải ngay',
       ),
     ),
     (s.result?.uncertainties.length ?? 0) > 0 &&
@@ -1393,8 +1356,6 @@ async function stopAndClear() {
   const r = await send<StopResult>({ kind: 'stop_and_clear' });
   state.consent = false;
   state.view = 'overview';
-  displayedScore = 0;
-  gaugeDomCache = null;
   tiersDomCache = null;
   if (r.ok)
     setNotice(
@@ -1412,7 +1373,6 @@ function render() {
   if (state.notice) nodes.push(h('div', { class: `card ${state.notice.kind}`, role: 'status' }, state.notice.text));
 
   if (!s) {
-    gaugeDomCache = null;
     tiersDomCache = null;
     nodes.push(introView());
   } else {
