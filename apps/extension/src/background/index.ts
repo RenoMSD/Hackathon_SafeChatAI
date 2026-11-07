@@ -69,6 +69,13 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
       return { ok: true };
     }
 
+    case 'set_scan_consent': {
+      const settings = await loadSettings();
+      settings.scanConsent = req.value;
+      await saveSettings(settings);
+      return { ok: true };
+    }
+
     case 'resume_snapshot': {
       // Context Manager: dựng lại phiên từ ảnh chụp, gắn vào cuộc chat đang mở (người dùng đã xác nhận ở side panel)
       let snap;

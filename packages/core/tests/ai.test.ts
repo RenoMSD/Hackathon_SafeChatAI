@@ -148,6 +148,52 @@ describe('buildAiRequest — chỉ gửi delta', () => {
   });
 });
 
+describe('maskPii: mã bí mật và tham số URL', () => {
+  it('che mã có nhãn hoặc trả lời bằng đúng dãy số', () => {
+    const cases: [string, string][] = [
+      ['Em đọc rồi, mã là 482913', 'Em đọc rồi, mã là [SỐ]'],
+      ['OTP: 4829', 'OTP: [SỐ]'],
+      ['mã otp 482 913 nhé', 'mã otp [SỐ] nhé'],
+      ['ma xac nhan la 123456', 'ma xac nhan la [SỐ]'],
+      ['mật khẩu 12345678', 'mật khẩu [SỐ]'],
+      ['CVV 123', 'CVV [SỐ]'],
+      ['482913 là mã OTP của bạn', '[SỐ] là mã OTP của bạn'],
+      ['482913', '[SỐ]'],
+      ['  4829.  ', '[SỐ]'],
+    ];
+    for (const [input, output] of cases) expect(maskPii(input)).toBe(output);
+  });
+  it('giữ số tiền và số thường', () => {
+    const cases = ['mã giảm giá 500.000đ', 'mã giảm 50k', 'cọc 500.000', '500.000', 'Lớp 12 có 45 bạn', 'mỗi lượt nhận 30.000đ', 'năm 2024 mình đi học', 'hẹn 15 giờ'];
+    for (const input of cases) expect(maskPii(input)).toBe(input);
+  });
+  it('xóa query và fragment của URL, giữ host và path', () => {
+    const cases: [string, string][] = [
+      ['vào https://evil.top/login?token=abc123&u=a@b.vn nhé', 'vào https://evil.top/login nhé'],
+      ['https://x.vn/a#phien=123', 'https://x.vn/a'],
+      ['bit.ly/abc?ref=1', 'bit.ly/abc'],
+      ['www.x.vn/a?b', 'www.x.vn/a'],
+      ['https://l.facebook.com/l.php?u=https%3A%2F%2Fevil.top', 'https://l.facebook.com/l.php'],
+    ];
+    for (const [input, output] of cases) expect(maskPii(input)).toBe(output);
+  });
+  it('không cắt nhầm câu thường có dấu hỏi', () => {
+    for (const input of ['Đã xong.Bạn thấy sao?không', 'Trang abc.com có thật không?', 'Vào shopee.vn?']) expect(maskPii(input)).toBe(input);
+  });
+  it('mã trong tin người dùng không lọt vào yêu cầu gửi AI', () => {
+    const msgs = [
+      { id: 'msg-001', seq: 1, sender: 'other' as const, text: 'Em đọc giúp chị mã OTP nhé' },
+      { id: 'msg-002', seq: 2, sender: 'self' as const, text: 'Em đọc rồi, mã là 482913' },
+      { id: 'msg-003', seq: 3, sender: 'self' as const, text: '482913' },
+      { id: 'msg-004', seq: 4, sender: 'other' as const, text: 'Vào https://evil.top/login?token=abc123 nhé' },
+    ];
+    const req = buildAiRequest(msgs, 0, '', []);
+    expect(req.user).not.toContain('482913');
+    expect(req.user).not.toContain('abc123');
+    expect(req.user).toContain('https://evil.top/login');
+  });
+});
+
 describe('parseAiResponse: id bằng chứng', () => {
   const m = msgs([['other', 'Em chuyển tiền đi'], ['self', 'Dạ']]);
   const req = buildAiRequest(m, 0, '', []);

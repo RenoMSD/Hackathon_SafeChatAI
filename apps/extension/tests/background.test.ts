@@ -268,6 +268,17 @@ describe('background — vòng đời phiên', () => {
     expect(startMsgs).toEqual([{ kind: 'cs_start', threadId: 'mock:widget', loadHistory: true, allowScroll: false }]);
   });
 
+  it('lưu và thu hồi đồng ý quét, không chạm cài đặt khác', async () => {
+    await fake.chrome.storage.local.set({ safechat_settings: { policyVersion: 2, historyScroll: false } });
+    await fake.panel({ kind: 'set_scan_consent', value: true });
+    let local = (await fake.chrome.storage.local.get(null)) as Record<string, any>;
+    expect(local.safechat_settings.scanConsent).toBe(true);
+    expect(local.safechat_settings.historyScroll).toBe(false);
+    await fake.panel({ kind: 'set_scan_consent', value: false });
+    local = (await fake.chrome.storage.local.get(null)) as Record<string, any>;
+    expect(local.safechat_settings.scanConsent).toBe(false);
+  });
+
   it('chọn không cuộn: báo content script không được cuộn, vẫn đọc và đánh giá ngay', async () => {
     const gw = mockGateway(() => okResponse([]));
     await fake.chrome.storage.local.set({

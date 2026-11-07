@@ -72,14 +72,36 @@ function looksLikeMoney(raw: string, before: string, after: string): boolean {
   return /^\d{1,3}(?: \d{3})+$/.test(raw) && MONEY_UNIT.test(after);
 }
 
-// Che điện thoại, tài khoản, giấy tờ kể cả khi có dấu cách và không có nhãn; giữ số tiền.
+/** URL kèm query hoặc fragment. Tham số có thể chứa token đăng nhập, mã đặt lại mật khẩu, thông tin cá nhân. */
+const URL_WITH_PARAMS = /((?:https?:\/\/)?(?:[\p{L}\d-]+\.)+\p{L}{2,}(?::\d{2,5})?(?:\/[^\s?#]*)?)([?#][^\s]+)/giu;
+/** Mã 3–8 chữ số đứng sau nhãn: "mã là 482913", "OTP: 4829". */
+const SECRET_AFTER_LABEL = /(?<![\p{L}\d])(?:otp|mã|ma|mật khẩu|mat khau|password|pass|pin|cvv|code)(?![\p{L}\d])[^\d\n]{0,24}?(\d(?:[ .-]?\d){2,7})(?!\d)/giu;
+/** Mã đứng trước nhãn: "482913 là mã OTP". */
+const SECRET_BEFORE_LABEL = /(?<![\d.,])\d(?:[ -]?\d){3,7}(?=\s*(?:là|la|:)?\s*(?:mã|ma|otp|pin)(?![\p{L}\d]))/giu;
+/** Cả tin chỉ có một dãy số ngắn: người dùng trả lời bằng đúng mã vừa nhận. */
+const ONLY_SHORT_NUMBER = /^\s*\d(?:[ .-]?\d){3,7}\s*[.!]?\s*$/;
+
+function isAmount(digits: string, after: string): boolean {
+  return /^\d{1,3}(?:[.,]\d{3})+$/.test(digits) || MONEY_UNIT.test(after);
+}
+
+// Che URL params, điện thoại, tài khoản, giấy tờ, mã bí mật; giữ số tiền để model thấy quy mô.
 export function maskPii(text: string): string {
-  return text
+  const masked = text
+    .replace(URL_WITH_PARAMS, (whole: string, base: string, params: string) =>
+      /^https?:\/\//i.test(base) || /^www\./i.test(base) || /[=&]/.test(params) || params.startsWith('#') ? base : whole,
+    )
     .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '[EMAIL]')
     .replace(/(?<![\w+])\+?\d[\d .,-]{7,}\d(?!\d)/g, (raw: string, offset: number, all: string) =>
       looksLikeMoney(raw, all.slice(Math.max(0, offset - 24), offset), all.slice(offset + raw.length, offset + raw.length + 12)) ? raw : '[SỐ]',
     )
-    .replace(/\b[A-Z]\d{7,8}\b/g, '[SỐ]');
+    .replace(/\b[A-Z]\d{7,8}\b/g, '[SỐ]')
+    .replace(SECRET_AFTER_LABEL, (whole: string, digits: string, offset: number, all: string) => {
+      const end = offset + whole.length;
+      return isAmount(digits, all.slice(end, end + 12)) ? whole : whole.slice(0, whole.length - digits.length) + '[SỐ]';
+    })
+    .replace(SECRET_BEFORE_LABEL, '[SỐ]');
+  return ONLY_SHORT_NUMBER.test(masked) && !isAmount(masked.trim().replace(/[.!]$/, ''), '') ? '[SỐ]' : masked;
 }
 
 // ---------------- Prompt ----------------

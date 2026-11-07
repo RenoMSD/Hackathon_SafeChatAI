@@ -101,6 +101,8 @@ export interface Settings {
   batchSize: number;
   /** Khi bắt đầu quét: true tự cuộn khung chat để tải tối đa 50 tin; false không cuộn, chỉ đọc các tin đang có trên trang. */
   historyScroll: boolean;
+  /** Người dùng đã đọc và đồng ý trong bảng của widget. Chưa có thì thả mèo chỉ mở bảng, không đọc gì. */
+  scanConsent?: boolean;
   /** Phiên bản mặc định của lịch gọi AI, để đổi một lần cho máy đã lưu cài đặt cũ. */
   policyVersion?: number;
   /** Hội thoại dừng lâu chừng này thì gọi nốt tin lẻ chưa đủ lô. 0 = tắt. */
@@ -168,6 +170,7 @@ export type PanelRequest =
   | { kind: 'probe'; tabId: number }
   /** allowScroll: lựa chọn cách đọc từ widget, được lưu lại vào cài đặt. Không có thì dùng cài đặt đã lưu. */
   | { kind: 'start'; tabId: number; threadId?: string; allowScroll?: boolean }
+  | { kind: 'set_scan_consent'; value: boolean }
   /** Context Manager: khôi phục phiên từ file ảnh chụp (chuỗi JSON) và gắn vào cuộc chat đang mở ở tab. */
   | { kind: 'resume_snapshot'; tabId: number; snapshot: string; threadId?: string }
   | { kind: 'pause' }

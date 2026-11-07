@@ -30,6 +30,7 @@ import {
   SETTINGS_KEY,
   type Settings,
 } from '../shared/protocol';
+import { decideDrop, switchChatPrompt } from './dropDecision';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const STAGES: ScamStage[] = ['S0', 'S1', 'S2', 'S3', 'S4'];
@@ -1770,10 +1771,14 @@ export function initFloatingWidget(
   let consent = true;
   // Cách đọc khi bắt đầu quét, dùng chung với cài đặt của side panel.
   let scrollHistory = DEFAULT_SETTINGS.historyScroll;
+  // Đã từng đồng ý trong bảng này. Bỏ dấu đồng ý thì lần thả mèo sau phải đọc lại.
+  let scanConsented = false;
   chrome.storage?.local
     ?.get?.(SETTINGS_KEY)
     ?.then((res) => {
-      const saved = (res?.[SETTINGS_KEY] as Partial<Settings> | undefined)?.historyScroll;
+      const stored = res?.[SETTINGS_KEY] as Partial<Settings> | undefined;
+      scanConsented = stored?.scanConsent === true;
+      const saved = stored?.historyScroll;
       if (typeof saved === 'boolean' && saved !== scrollHistory) {
         scrollHistory = saved;
         renderWidget();
@@ -2118,35 +2123,61 @@ export function initFloatingWidget(
           if (isCatMode && dragHoverThread) {
             const targetChat = dragHoverThread;
             dragHoverThread = null;
-            catPose = 'landing';
-            landingThreadLabel = targetChat.threadLabel;
-            chosenThreadId = targetChat.threadId;
-            dockedToChat = true;
-            minimized = false;
-            sessionViewMode = 'mini';
-            consent = true;
-            clearTimeout(landingTimer);
-            landingTimer = setTimeout(() => {
-              catPose = 'idle';
-              renderWidget();
-            }, 1050);
-
-            if (!session) {
-              void lockThread(targetChat);
-            } else if (session.threadId !== targetChat.threadId) {
-              void (async () => {
-                await sendReq({ kind: 'stop_and_clear' });
-                await lockThread(targetChat);
-              })();
-            } else {
-              showSpotlight(
-                targetChat.threadId,
-                targetChat.threadLabel,
-                950,
-                `Đã bám vào chat: ${targetChat.threadLabel}`,
+            const action = decideDrop({
+              sessionThreadId: session?.threadId ?? null,
+              targetThreadId: targetChat.threadId,
+              consented: scanConsented,
+            });
+            const cancelled =
+              action === 'confirm_switch' &&
+              !window.confirm(
+                switchChatPrompt(session!.threadLabel, targetChat.threadLabel, LEVEL_DISPLAY[session!.result?.risk_level ?? 'low']),
               );
+            if (cancelled) {
+              // Giữ nguyên phiên đang theo dõi.
+              catPose = 'idle';
+              hideSpotlight();
+              renderWidget();
+            } else if (action === 'ask_consent') {
+              // Chưa đọc gì: mở bảng có lời đồng ý và cách đọc, chọn sẵn chat vừa thả.
+              catPose = 'idle';
+              hideSpotlight();
+              chosenThreadId = targetChat.threadId;
+              minimized = false;
+              runScan();
+            } else {
+              catPose = 'landing';
+              landingThreadLabel = targetChat.threadLabel;
+              chosenThreadId = targetChat.threadId;
+              dockedToChat = true;
+              minimized = false;
+              sessionViewMode = 'mini';
+              clearTimeout(landingTimer);
+              landingTimer = setTimeout(() => {
+                catPose = 'idle';
+                renderWidget();
+              }, 1050);
+
+              if (action === 'lock') {
+                consent = true;
+                void lockThread(targetChat);
+              } else if (action === 'confirm_switch') {
+                // Đã có phiên nghĩa là đã đồng ý trước đó.
+                consent = true;
+                void (async () => {
+                  await sendReq({ kind: 'stop_and_clear' });
+                  await lockThread(targetChat);
+                })();
+              } else {
+                showSpotlight(
+                  targetChat.threadId,
+                  targetChat.threadLabel,
+                  950,
+                  `Đã bám vào chat: ${targetChat.threadLabel}`,
+                );
+              }
+              renderWidget();
             }
-            renderWidget();
           } else {
             if (isCatMode) {
               catPose = 'idle';
@@ -2247,6 +2278,10 @@ export function initFloatingWidget(
     dockedToChat = true;
     sessionViewMode = 'mini';
     showSpotlight(t.threadId, t.threadLabel, 900);
+    if (!scanConsented) {
+      scanConsented = true;
+      await sendReq({ kind: 'set_scan_consent', value: true });
+    }
     const res = await sendReq({ kind: 'start', tabId: -1, threadId: t.threadId, allowScroll: scrollHistory });
     if (!res?.ok) {
       scanNotice = res?.reason ?? 'Không thể khóa đoạn chat này. Hãy bấm Quét lại.';
@@ -2796,6 +2831,10 @@ export function initFloatingWidget(
                 checked: consent,
                 onchange: (e: Event) => {
                   consent = (e.target as HTMLInputElement).checked;
+                  if (!consent && scanConsented) {
+                    scanConsented = false;
+                    void sendReq({ kind: 'set_scan_consent', value: false });
+                  }
                   renderWidget();
                 },
               }),
