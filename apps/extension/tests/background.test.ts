@@ -87,10 +87,10 @@ describe('background — vòng đời phiên', () => {
   });
 
   it('Groq phân tầng: gọi mô hình lớn khi mức Cao, chỉ gửi delta, kết quả hợp lệ được gộp', async () => {
-    const calls: { model: string; user: string }[] = [];
+    const calls: { model: string; user: string; maxTokens: number; effort?: string }[] = [];
     globalThis.fetch = (async (_url: string, init: { body: string }) => {
       const body = JSON.parse(init.body);
-      calls.push({ model: body.model, user: body.messages[1].content });
+      calls.push({ model: body.model, user: body.messages[1].content, maxTokens: body.max_completion_tokens, effort: body.reasoning_effort });
       const content = JSON.stringify({
         signals: [
           {
@@ -137,7 +137,9 @@ describe('background — vòng đời phiên', () => {
     await new Promise((r) => setTimeout(r, 800));
     const s = (await session())!;
     expect(calls).toHaveLength(1);
-    expect(calls[0]!.model).toBe('llama-3.3-70b-versatile'); // mức Cao → mô hình lớn
+    expect(calls[0]!.model).toBe('openai/gpt-oss-120b'); // mức Cao → mô hình lớn
+    expect(calls[0]!.maxTokens).toBe(2048);
+    expect(calls[0]!.effort).toBeUndefined();
     expect(calls[0]!.user).toContain('[SỐ]');
     expect(calls[0]!.user).not.toContain('0912 345 678');
     expect(s.ai.status).toBe('ok');
@@ -152,12 +154,12 @@ describe('background — vòng đời phiên', () => {
     const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
     const calls: string[] = [];
     globalThis.fetch = (async (_url: string, init: { body: string }) => {
-      calls.push(JSON.parse(init.body).messages[1].content);
+      calls.push(JSON.parse(init.body).reasoning_effort);
       const content = JSON.stringify({ signals: [], summary: 'Đã đọc tin lẻ.' });
       return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
     }) as unknown as typeof fetch;
     await fake.chrome.storage.local.set({
-      safechat_settings: { groqEnabled: true, groqApiKey: 'test-key', minIntervalSec: 3, batchSize: 5, idleFlushSec: 1, dailyBudget: 50 },
+      safechat_settings: { groqEnabled: true, groqApiKey: 'test-key', minIntervalSec: 3, batchSize: 5, idleFlushSec: 1, dailyBudget: 50, groqReasoningEffort: 'low' },
     });
     thread = { threadId: 'mock:idle', threadLabel: 'Tin lẻ' };
     await fake.panel({ kind: 'stop_and_clear' });
@@ -170,7 +172,7 @@ describe('background — vòng đời phiên', () => {
     await wait(700); // đã qua 1 giây kể từ tin cuối
     fake.fireAlarm('safechat_ai_idle');
     await wait(300);
-    expect(calls).toHaveLength(1);
+    expect(calls).toEqual(['low']); // gửi mức suy luận đã đặt
     expect((await session())!.ai.lastReason).toBe('Hội thoại dừng 1 giây');
 
     await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:idle', batch: [{ sender: 'other', text: 'Em rảnh không?' }, { sender: 'other', text: 'Trả lời chị nhé' }] });

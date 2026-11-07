@@ -85,6 +85,11 @@ if (needsAi && !models.length) {
   console.error('Cấu hình ai/hybrid cần --models (xem danh sách: npm run bench:models).');
   process.exit(1);
 }
+const reasoningEffort = arg('reasoning-effort') as 'low' | 'medium' | 'high' | undefined;
+if (reasoningEffort && !['low', 'medium', 'high'].includes(reasoningEffort)) {
+  console.error(`Không biết --reasoning-effort ${reasoningEffort}. Dùng low, medium hoặc high.`);
+  process.exit(1);
+}
 const provider = arg('provider', 'openrouter')!;
 if (provider !== 'openrouter' && provider !== 'groq') {
   console.error(`Không biết --provider ${provider}. Dùng openrouter hoặc groq.`);
@@ -118,17 +123,23 @@ if (limit > 0) cases = cases.slice(0, limit);
 const runId = arg('run-id') ?? `${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}_${dataset}-${split}`;
 mkdirSync(RESULTS_DIR, { recursive: true });
 const outFile = join(RESULTS_DIR, `${runId}.jsonl`);
-const write = (r: ResultRow) => appendFileSync(outFile, JSON.stringify(r) + '\n');
+let rowCount = 0;
+let errorRows = 0;
+const write = (r: ResultRow) => {
+  rowCount++;
+  if (r.error) errorRows++;
+  appendFileSync(outFile, JSON.stringify(r) + '\n');
+};
 const rawFile = join(RESULTS_DIR, `${runId}.raw.jsonl`);
 /** Gọi model và ghi nguyên văn phản hồi (kể cả lỗi) để đối chiếu về sau. */
 async function chatLogged(caseId: string, purpose: string, req: { model: string; system: string; user: string; variant: number }) {
   const at = new Date().toISOString();
-  const key = OpenRouterClient.key(req);
-  const head = { at, caseId, purpose, model: req.model, repeat: req.variant, key };
+  const key = OpenRouterClient.key(req, reasoningEffort);
+  const head = { at, caseId, purpose, model: req.model, repeat: req.variant, reasoningEffort, key };
   try {
     const res = await client!.chat(req);
-    const { content, cached, latencyMs, promptTokens, completionTokens } = res;
-    appendFileSync(rawFile, JSON.stringify({ ...head, cached, latencyMs, promptTokens, completionTokens, content }) + '\n');
+    const { content, cached, latencyMs, promptTokens, completionTokens, finishReason, reasoningTokens, jsonFailure } = res;
+    appendFileSync(rawFile, JSON.stringify({ ...head, cached, latencyMs, promptTokens, completionTokens, finishReason, reasoningTokens, jsonFailure, content }) + '\n');
     return res;
   } catch (e) {
     appendFileSync(rawFile, JSON.stringify({ ...head, error: (e as Error).message }) + '\n');
@@ -147,6 +158,7 @@ const meta = {
   provider,
   configs,
   models,
+  reasoningEffort,
   repeats,
   n: cases.length,
   promptVersion: PROMPT_VERSION,
@@ -162,6 +174,7 @@ const client = needsAi
       dailyCap,
       minIntervalMs: intervalMs,
       timeoutMs: 60_000,
+      reasoningEffort,
       ...(provider === 'groq'
         ? { baseUrl: GROQ_URL, label: GROQ_LABEL, disableJsonFallback: true, maxCompletionTokens: 2048 }
         : {}),
@@ -285,12 +298,19 @@ outer: for (const c of cases) {
   if (done % 10 === 0) console.log(`  ${done}/${cases.length}${client ? ` · đã dùng hôm nay ${client.usedToday()} lượt` : ''}`);
 }
 
-saveMeta({ status: meta.stoppedEarly ? 'stopped' : 'finished', finishedAt: new Date().toISOString(), done });
+const allFailed = rowCount > 0 && errorRows === rowCount;
+saveMeta({ status: meta.stoppedEarly ? 'stopped' : allFailed ? 'failed' : 'finished', finishedAt: new Date().toISOString(), done, rowCount, errorRows });
 const runsMd = join(RESEARCH_DIR, 'RUNS.md');
 if (!existsSync(runsMd))
   writeFileSync(runsMd, '# Nhật ký các lần chạy\n\n| runId | dataset/split | cấu hình | model | n | lặp | prompt | luật (commit) | ghi chú |\n|---|---|---|---|---|---|---|---|---|\n');
 appendFileSync(
   runsMd,
-  `| ${runId} | ${dataset}/${split} | ${configs.join(', ')} | ${models.join(', ') || '-'} | ${done}/${cases.length} | ${repeats} | ${PROMPT_VERSION} | ${commit} | ${meta.stoppedEarly ? 'dừng sớm: ' + meta.stoppedEarly : ''} |\n`,
+  `| ${runId} | ${dataset}/${split} | ${configs.join(', ')} | ${models.join(', ') || '-'} | ${done}/${cases.length} | ${repeats} | ${PROMPT_VERSION} | ${commit} | ${[meta.stoppedEarly ? 'dừng sớm: ' + meta.stoppedEarly : '', reasoningEffort ? `reasoning ${reasoningEffort}` : '', errorRows ? `${errorRows}/${rowCount} dòng lỗi` : ''].filter(Boolean).join('; ')} |\n`,
 );
-console.log(`\nXong ${done}/${cases.length} ca → ${outFile}\nTạo báo cáo: npm run bench:report -- --runs ${runId}`);
+if (allFailed) {
+  console.error(`\nTHẤT BẠI: cả ${rowCount} dòng đều lỗi → ${outFile}. Xem lỗi trong file này, không dùng lần chạy này làm số đo.`);
+  process.exitCode = 1;
+} else {
+  const errors = errorRows ? `, ${errorRows}/${rowCount} dòng lỗi (gồm JSON sai)` : '';
+  console.log(`\nXong ${done}/${cases.length} ca${errors} → ${outFile}\nTạo báo cáo: npm run bench:report -- --runs ${runId}`);
+}

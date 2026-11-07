@@ -1,4 +1,4 @@
-// npm run bench:experiment-ai -- --id EXP-010 --run <runId> --model <id> --config hybrid-hint --title "..." --hypothesis "..."
+// npm run bench:experiment-ai -- --id EXP-011 --run <runId> --model <id> --config hybrid-hint --title "..." --hypothesis "..."
 // Ghi kết quả một lần chạy AI (research/run.ts) thành thí nghiệm trong sổ. Chỉ nhận lần chạy trên tune.
 // metrics.json không chứa nội dung chat. Sau khi chạy phải tự viết README.md, phần kết luận cần người đọc.
 import { execSync } from 'node:child_process';
@@ -24,6 +24,7 @@ const meta = JSON.parse(readFileSync(join(RESULTS_DIR, `${runId}.meta.json`), 'u
   dataset: string;
   split: string;
   provider?: string;
+  reasoningEffort?: string;
   promptVersion: string;
   rulesCommit: string;
   n: number;
@@ -75,7 +76,7 @@ const record = {
   date: new Date().toISOString().slice(0, 10),
   title,
   hypothesis,
-  method: `${config}, ${meta.provider ?? 'openrouter'} ${model}, prompt ${meta.promptVersion}`,
+  method: `${config}, ${meta.provider ?? 'openrouter'} ${model}${meta.reasoningEffort ? ` (reasoning ${meta.reasoningEffort})` : ''}, prompt ${meta.promptVersion}`,
   rulesCommit: commit,
   rulesCommitAtRun: meta.rulesCommit,
   dataset: `${meta.dataset}/${meta.split}`,

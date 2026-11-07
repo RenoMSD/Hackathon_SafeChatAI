@@ -7,6 +7,7 @@ import type { AnalysisResult, RiskLevel, Signal, UserMark } from '@safechat/core
 export type SessionStatus = 'idle' | 'tracking' | 'paused' | 'stopped';
 export type PauseReason = 'user' | 'tab_closed' | 'thread_changed' | 'page_unsupported';
 export type AiProvider = 'nano' | 'groq';
+export type GroqReasoningEffort = 'low' | 'medium' | 'high';
 
 export interface AiState {
   status: 'off' | 'idle' | 'running' | 'ok' | 'error';
@@ -84,6 +85,8 @@ export interface Settings {
   groqApiKey: string;
   groqSmallModel: string;
   groqLargeModel: string;
+  /** Mức suy luận của model gpt-oss. Không đặt thì dùng mặc định của Groq. Model không hỗ trợ sẽ báo lỗi 400. */
+  groqReasoningEffort?: GroqReasoningEffort;
   /** Số lượt gọi AI ngoài tối đa mỗi ngày (giữ chi phí/hạn mức). */
   dailyBudget: number;
   /** Gọi AI khi đủ N tin mới của đối phương. */
@@ -98,8 +101,8 @@ export const DEFAULT_SETTINGS: Settings = {
   nanoEnabled: false,
   groqEnabled: false,
   groqApiKey: '',
-  groqSmallModel: 'llama-3.1-8b-instant',
-  groqLargeModel: 'llama-3.3-70b-versatile',
+  groqSmallModel: 'openai/gpt-oss-20b',
+  groqLargeModel: 'openai/gpt-oss-120b',
   dailyBudget: 200,
   batchSize: 5,
   idleFlushSec: 60,

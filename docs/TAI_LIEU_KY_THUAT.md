@@ -64,8 +64,8 @@ src/sidepanel/   giao diện (TypeScript thuần, chỉ dùng textContent)
 Bộ quy tắc (luôn chạy, miễn phí)
   └─ khi đủ N tin mới của đối phương (mặc định 5) hoặc hội thoại dừng 60 giây mà còn tin lẻ, cách nhau ≥ X giây:
        1. Gemini Nano trên máy (nếu bật + side panel đang mở) — không tốn lượt, dữ liệu không rời máy
-       2. Groq mô hình nhỏ (8B) — mặc định
-            └─ leo lên mô hình lớn (70B) khi mức ≥ Cần chú ý, hoặc mô hình nhỏ thấy dấu hiệu nặng
+       2. Groq mô hình nhỏ (gpt-oss-20b) — mặc định
+            └─ leo lên mô hình lớn (gpt-oss-120b) khi mức ≥ Cần chú ý, hoặc mô hình nhỏ thấy dấu hiệu nặng
 ```
 
 - **Gửi phần chênh lệch (delta):** mỗi lần chỉ gửi tin mới, kèm 4 tin ngữ cảnh và bản tóm tắt cuộn do AI viết lần trước. Số điện thoại, số tài khoản và email được che trước khi gửi.

@@ -24,6 +24,20 @@ export interface ChatResult {
   latencyMs: number;
   promptTokens?: number;
   completionTokens?: number;
+  /** "length" nghĩa là chạm trần token. */
+  finishReason?: string;
+  reasoningTokens?: number;
+  /** Lý do nhà cung cấp từ chối JSON, không chứa nội dung model sinh ra. */
+  jsonFailure?: { code?: string; message?: string; generatedChars?: number };
+}
+
+function readJsonFailure(body: string): ChatResult['jsonFailure'] {
+  try {
+    const e = (JSON.parse(body) as { error?: { code?: string; message?: string; failed_generation?: string } }).error;
+    return { code: e?.code, message: e?.message?.slice(0, 200), generatedChars: e?.failed_generation?.length };
+  } catch {
+    return { message: body.slice(0, 200) };
+  }
 }
 
 export interface ProviderOptions {
@@ -40,6 +54,8 @@ export interface ProviderOptions {
   timeoutMs?: number;
   /** Giới hạn token sinh ra (max_completion_tokens) để giữ trong hạn mức và tránh cắt JSON trên model có suy luận. */
   maxCompletionTokens?: number;
+  /** Mức suy luận của model có suy luận (gpt-oss). Là một phần của khóa cache vì đổi mức là đổi lần đo. */
+  reasoningEffort?: 'low' | 'medium' | 'high';
   /** Tắt việc tự gọi lại không có response_format khi gặp HTTP 400 (dùng cho Groq để không che lỗi JSON). */
   disableJsonFallback?: boolean;
   fetchImpl?: typeof fetch;
@@ -62,8 +78,9 @@ export class OpenRouterClient {
     mkdirSync(join(o.cacheDir, 'responses'), { recursive: true });
   }
 
-  static key(req: ChatRequest): string {
-    return createHash('sha256').update(JSON.stringify([req.model, req.system, req.user, req.variant ?? 0])).digest('hex');
+  static key(req: ChatRequest, reasoningEffort?: string): string {
+    const parts = [req.model, req.system, req.user, req.variant ?? 0, ...(reasoningEffort ? [reasoningEffort] : [])];
+    return createHash('sha256').update(JSON.stringify(parts)).digest('hex');
   }
 
   private usagePath() {
@@ -83,7 +100,7 @@ export class OpenRouterClient {
   }
 
   async chat(req: ChatRequest): Promise<ChatResult> {
-    const file = join(this.o.cacheDir, 'responses', `${OpenRouterClient.key(req)}.json`);
+    const file = join(this.o.cacheDir, 'responses', `${OpenRouterClient.key(req, this.o.reasoningEffort)}.json`);
     if (existsSync(file)) {
       const c = JSON.parse(readFileSync(file, 'utf8')) as Omit<ChatResult, 'cached'>;
       return { ...c, cached: true };
@@ -110,6 +127,7 @@ export class OpenRouterClient {
           model: req.model,
           temperature: 0.1, // giống cấu hình sản phẩm (background/groq.ts)
           ...(this.o.maxCompletionTokens ? { max_completion_tokens: this.o.maxCompletionTokens } : {}),
+          ...(this.o.reasoningEffort ? { reasoning_effort: this.o.reasoningEffort } : {}),
           ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
           messages: [
             { role: 'system', content: req.system },
@@ -120,17 +138,20 @@ export class OpenRouterClient {
       this.addUsage();
       if (res.ok) {
         const data = (await res.json()) as {
-          choices?: { message?: { content?: string } }[];
-          usage?: { prompt_tokens?: number; completion_tokens?: number };
+          choices?: { message?: { content?: string }; finish_reason?: string }[];
+          usage?: { prompt_tokens?: number; completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
           error?: { message?: string };
         };
         const content = data.choices?.[0]?.message?.content;
-        if (content == null) throw new Error(`Phản hồi rỗng: ${data.error?.message ?? 'không có nội dung'}`);
+        const finishReason = data.choices?.[0]?.finish_reason;
+        if (content == null) throw new Error(`Phản hồi rỗng (finish_reason ${finishReason ?? 'không rõ'}): ${data.error?.message ?? 'không có nội dung'}`);
         const out = {
           content,
           latencyMs: this.now() - t0,
           promptTokens: data.usage?.prompt_tokens,
           completionTokens: data.usage?.completion_tokens,
+          finishReason,
+          reasoningTokens: data.usage?.completion_tokens_details?.reasoning_tokens,
         };
         writeFileSync(file, JSON.stringify(out));
         return { ...out, cached: false };
@@ -140,7 +161,7 @@ export class OpenRouterClient {
       // Groq báo model sinh JSON sai bằng lỗi 400 (json_validate_failed / failed_generation). Đây là kết quả của model,
       // không phải lỗi mạng: lưu thành phản hồi rỗng để bị tính là JSON không hợp lệ.
       if (res.status === 400 && /json_validate_failed|failed_generation|failed to generate json/i.test(body)) {
-        const out = { content: '', latencyMs: this.now() - t0 };
+        const out = { content: '', latencyMs: this.now() - t0, jsonFailure: readJsonFailure(body) };
         writeFileSync(file, JSON.stringify(out));
         return { ...out, cached: false };
       }

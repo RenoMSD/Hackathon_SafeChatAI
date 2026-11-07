@@ -256,8 +256,45 @@ describe('client OpenRouter (fetch giả)', () => {
     expect(again.content).toBe('');
     expect(again.cached).toBe(true);
     expect(calls).toHaveLength(1);
+    expect(again.jsonFailure?.code).toBe('json_validate_failed');
     const m: ChatMessage[] = [{ id: 'msg-001', seq: 1, sender: 'other', text: 'x' }];
     expect(readAiOutcome('', benchRequest(m, false), m, 't').jsonValid).toBe(false);
+  });
+  it('lý do từ chối JSON không giữ nội dung model sinh ra', async () => {
+    const { client } = make([
+      () => new Response(JSON.stringify({ error: { code: 'json_validate_failed', message: 'failed', failed_generation: 'nội dung bí mật' } }), { status: 400 }),
+    ]);
+    const r = await client.chat(req);
+    expect(r.jsonFailure).toEqual({ code: 'json_validate_failed', message: 'failed', generatedChars: 'nội dung bí mật'.length });
+    expect(JSON.stringify(r)).not.toContain('bí mật');
+  });
+  it('reasoning_effort: gửi lên API và tách cache theo từng mức', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const cacheDir = mkdtempSync(join(tmpdir(), 'or-'));
+    const makeClient = (reasoningEffort?: 'low' | 'medium') =>
+      new OpenRouterClient({
+        apiKey: 'k',
+        cacheDir,
+        dailyCap: 10,
+        minIntervalMs: 0,
+        reasoningEffort,
+        fetchImpl: (async (_u: string, init: RequestInit) => {
+          bodies.push(JSON.parse(String(init.body)));
+          return new Response(
+            JSON.stringify({
+              choices: [{ message: { content: '{}' }, finish_reason: 'stop' }],
+              usage: { prompt_tokens: 1, completion_tokens: 3, completion_tokens_details: { reasoning_tokens: 2 } },
+            }),
+            { status: 200 },
+          );
+        }) as unknown as typeof fetch,
+      });
+    const low = await makeClient('low').chat(req);
+    expect(low).toMatchObject({ finishReason: 'stop', reasoningTokens: 2 });
+    await makeClient('medium').chat(req);
+    await makeClient().chat(req);
+    expect((await makeClient('low').chat(req)).cached).toBe(true);
+    expect(bodies.map((b) => b.reasoning_effort)).toEqual(['low', 'medium', undefined]);
   });
   it('hết hạn mức ngày của nhà cung cấp → dừng an toàn ngay, không thử lại', async () => {
     const { client, calls } = make([() => new Response('Rate limit reached on tokens per day (TPD)', { status: 429 })]);

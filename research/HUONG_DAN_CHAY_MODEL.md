@@ -16,17 +16,17 @@ Dành cho thành viên phụ trách chạy model. Mục tiêu: đo **model AI (G
 Sản phẩm dừng ở Tầng 1 nên model sẽ dùng là model trên Groq. Đo trên **tune**, không chạy trên check.
 
 1. Tạo khóa ở console.groq.com, thêm `GROQ_API_KEY=` vào `research/.env`. Dùng khóa benchmark, không dùng khóa của gateway.
-2. Xem hạn mức thật ở trang Limits. Prompt trung bình khoảng 4.200 ký tự mỗi lượt, nên một cấu hình có 65 lượt, khoảng 270.000 ký tự đầu vào. Số token cần đo ở lần chạy thử. Nếu hạn mức token mỗi phút thấp, tăng `--interval-ms` (ví dụ 15000) để đỡ phải chờ khi bị 429.
+2. Xem hạn mức thật ở trang Limits. Lần thử ngày 2026-11-07 đọc được 1.000 lượt/ngày và 8.000 token/phút. Mỗi lượt của `gpt-oss` tốn khoảng 3.700 token, nên đặt `--interval-ms 30000`. Có thể thêm `--reasoning-effort low|medium|high`; mỗi mức có cache riêng và là một lần đo riêng. Xem model khóa của bạn dùng được bằng `GET /openai/v1/models`.
 3. Chạy thử 2 ca:
 
 ```bash
-npm run bench:run -- --provider groq --dataset set:v2 --split tune --limit 2 --configs ai,hybrid-hint --models llama-3.1-8b-instant --run-id groq_thu
+npm run bench:run -- --provider groq --dataset set:v2 --split tune --limit 2 --configs ai,hybrid-hint --models openai/gpt-oss-20b --interval-ms 30000 --run-id groq_thu
 ```
 
 4. Chạy đủ tune cho từng model. `hybrid-hint` là cấu hình chấm chính (giống sản phẩm nhất); `ai`, `hybrid`, `hybrid-veto` dùng chung một lượt gọi, còn `hybrid-hint` tốn thêm một lượt nên có thể chạy gộp hoặc tách ngày nếu hạn mức ít:
 
 ```bash
-npm run bench:run -- --provider groq --dataset set:v2 --split tune --configs rules,ai,hybrid,hybrid-veto,hybrid-hint --models llama-3.1-8b-instant --interval-ms 15000 --run-id groq_8b_tune
+npm run bench:run -- --provider groq --dataset set:v2 --split tune --configs rules,ai,hybrid,hybrid-veto,hybrid-hint --models openai/gpt-oss-20b --interval-ms 30000 --run-id groq_20b_tune
 ```
 
 Hết hạn mức ngày thì lệnh tự dừng. Hôm sau chạy lại đúng lệnh, cùng `--run-id`; ca đã xong lấy từ cache.
@@ -34,7 +34,7 @@ Hết hạn mức ngày thì lệnh tự dừng. Hôm sau chạy lại đúng l�
 5. Ghi vào sổ thí nghiệm (chấm theo `--config hybrid-hint`), rồi tự viết `README.md` của thí nghiệm đó:
 
 ```bash
-npm run bench:experiment-ai -- --id EXP-010 --run groq_8b_tune --model llama-3.1-8b-instant --config hybrid-hint --title "Luật + Groq 8B" --hypothesis "..."
+npm run bench:experiment-ai -- --id EXP-011 --run groq_20b_tune --model openai/gpt-oss-20b --config hybrid-hint --title "Luật + Groq gpt-oss-20b" --hypothesis "..."
 ```
 
 ```bash

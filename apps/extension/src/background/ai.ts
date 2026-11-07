@@ -1,7 +1,7 @@
 // Điều phối AI phân tầng:
 //   quy tắc (luôn chạy, miễn phí)
 //   → Gemini Nano trên máy (nếu bật và side panel báo sẵn sàng; không tốn hạn mức, dữ liệu không rời máy)
-//   → Groq: mô hình nhỏ (8B) mặc định, chỉ leo lên mô hình lớn (70B) khi đã có dấu hiệu đáng kể.
+//   → Groq: mô hình nhỏ (gpt-oss-20b) mặc định, chỉ leo lên mô hình lớn (gpt-oss-120b) khi đã có dấu hiệu đáng kể.
 // Chỉ gửi DELTA (tin mới + vài tin ngữ cảnh + tóm tắt cuộn), giới hạn số lượt/ngày.
 import {
   buildAiRequest,
@@ -186,13 +186,13 @@ async function runGroq(
   const original = (await loadSession())?.transcript.messages ?? [];
   const model = tier === 'large' ? settings.groqLargeModel : settings.groqSmallModel;
   // Tính lượt ngay khi Groq trả lời: phản hồi đọc lỗi vẫn tốn hạn mức
-  const firstContent = await callGroq(request, settings.groqApiKey, model);
+  const firstContent = await callGroq(request, settings.groqApiKey, model, settings.groqReasoningEffort);
   await addUsage(1);
   const first = parseAiResponse(firstContent, request, original, `Groq ${model}`);
   if (tier === 'small' && shouldEscalate(first.signals, budget - 1)) {
     // Mô hình nhỏ thấy dấu hiệu nặng → nhờ mô hình lớn xác nhận/phân tích kỹ
     const large = settings.groqLargeModel;
-    const secondContent = await callGroq(request, settings.groqApiKey, large);
+    const secondContent = await callGroq(request, settings.groqApiKey, large, settings.groqReasoningEffort);
     await addUsage(1);
     const second = parseAiResponse(secondContent, request, original, `Groq ${large}`);
     return {

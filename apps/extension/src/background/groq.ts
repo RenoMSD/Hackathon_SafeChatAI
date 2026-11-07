@@ -1,8 +1,11 @@
 // Gọi Groq (OpenAI-compatible). Chỉ là lớp vận chuyển; prompt/kiểm tra kết quả nằm ở core/ai.ts.
 import type { AiRequest } from '@safechat/core/ai';
+import type { GroqReasoningEffort } from '../shared/protocol';
 
 const ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const TIMEOUT_MS = 20_000;
+/** Bằng trần của công cụ đo (research/run.ts) để sản phẩm giống điều kiện đã đo. */
+const MAX_COMPLETION_TOKENS = 2048;
 
 export class GroqError extends Error {
   constructor(
@@ -13,7 +16,7 @@ export class GroqError extends Error {
   }
 }
 
-export async function callGroq(req: AiRequest, apiKey: string, model: string): Promise<string> {
+export async function callGroq(req: AiRequest, apiKey: string, model: string, reasoningEffort?: GroqReasoningEffort): Promise<string> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   let res: Response;
@@ -25,6 +28,8 @@ export async function callGroq(req: AiRequest, apiKey: string, model: string): P
       body: JSON.stringify({
         model,
         temperature: 0.1,
+        max_completion_tokens: MAX_COMPLETION_TOKENS,
+        ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: req.system },

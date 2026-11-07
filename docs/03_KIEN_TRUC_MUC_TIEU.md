@@ -178,10 +178,10 @@ Tiêu chí viết trước khi có kết quả: JSON hợp lệ ≥ 95%, không 
 
 | Vai trò | Ứng viên trên Groq | Ghi chú |
 |---|---|---|
-| Nhỏ (`MODEL_SMALL`) | `llama-3.1-8b-instant`, `openai/gpt-oss-20b` | Dùng cho đa số lượt gọi |
-| Lớn (`MODEL_LARGE`) | `llama-3.3-70b-versatile`, `openai/gpt-oss-120b` | Dùng khi tín hiệu luật đáng ngờ, tốn hạn mức hơn |
+| Nhỏ (`MODEL_SMALL`) | `openai/gpt-oss-20b` | Dùng cho đa số lượt gọi |
+| Lớn (`MODEL_LARGE`) | `openai/gpt-oss-120b` | Dùng khi tín hiệu luật đáng ngờ, tốn hạn mức hơn |
 
-Danh sách model và hạn mức miễn phí **phải kiểm tra lại lúc chạy** ở trang Limits của tài khoản Groq. Chưa model nào được đo trên tune. Gemini Nano giữ ở dạng thử nghiệm, không demo.
+Ngày 2026-11-07, khóa Groq của nhóm không dùng được hai model Llama trong kế hoạch cũ (`llama-3.1-8b-instant` báo 404, danh sách model không có cả hai). Danh sách model và hạn mức miễn phí **phải kiểm tra lại lúc chạy** ở trang Limits của tài khoản Groq. Chưa model nào được đo trên tune. Gemini Nano giữ ở dạng thử nghiệm, không demo.
 
 ## 11. Không làm trong 24h
 

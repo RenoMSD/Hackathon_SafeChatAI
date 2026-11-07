@@ -33,7 +33,7 @@ Repo đang public nên không đưa nội dung hội thoại hay mã ca của ch
 ## Thêm một thí nghiệm
 
 ```bash
-npm run bench:experiment -- --id EXP-010 --title "Tên ngắn" --hypothesis "Sửa gì, kỳ vọng gì" --method rules --skip-check --vs EXP-001
+npm run bench:experiment -- --id <mã mới> --title "Tên ngắn" --hypothesis "Sửa gì, kỳ vọng gì" --method rules --skip-check --vs EXP-001
 ```
 
-Sau đó viết phần Kết luận trong `EXP-010/README.md`.
+Sau đó viết phần Kết luận trong `README.md` của thí nghiệm đó.
