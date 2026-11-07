@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path';
 import { escapeHtml } from '@safechat/core/export';
 import { RISK_LEVEL_LABEL } from '@safechat/core/types';
-import { arg, DATA_DIR, loadDataset, REPORTS_DIR, RESULTS_DIR } from './lib/io';
+import { arg, DATA_DIR, hasTuneCheckSplit, loadDataset, REPORTS_DIR, RESULTS_DIR } from './lib/io';
 import { computeMetrics, LEVELS, meanPairwiseKappa, percentile, type Metrics } from './lib/metrics';
 import { computeReplayMetrics } from './lib/replay';
 import type { ResultRow } from './run';
@@ -45,6 +45,7 @@ interface Row {
   stability?: number;
   jsonValid: number;
   rejectedPerCase: number;
+  schemaDroppedPerCase: number;
   p50?: number;
   p95?: number;
   tokens: number;
@@ -78,6 +79,7 @@ for (const [key, rs] of groups) {
     stability,
     jsonValid: ai ? first.filter((r) => r.jsonValid).length / first.length : 1,
     rejectedPerCase: ai ? first.reduce((s, r) => s + (r.rejected ?? 0), 0) / first.length : 0,
+    schemaDroppedPerCase: ai ? first.reduce((s, r) => s + (r.schemaDropped ?? 0), 0) / first.length : 0,
     p50: live.length ? percentile(live, 50) : undefined,
     p95: live.length ? percentile(live, 95) : undefined,
     tokens: tokIn + tokOut,
@@ -195,9 +197,14 @@ if (tagKeys.length) {
   });
 }
 
-// Ca bỏ sót nguy hiểm của cấu hình đứng đầu — dùng cho phân tích lỗi (chỉ trên dev)
+// Tập check / không phải tune của bộ đã khóa: chỉ xuất số tổng, tuyệt đối không in danh sách từng ca để tránh lộ nội dung check
+const hideCaseDetails = metas.some((m) => m.split === 'check' || m.split === 'test' || (hasTuneCheckSplit(m.dataset) && m.split !== 'tune'));
 const best = table[0];
-if (best) {
+if (hideCaseDetails) {
+  blocks.push({
+    p: '🔒 Chế độ bảo vệ tập check/test: báo cáo chỉ xuất số tổng hợp, ẩn hoàn toàn danh sách và nội dung từng ca.',
+  });
+} else if (best) {
   const firstRows = groups.get(best.key)!.filter((r) => r.repeat === 0);
   const misses = firstRows.filter((r) => ['high', 'critical'].includes(r.gold) && !['high', 'critical'].includes(r.pred ?? ''));
   if (misses.length) {

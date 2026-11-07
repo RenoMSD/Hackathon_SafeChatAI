@@ -167,3 +167,38 @@ export function percentile(values: number[], p: number): number {
   const s = [...values].sort((a, b) => a - b);
   return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))]!;
 }
+
+export interface PartMetrics {
+  n: number;
+  accuracy: number | null;
+  macroF1: number | null;
+  dangerMiss: number;
+  dangerMissCount: string;
+  criticalRecall: number | null;
+  falseAlarm: number | null;
+  falseAlarmHigh: number;
+  falseAlarmHighCount: string;
+  confusion?: number[][];
+}
+
+/** Số ghi vào sổ thí nghiệm: bỏ sót là ca từ Cao trở lên bị chấm dưới Cao, báo nhầm tính từ Cao trở lên. */
+export function partMetrics(preds: Prediction[]): PartMetrics {
+  const rank: Record<RiskLevel, number> = { low: 0, attention: 1, high: 2, critical: 3 };
+  const m = computeMetrics(preds);
+  const danger = preds.filter((p) => p.gold === 'high' || p.gold === 'critical');
+  const missed = danger.filter((p) => !p.pred || rank[p.pred] < 2);
+  const benign = preds.filter((p) => p.kind !== 'scam');
+  const alarmed = benign.filter((p) => p.pred && rank[p.pred] >= 2);
+  return {
+    n: m.n,
+    accuracy: m.accuracy,
+    macroF1: m.macroF1,
+    dangerMiss: m.dangerMissRate,
+    dangerMissCount: `${missed.length}/${danger.length}`,
+    criticalRecall: m.criticalRecall,
+    falseAlarm: m.benignFalseAlarm,
+    falseAlarmHigh: benign.length ? alarmed.length / benign.length : 0,
+    falseAlarmHighCount: `${alarmed.length}/${benign.length}`,
+    confusion: m.confusion.map((r) => r.slice(0, 4)),
+  };
+}

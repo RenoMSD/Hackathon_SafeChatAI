@@ -2,7 +2,7 @@
 
 Ba người làm độc lập trên 3 nhánh, ghép vào `main` ở 3 mốc cố định. Kiến trúc ở [03_KIEN_TRUC_MUC_TIEU.md](03_KIEN_TRUC_MUC_TIEU.md). Hợp đồng API ở [`packages/contracts`](../packages/contracts/src/index.ts).
 
-**H0** là lúc cả nhóm bắt đầu. Hỗ trợ AI rút ngắn được phần viết code, nhưng **không rút ngắn được** phần đăng ký tài khoản, hạn mức Bedrock, gán nhãn, thử trên điện thoại và luyện demo. Các việc đó phải bắt đầu đúng giờ.
+**H0** là lúc cả nhóm bắt đầu. Hỗ trợ AI rút ngắn được phần viết code, nhưng **không rút ngắn được** phần đăng ký tài khoản, hạn mức Groq, gán nhãn, thử trên điện thoại và luyện demo. Các việc đó phải bắt đầu đúng giờ.
 
 ## Phạm vi: đây là bài thi
 
@@ -11,11 +11,11 @@ Chỉ làm những gì phục vụ **bảo mật** và **tiêu chí chấm**. De
 | Giữ, vì nằm trong tiêu chí chấm | Bỏ, không mất thời gian |
 |---|---|
 | Không lộ khóa, HTTPS, CORS, IAM quyền tối thiểu | Rà soát điều khoản Meta, Chrome Web Store, Google Play |
-| Che PII, không log nội dung, rào chặn chèn lệnh, lọc đầu ra | Yêu cầu về vùng lưu dữ liệu và điều khoản model cho chat thật |
+| Che PII, không log nội dung, rào chặn chèn lệnh, lọc đầu ra | Yêu cầu về vùng lưu dữ liệu và điều khoản model cho chat thật. Demo vẫn chỉ dùng dữ liệu giả lập |
 | Trích dẫn khớp tin gốc, giải thích được quyết định của AI | Hạn chế phát APK. Có thể gửi APK cho ban giám khảo nếu cần |
 | Số liệu trung thực, tái lập được, nêu nguồn dữ liệu | Quy định phát hành sau cuộc thi |
 
-Vùng Tokyo vẫn là mặc định vì model đã có sẵn ở đó. Vùng khác cũng được nếu chạy tốt hơn.
+Vùng Tokyo là mặc định cho hạ tầng AWS. Vùng khác cũng được nếu tài khoản đã ở đó. Model chạy qua Groq, ngoài AWS.
 
 ## 1. Ai làm gì
 
@@ -37,14 +37,14 @@ Phân vai có thể đổi nếu nhóm muốn, miễn đổi cả cột.
 - Điểm ghép giữa các phần chỉ có 3 thứ:
   1. Hợp đồng API trong `packages/contracts`.
   2. Hàm `buildAiRequest` và `parseAiResponse` của `@safechat/core/ai`.
-  3. Biến môi trường `MODEL_SMALL`, `MODEL_LARGE` của gateway. Duy chọn model, Danh chỉ cấu hình, không cần sửa code.
+  3. Biến môi trường `AI_PROVIDER`, `MODEL_SMALL`, `MODEL_LARGE` của gateway. Duy chọn model, Danh chỉ cấu hình, không cần sửa code.
 
 ## 2. Mốc ghép
 
 | Mốc | Duy | Danh | Đạt | Cả nhóm kiểm tra |
 |---|---|---|---|---|
-| **H1** | Có kết quả kiểm tra Bedrock | Có kết quả kiểm tra Bedrock trên tài khoản production | Máy và công cụ sẵn sàng | Họp 10 phút, chốt hướng theo mục 5 |
-| **M1: H3** | Trình chạy gọi được Bedrock | Staging `/healthz` công khai qua CI | APK khung cài được lên máy Duy | Đều xanh trên `main` |
+| **H1** | Có khóa Groq benchmark, chạy thử 2 ca | Có tài khoản AWS và khóa Groq production | Máy và công cụ sẵn sàng | Họp 10 phút, xem hạn mức thật theo mục 5 |
+| **M1: H3** | Xong vòng đo đầu trên tune | Staging `/healthz` công khai qua CI | APK khung cài được lên máy Duy | Đều xanh trên `main` |
 | **M2: H6** | Xong vòng 1, chọn được model tạm | `/v1/analyses` chạy thật trên staging | App kiểm tra đoạn chat bằng luật, client chạy với mock | Gọi thật từ app tới staging |
 | **Đóng băng: H7.5** | **Đóng băng luật, prompt, model** | Cấu hình model đã chọn | | Không gia hạn |
 | **M3: H8.5** | Xong test cuối một lần | Production chạy | Extension và app trỏ tới production | Chạy trọn luồng demo |
@@ -60,16 +60,16 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 ### Duy: `duy/ai-eval`
 
 **H0–H1**
-- [ ] Tạo tài khoản AWS benchmark, bật MFA, đặt Budgets, chạy kiểm tra ở mục 5.
+- [ ] Tạo khóa Groq benchmark, đặt vào `research/.env`, chạy thử theo `research/HUONG_DAN_CHAY_MODEL.md`.
 - [ ] Nhận credit GDP, ghi ngày hết hạn. Giữ để chạy đối chứng Gemini.
 
 **H1–H3**
-- [ ] Trình chạy: provider Bedrock và Gemini, chạy song song, ghi token và chi phí thật.
-- [ ] Tách cố định tune 65 / check 40 của bộ v2, cùng nguồn đi chung, lưu manifest có mã băm.
+- [x] Trình chạy: provider Groq, ghi token, độ trễ, JSON hợp lệ. Đã thử với server giả, chưa chạy với Groq thật.
+- [x] Tách cố định tune 65 / check 40 của bộ v2, cùng nguồn đi chung, lưu manifest có mã băm.
 - [ ] Gói gợi ý H2 từ luật: mã tin, giai đoạn, mâu thuẫn, thực thể, mức hiện tại.
 
 **H3–H6: Vòng 1**
-- [ ] Chạy mức trần với 3 kiểu gợi ý H0, H1, H2, rồi đi xuống các bậc model rẻ hơn.
+- [ ] Chạy model Groq từ lớn xuống nhỏ với cấu hình `ai,hybrid,hybrid-veto` và `hybrid-hint`, mỗi lần một cấu hình để vừa hạn mức.
 - [ ] Phân loại lỗi trên tune. Sửa tối đa 5 luật, có tình huống thử theo cặp, eval không tụt.
 - [ ] Báo Danh model tạm cho `MODEL_SMALL`, `MODEL_LARGE`.
 
@@ -90,7 +90,7 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 ### Danh: `danh/gateway-aws`
 
 **H0–H1**
-- [ ] Tạo tài khoản AWS production, bật MFA cho root, đặt Budgets, chọn vùng Tokyo, chạy kiểm tra ở mục 5.
+- [ ] Tạo tài khoản AWS, bật MFA cho root, đặt Budgets, chọn vùng Tokyo. Tạo khóa Groq production.
 - [ ] Nhận credit GDP.
 
 **H1–H3**
@@ -99,9 +99,9 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 - [ ] Ghi URL staging vào mục 6 của file này. **Đạt cần URL này ở M2.**
 
 **H3–H6**
-- [ ] `POST /v1/devices` và `POST /v1/analyses` đúng hợp đồng: kiểm tra schema, che PII lần hai, gọi Bedrock, kiểm tra trích dẫn bằng core.
-- [ ] DynamoDB: hạn mức thiết bị, bộ đếm chi tiêu, trần ngân sách tự ngắt.
-- [ ] Không log nội dung chat. Tắt Bedrock invocation logging. Có test cho việc này.
+- [ ] `POST /v1/devices` và `POST /v1/analyses` đúng hợp đồng: kiểm tra schema, che PII lần hai, gọi Groq qua interface `AI_PROVIDER`, khóa đọc từ Secrets Manager, kiểm tra trích dẫn bằng core.
+- [ ] DynamoDB: hạn mức thiết bị, bộ đếm token, trần token mỗi ngày tự ngắt.
+- [ ] Không log nội dung chat. Có test cho việc này.
 
 **H6–H8.5**
 - [ ] `POST /v1/feedback`, `GET /v1/metrics/summary`.
@@ -129,9 +129,9 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 - [ ] Client gateway dùng `@safechat/contracts/mock`, đổi sang URL staging ở M2.
 
 **H6–H8.5**
-- [ ] Extension gọi gateway, cập nhật màn hình đồng ý, bỏ yêu cầu Groq key.
+- [ ] Extension gọi gateway, bỏ yêu cầu Groq key, màn hình đồng ý nêu rõ dữ liệu đi qua gateway rồi đến Groq.
 - [ ] Sửa bảo mật widget: bỏ `TRUSTED_AND_UNTRUSTED_CONTEXTS`, background chỉ gửi mức và điểm, Shadow DOM `closed`.
-- [ ] Thử mục 28–30 của `apps/extension/HUONG_DAN_CAI_DAT.md` trên Facebook thật, ghi lại kết quả.
+- [ ] Thử mục 28–30 của `apps/extension/HUONG_DAN_CAI_DAT.md` trên Facebook thật **với AI tắt**, ghi lại kết quả.
 
 **H8.5–H12**
 - [ ] APK bản demo trỏ tới production. Duy cài lại trên máy demo, giữ một file dự phòng.
@@ -151,7 +151,7 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 |---|---|
 | Vòng model thứ 3 | Không đủ thời gian. Tối đa 2 vòng |
 | Ảnh chụp màn hình | Chuyển thành lộ trình |
-| Bedrock Guardrails, prompt caching | Làm nếu dư giờ, không ảnh hưởng luồng chính |
+| Bedrock, fine-tuning, Guardrails | Ngoài phạm vi Tầng 1 |
 | Bộ đề kín 20–30 ca → 15 ca | Cỡ mẫu nhỏ hơn nên phải nói rõ khi báo cáo |
 | Thử người dùng 5–10 → 3–5 người | Chỉ là tín hiệu định tính |
 | Dashboard chạy thật | Dùng trang tĩnh |
@@ -169,23 +169,24 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 | H10 còn lỗi ở share intent | Demo bằng dán thủ công |
 | H10 Messenger thật lỗi | Demo extension bằng chat giả lập, nói rõ giới hạn |
 
-## 5. Kiểm tra AWS ở H0–H1
+## 5. Kiểm tra ở H0–H1
 
-Làm trước mọi việc khác. Tài liệu AWS cho biết Claude Opus 5.5 và Haiku 5.5 tính phí qua AWS Marketplace, nhưng không nói rõ credit Free Tier có trừ phí này không.
+**AWS (Danh):**
+1. Đăng ký, chọn Free plan, ghi số credit và hạn. Mỗi người dùng tài khoản của mình, không tạo thêm để lấy credit.
+2. Bật MFA cho root, không tạo access key cho root, đặt AWS Budgets, chọn vùng Tokyo.
 
-1. Đăng ký kiểu **Sign up (advanced)**, chọn Free plan, ghi số credit và hạn. Tài khoản AWS đã có thì không đủ điều kiện nhận credit.
-2. Bật MFA cho root, không tạo access key cho root, đặt AWS Budgets, chọn vùng **Tokyo (`ap-northeast-1`)**.
-3. Gọi thử bằng dữ liệu giả, mỗi model 3 lần: `jp.amazon.nova-2-lite-v1:0`, `jp.anthropic.claude-haiku-5-5`, `jp.anthropic.claude-opus-5-5`.
-4. Xem mục Bills và Credits, rồi xem lại ở M1 vì số liệu có thể cập nhật chậm.
+**Groq (Duy và Danh, mỗi người một tài khoản):**
+1. Tạo khóa, không commit và không gửi vào nhóm chung.
+2. Mở trang Limits, ghi hạn mức thật của từng model vào mục 6. Tài liệu chỉ cho số ví dụ của gói Developer, chưa rõ gói miễn phí.
+3. Gọi thử bằng dữ liệu giả.
 
 | Kết quả | Hướng xử lý |
 |---|---|
-| Gọi được, credit trừ cả hai | Đi theo plan chính |
-| Claude gọi được nhưng credit không trừ | Sản phẩm dùng Nova. Claude chỉ chạy nếu nhóm đồng ý trả tiền thật |
-| Free plan chặn Claude, Nova chạy được | Nhóm quyết định giữ Free plan và bỏ Claude, hay nâng Paid plan |
-| Bedrock bị chặn hoàn toàn | Nâng Paid plan một tài khoản với Budgets, hoặc gateway gọi Gemini API trả phí |
+| Hạn mức đủ cho demo | Đi theo plan chính |
+| Hạn mức benchmark thiếu | Giảm số model, đo qua nhiều ngày, hoặc giảm cấu hình |
+| Groq lỗi lúc demo | Client giữ kết quả luật. Có sẵn video dự phòng |
 
-**Không nâng Paid plan hay phát sinh tiền thật nếu cả nhóm chưa đồng ý.**
+**Không nâng Paid plan AWS, gói trả phí Groq hay phát sinh tiền thật nếu cả nhóm chưa đồng ý.**
 
 ## 6. Thông tin dùng chung
 
@@ -198,6 +199,7 @@ Làm trước mọi việc khác. Tài liệu AWS cho biết Claude Opus 5.5 và
 | URL staging | |
 | URL production | |
 | URL bản web | |
+| Hạn mức Groq thật | |
 | Model đã chọn | |
 
 ## 7. Làm việc với git

@@ -4,11 +4,14 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { binaryMetrics } from '../lib/binary';
 import { convertScamtext, convertSms, convertTele, fillMoneyTokens } from '../lib/external';
-import { benchRequest, hybridLevel, hybridVetoLevel, readAiOutcome } from '../lib/bench';
+import { benchRequest, hybridLevel, hybridVetoLevel, PROMPT_VERSION, readAiOutcome } from '../lib/bench';
 import { parseCsv } from '../lib/csv';
 import { rowsToCases } from '../lib/dataset';
 import { cohenKappa, computeMetrics, meanPairwiseKappa, type Prediction } from '../lib/metrics';
 import { hashCases, stratifiedSplit } from '../lib/split';
+import { aiRunSummary, type AiRunRow } from '../lib/airun';
+import { hasTuneCheckSplit, lockedCheckIds, lockedTuneIds } from '../lib/io';
+import { GROQ_URL } from '../providers/groq';
 import { DailyCapReached, OpenRouterClient } from '../providers/openrouter';
 import type { ChatMessage } from '@safechat/core/types';
 
@@ -243,14 +246,140 @@ describe('client OpenRouter (fetch giả)', () => {
     await client.chat(req);
     await expect(client.chat({ ...req, user: 'khác' })).rejects.toBeInstanceOf(DailyCapReached);
   });
+  it('model sinh JSON sai (Groq json_validate_failed) → phản hồi rỗng được lưu, chạy lại không che mất lỗi', async () => {
+    const { client, calls } = make([
+      () => new Response('{"error":{"code":"json_validate_failed"}}', { status: 400 }),
+      () => ok('{"tốt":1}'),
+    ]);
+    expect((await client.chat(req)).content).toBe('');
+    const again = await client.chat(req);
+    expect(again.content).toBe('');
+    expect(again.cached).toBe(true);
+    expect(calls).toHaveLength(1);
+    const m: ChatMessage[] = [{ id: 'msg-001', seq: 1, sender: 'other', text: 'x' }];
+    expect(readAiOutcome('', benchRequest(m, false), m, 't').jsonValid).toBe(false);
+  });
+  it('hết hạn mức ngày của nhà cung cấp → dừng an toàn ngay, không thử lại', async () => {
+    const { client, calls } = make([() => new Response('Rate limit reached on tokens per day (TPD)', { status: 429 })]);
+    await expect(client.chat(req)).rejects.toBeInstanceOf(DailyCapReached);
+    expect(calls).toHaveLength(1);
+  });
+  it('429 có Retry-After → chờ đúng thời gian đó', async () => {
+    const slept: number[] = [];
+    let i = 0;
+    const responses = [() => new Response('rate', { status: 429, headers: { 'retry-after': '7' } }), () => ok('{}')];
+    const client = new OpenRouterClient({
+      apiKey: 'k',
+      cacheDir: mkdtempSync(join(tmpdir(), 'or-')),
+      dailyCap: 10,
+      minIntervalMs: 0,
+      sleep: async (ms) => void slept.push(ms),
+      fetchImpl: (async () => responses[i++]!()) as unknown as typeof fetch,
+    });
+    await client.chat(req);
+    expect(slept).toContain(7000);
+  });
+  it('baseUrl đổi được nhà cung cấp', async () => {
+    const urls: string[] = [];
+    const client = new OpenRouterClient({
+      apiKey: 'k',
+      cacheDir: mkdtempSync(join(tmpdir(), 'or-')),
+      dailyCap: 10,
+      minIntervalMs: 0,
+      baseUrl: GROQ_URL,
+      fetchImpl: (async (u: string) => {
+        urls.push(u);
+        return ok('{}');
+      }) as unknown as typeof fetch,
+    });
+    await client.chat(req);
+    expect(urls[0]).toBe(`${GROQ_URL}/chat/completions`);
+  });
+  it('disableJsonFallback tắt gọi lại không có response_format và gửi max_completion_tokens', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const client = new OpenRouterClient({
+      apiKey: 'k',
+      cacheDir: mkdtempSync(join(tmpdir(), 'or-')),
+      dailyCap: 10,
+      minIntervalMs: 0,
+      disableJsonFallback: true,
+      maxCompletionTokens: 2048,
+      fetchImpl: (async (_u: string, init: RequestInit) => {
+        bodies.push(JSON.parse(String(init.body)));
+        return new Response('response_format error on json', { status: 400 });
+      }) as unknown as typeof fetch,
+    });
+    await expect(client.chat(req)).rejects.toThrow('HTTP 400');
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0]?.max_completion_tokens).toBe(2048);
+    expect(bodies[0]?.response_format).toEqual({ type: 'json_object' });
+  });
+});
+
+describe('tóm tắt lần chạy AI', () => {
+  const row = (over: Partial<AiRunRow>): AiRunRow => ({
+    caseId: 'a',
+    gold: 'high',
+    kind: 'scam',
+    group: 1,
+    tags: [],
+    config: 'ai',
+    model: 'm',
+    repeat: 0,
+    pred: 'low',
+    jsonValid: true,
+    latencyMs: 100,
+    promptTokens: 1000,
+    completionTokens: 50,
+    ...over,
+  });
+  it('chạy lại cùng ca chỉ tính dòng mới nhất', () => {
+    const s = aiRunSummary([row({ pred: null, jsonValid: false, error: 'lỗi' }), row({ pred: 'high' })], 'm');
+    expect(s.byConfig.ai!.n).toBe(1);
+    expect(s.byConfig.ai!.dangerMissCount).toBe('0/1');
+    expect(s.calls.ai!.errors).toBe(0);
+  });
+  it('tính tỷ lệ JSON hợp lệ, bỏ qua model khác, cộng dồn rejected và schemaDropped', () => {
+    const s = aiRunSummary(
+      [
+        row({ rejected: 1, schemaDropped: 2 }),
+        row({ caseId: 'b', jsonValid: false, error: 'x', rejected: 0, schemaDropped: 3 }),
+        row({ caseId: 'c', model: 'khác', schemaDropped: 99 }),
+      ],
+      'm',
+    );
+    expect(s.calls.ai!.calls).toBe(2);
+    expect(s.calls.ai!.jsonValidRate).toBe(0.5);
+    expect(s.calls.ai!.totalRejected).toBe(1);
+    expect(s.calls.ai!.totalSchemaDropped).toBe(5);
+  });
+  it('hybrid dùng lại phản hồi của ai nên không tính thêm lượt gọi', () => {
+    const s = aiRunSummary([row({}), row({ config: 'hybrid' })], 'm');
+    expect(s.byConfig.hybrid!.n).toBe(1);
+    expect(s.calls.hybrid).toBeUndefined();
+  });
+});
+
+describe('tập tune/check đã khóa', () => {
+  it('đọc đúng 65 ca tune và 40 ca check của set:v2, không trùng nhau và kiểm tra mã băm', () => {
+    expect(hasTuneCheckSplit('set:v2')).toBe(true);
+    expect(hasTuneCheckSplit('bench')).toBe(false);
+    const tune = lockedTuneIds('set:v2');
+    const check = lockedCheckIds('set:v2');
+    expect(tune).toHaveLength(65);
+    expect(check).toHaveLength(40);
+    expect(tune.filter((id) => check.includes(id))).toEqual([]);
+  });
 });
 
 describe('cấu hình so sánh', () => {
   const m: ChatMessage[] = [{ id: 'msg-001', seq: 1, sender: 'other', text: 'Ck vô stk 9988776655 giúp mình nhé' }];
-  it('prompt AI-only không chứa tín hiệu luật, prompt hint thì có', () => {
+  it('prompt AI-only không chứa tín hiệu luật, prompt hint thì có, có schema JSON và PROMPT_VERSION bench-v2', () => {
+    expect(PROMPT_VERSION).toBe('bench-v2');
     expect(benchRequest(m, false).user).toContain('<rule_signals>[]</rule_signals>');
     expect(benchRequest(m, true).user).toContain('money_transfer');
     expect(benchRequest(m, false).system).toContain('risk_level');
+    expect(benchRequest(m, false).system).toContain('evidence_message_ids');
   });
   it('đọc risk_level; JSON hỏng → không trả lời', () => {
     const req = benchRequest(m, false);

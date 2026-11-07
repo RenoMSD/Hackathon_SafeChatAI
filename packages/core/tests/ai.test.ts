@@ -102,6 +102,7 @@ describe('parseAiResponse', () => {
     const r = parseAiResponse(content, req, m, 'test');
     expect(r.signals).toHaveLength(0);
     expect(r.rejected).toBe(2);
+    expect(r.schemaDropped).toBe(1);
   });
   it('AI một mình không đưa lên mức Nghiêm trọng', () => {
     const aiSig: Signal = {

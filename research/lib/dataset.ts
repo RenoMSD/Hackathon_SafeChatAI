@@ -42,7 +42,7 @@ export interface ImportIssue {
   message: string;
 }
 
-function parseMessages(text: string): { messages: ChatMessage[]; error?: string } {
+export function parseMessages(text: string): { messages: ChatMessage[]; error?: string } {
   const messages: ChatMessage[] = [];
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
   for (const [i, l] of lines.entries()) {

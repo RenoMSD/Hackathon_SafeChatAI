@@ -11,44 +11,11 @@ import type { RiskLevel } from '@safechat/core/types';
 import { FRAME_VERSION, frameLevel } from './lib/frames';
 import type { BenchCase } from './lib/dataset';
 import { arg, loadDataset, RESEARCH_DIR, RESULTS_DIR } from './lib/io';
-import { computeMetrics, type Prediction } from './lib/metrics';
+import { partMetrics, type Prediction } from './lib/metrics';
 import { hashSplit, type TuneCheckSplit } from './lib/tunecheck';
 
 const EXP_DIR = join(RESEARCH_DIR, 'experiments');
 const RANK: Record<RiskLevel, number> = { low: 0, attention: 1, high: 2, critical: 3 };
-
-interface PartMetrics {
-  n: number;
-  accuracy: number | null;
-  macroF1: number | null;
-  dangerMiss: number;
-  dangerMissCount: string;
-  criticalRecall: number | null;
-  falseAlarm: number | null;
-  falseAlarmHigh: number;
-  falseAlarmHighCount: string;
-  confusion?: number[][];
-}
-
-export function partMetrics(preds: Prediction[]): PartMetrics {
-  const m = computeMetrics(preds);
-  const danger = preds.filter((p) => p.gold === 'high' || p.gold === 'critical');
-  const missed = danger.filter((p) => !p.pred || RANK[p.pred] < 2);
-  const benign = preds.filter((p) => p.kind !== 'scam');
-  const alarmed = benign.filter((p) => p.pred && RANK[p.pred] >= 2);
-  return {
-    n: m.n,
-    accuracy: m.accuracy,
-    macroF1: m.macroF1,
-    dangerMiss: m.dangerMissRate,
-    dangerMissCount: `${missed.length}/${danger.length}`,
-    criticalRecall: m.criticalRecall,
-    falseAlarm: m.benignFalseAlarm,
-    falseAlarmHigh: benign.length ? alarmed.length / benign.length : 0,
-    falseAlarmHighCount: `${alarmed.length}/${benign.length}`,
-    confusion: m.confusion.map((r) => r.slice(0, 4)),
-  };
-}
 
 function pct(x: number | null | undefined): string {
   return x === null || x === undefined ? '–' : `${(x * 100).toFixed(1)}%`;

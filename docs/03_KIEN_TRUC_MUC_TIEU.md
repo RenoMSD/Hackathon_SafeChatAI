@@ -1,6 +1,14 @@
 # 03. Kiến trúc mục tiêu (AWS)
 
-Đã chốt 2026-11-07: **sản phẩm chỉ triển khai trên AWS.** Gemini chỉ là đối chứng trong benchmark, không chạy trong sản phẩm.
+Đã chốt 2026-11-07: **hạ tầng triển khai trên AWS, model chạy qua Groq.** Nhóm dừng ở Tầng 1.
+
+| Tầng | Thành phần | Trạng thái |
+|---|---|---|
+| **0** | Bộ luật chạy trên thiết bị. Miễn phí, không gửi dữ liệu | Có sẵn. Đây là đường đảm bảo: gateway chết thì client vẫn có kết quả luật |
+| **1** | Groq, gọi từ gateway trên AWS khi người dùng bật AI | **Phạm vi bài thi** |
+| 2 | Bedrock, bật bằng `AI_PROVIDER=bedrock` | Ngoài phạm vi. Chưa có code gọi model. Chỉ làm nếu còn giờ, và không được trình bày là đã kiểm chứng |
+
+Không huấn luyện model trên Bedrock: chỉ có 53 ca lừa đảo, nhãn trùng với nguồn dữ liệu ([EXP-006](../research/experiments/EXP-006/README.md)), và fine-tuning không có ở Tokyo. Gemini chỉ là đối chứng trong benchmark.
 
 ## 1. Quyết định trung tâm
 
@@ -10,50 +18,36 @@ Bản trước không có backend nên giữ được quyền riêng tư, nhưng
 
 | Trước | Sau |
 |---|---|
-| Người dùng tự xin và tự lưu Groq key | Không cần key. Gateway gọi Bedrock bằng IAM role, không có khóa model để lộ |
+| Người dùng tự xin và tự lưu Groq key | Không cần key. Khóa Groq nằm trong Secrets Manager, không ở trên máy người dùng |
 | Không kiểm soát được chi phí | Hạn mức theo thiết bị, trần ngân sách toàn hệ thống |
 | Không đo được chi phí, độ trễ | Số liệu tổng hợp theo model, không chứa nội dung |
 | Chỉ có Chrome máy tính | Có thêm app Android và bản web |
 
 **Điều không đổi:**
 - Không bật AI thì không có gì rời khỏi thiết bị.
+- Bật AI thì delta đã che PII đi qua gateway rồi ra Groq, tức là **ra ngoài AWS**. Màn hình đồng ý phải nói rõ điều này.
+- Không gửi chat thật qua gói miễn phí. Demo và đánh giá chỉ dùng dữ liệu giả lập; thử trên Messenger thật thì tắt AI.
 - Backend không lưu và không log nội dung tin nhắn.
 - Rào chặn AI giữ nguyên: trích dẫn phải khớp, không tự lên Nghiêm trọng, hạ tối đa 1 bậc.
 
-## 2. Vai trò của từng loại credit
+## 2. Vai trò của từng tài nguyên
 
 | Nguồn | Dùng cho | Không dùng cho |
 |---|---|---|
-| **Tài khoản AWS production** (Danh) | Gateway, web, dữ liệu, model cho demo | Benchmark nặng |
-| **Tài khoản AWS benchmark** (Duy) | Thang model trên Bedrock | Bản demo |
-| **Credit Google GDP** (5 USD/Gmail) | Hỗ trợ lúc phát triển. Duy giữ 1 suất cho đối chứng Gemini | Bất kỳ phần nào của demo |
-| OpenRouter (tùy chọn, nạp 10 USD) | Bậc model free trong benchmark | Chat thật |
+| **Tài khoản AWS** (Danh) | Gateway, web, dữ liệu, Secrets Manager | Benchmark |
+| **Khóa Groq production** (Danh) | Gateway staging và production | Benchmark |
+| **Khóa Groq benchmark** (Duy) | Đo model trên tune | Bản demo |
+| **Credit Google GDP** | Hỗ trợ lúc phát triển. Duy giữ 1 suất cho đối chứng Gemini | Bất kỳ phần nào của demo |
+| OpenRouter (tùy chọn) | Bậc model free trong benchmark | Chat thật |
 
-Tách hai tài khoản AWS để benchmark tiêu quá cũng không làm dừng bản demo.
+Tách hai khóa Groq trên hai tài khoản để benchmark dùng hết hạn mức cũng không làm dừng bản demo. Mỗi người chỉ dùng tài khoản của mình và không tạo thêm tài khoản AWS để lấy credit, vì trang FAQ của FCAJ ghi việc đó vi phạm điều khoản Free Tier.
 
-## 3. Cách đăng ký AWS và vùng triển khai
+## 3. Tài khoản AWS và vùng triển khai
 
-AWS có 2 kiểu đăng ký, khác nhau đáng kể:
-
-| | Sign up (new) | **Sign up (advanced), có root user** |
-|---|---|---|
-| Chọn vùng | Không. Địa chỉ Việt Nam bị gán Sydney | **Có** |
-| Tính năng đa vùng | Tài liệu ghi không hỗ trợ | Có |
-| AWS Marketplace | Tài liệu chưa nhất quán | Có |
-| Giới hạn chi tiêu sẵn có | Có | Không, dùng AWS Budgets |
-| Đăng nhập | AWS Builder ID, mời thành viên vào project | Root + IAM user |
-
-**Chọn `Sign up (advanced)`** vì nó không bị khóa vùng và không bị cấm đa vùng, trong khi model Claude trên Bedrock cần inference profile. Chưa xác nhận kiểu này có đủ 200 USD không, nên phải xem màn hình credit ngay sau khi tạo. Giữ **Free plan**: tài khoản dừng khi hết credit, không tự trừ thẻ.
-
-**Chọn vùng Tokyo (`ap-northeast-1`), không chọn Singapore:**
-
-| Vùng | Claude Haiku/Opus 5.5 | Nova 2 Lite | Hệ quả |
-|---|---|---|---|
-| Singapore | Chỉ profile Global | Chỉ profile Global | Dữ liệu có thể xử lý ở bất kỳ vùng thương mại nào |
-| **Tokyo** | Profile `jp.` | Profile `jp.` | **Chỉ xử lý ở Tokyo và Osaka** |
-| Sydney (nếu buộc dùng Sign up new) | Profile `au.` | Chỉ Global | Claude ở lại Úc |
-
-Độ trễ thêm so với Singapore là nhỏ so với vài giây chờ model. Số thật sẽ đo ở load test.
+- **Giữ Free plan.** Tầng 1 không cần Paid plan. Nâng Paid không hoàn tác được và phải được cả nhóm đồng ý.
+- **Vùng Tokyo (`ap-northeast-1`)** cho Lambda, API Gateway, DynamoDB, S3 và Secrets Manager. Đã có tài khoản ở vùng khác thì dùng tiếp, không cần tạo lại.
+- **Kiểm tra gói:** `aws freetier get-account-plan-state --region us-east-1`.
+- **Về Bedrock:** FAQ của FCAJ (trang cộng đồng, không phải tài liệu AWS) ghi Free plan không dùng được AWS Marketplace, trong khi tài liệu AWS mô tả khác. Nếu FAQ đúng thì chờ không làm Claude trên Bedrock mở lại được, nên kế hoạch không phụ thuộc vào Bedrock.
 
 ## 4. Sơ đồ
 
@@ -71,14 +65,15 @@ flowchart LR
     APIGW["API Gateway HTTP API<br/>Giới hạn tốc độ"]
     GW["Lambda: gateway<br/>Xác thực, kiểm tra, che PII, hạn mức"]
     DB[("DynamoDB<br/>Chỉ số liệu, không có nội dung")]
-    SM["Secrets Manager<br/>Khóa ký token"]
-    LLM["Amazon Bedrock<br/>Profile jp."]
+    SM["Secrets Manager<br/>Khóa ký token, khóa Groq"]
     STATIC["S3 + CloudFront<br/>Bản web"]
     APIGW --> GW
     GW --> DB
     SM --> GW
-    GW --> LLM
   end
+
+  LLM["Groq API<br/>Ngoài AWS"]
+  GW -->|"Delta đã che PII"| LLM
 
   CORE -. "Chỉ khi người dùng bật AI:<br/>delta đã che PII" .-> APIGW
   STATIC --> WEB
@@ -123,7 +118,7 @@ Phần gọi model viết sau một interface nhỏ, để đổi model hoặc n
 1. Xác thực token, kiểm tra hạn mức thiết bị và trần ngân sách. Vượt trần trả 429 hoặc 503, client tiếp tục dùng luật.
 2. Kiểm tra schema (Zod), giới hạn kích thước.
 3. Che PII lần hai phía server, không tin dữ liệu từ client.
-4. Chọn tầng model, gọi Bedrock Converse, có timeout và thử lại có giới hạn.
+4. Chọn model nhỏ hoặc lớn, gọi provider đang đặt ở `AI_PROVIDER`, có timeout và thử lại có giới hạn. Groq báo hết hạn mức (429) thì trả `QUOTA_EXCEEDED`.
 5. Kiểm tra đầu ra bằng chính `core/evidence.ts`; lọc câu kết luận tội phạm.
 6. Trả kết quả, ghi số token, chi phí, độ trễ. Không ghi prompt, tin nhắn, trích dẫn.
 
@@ -151,52 +146,42 @@ Một bảng `safechat-<môi trường>`, tính phí theo lượt, có thuộc t
 | Vùng | `ap-northeast-1` (Tokyo). CloudFront là dịch vụ toàn cầu |
 | Môi trường | Stack `safechat-staging`, `safechat-prod` |
 | Quy mô | Lambda tính theo lượt gọi. `reserved concurrency` thấp để chặn chi phí. Làm nóng trước demo |
-| Không dùng | App Runner (đã đóng với khách hàng mới), ECS + Load Balancer (có khả năng tốn hơn khi rảnh; chưa kiểm tra giá) |
+| Không dùng | Bedrock trong Tầng 1. App Runner (đã đóng với khách hàng mới), ECS + Load Balancer (có khả năng tốn hơn khi rảnh; chưa kiểm tra giá) |
 | CI | Mọi PR: ESLint, typecheck, test, eval so mốc, build, gitleaks |
 | CD | Merge `main` → staging + smoke test; tag `v*` → production, đóng gói extension thành zip trong GitHub Release. Job riêng build APK debug thành artifact nội bộ, không đưa vào Release công khai |
 | Xác thực deploy | GitHub OIDC, role chỉ tin đúng repo và nhánh, không có access key dài hạn |
-| Bí mật | Secrets Manager cho khóa ký token. IAM role cho Lambda với quyền tối thiểu, chỉ gọi đúng model cần dùng |
+| Bí mật | Secrets Manager cho khóa ký token và khóa Groq. IAM role cho Lambda với quyền tối thiểu, chỉ đọc đúng các secret này. Bỏ quyền `bedrock:InvokeModel` |
 | Tài khoản | Bật MFA cho root, không tạo access key cho root, dùng IAM cho việc hằng ngày |
 | Mạng | HTTPS sẵn có của API Gateway và CloudFront, S3 không public, CORS chỉ cho web, origin của app Capacitor và ID extension cố định, security header, giới hạn tốc độ theo route và theo thiết bị |
-| Log | CloudWatch chỉ ghi số liệu kỹ thuật, giữ 7 ngày. **Tắt Bedrock model invocation logging** vì log đó sẽ lưu prompt |
-| Ngân sách | AWS Budgets cảnh báo 25/50/75% và trần tự ngắt trong code |
+| Log | CloudWatch chỉ ghi số liệu kỹ thuật, giữ 7 ngày. Lỗi từ Groq không được ghi nguyên văn nếu có thể chứa nội dung gửi đi |
+| Ngân sách | AWS Budgets cảnh báo 25/50/75%. Trần token mỗi ngày tự ngắt trong code, thấp hơn hạn mức Groq |
+| Hạn mức Groq | Dùng chung cho mọi người dùng, nên cần giới hạn theo thiết bị. Hết hạn mức thì client giữ kết quả luật |
 
 **Sửa extension:**
-- Thay Groq bằng gateway trong `optional_host_permissions`, cập nhật màn hình đồng ý nói rõ dữ liệu đi đâu.
+- Extension không gọi thẳng Groq nữa. Thay `api.groq.com` bằng gateway trong `optional_host_permissions`. Màn hình đồng ý nêu rõ dữ liệu đi qua gateway rồi đến Groq.
 - Bỏ `localhost` khỏi bản production.
 - Sửa widget: bỏ `TRUSTED_AND_UNTRUSTED_CONTEXTS`, background chỉ gửi mức và điểm (không gửi transcript), Shadow DOM `closed`, chỉ hiện sau khi đồng ý, mặc định tắt trên Facebook.
 
-## 9. Bedrock và dữ liệu
+## 9. Groq và dữ liệu
 
-Đây là bài thi và demo dùng dữ liệu giả lập, nên các giới hạn dưới đây chỉ để trả lời khi được hỏi về thiết kế, không phải điều kiện để demo.
+Đây là bài thi và demo dùng dữ liệu giả lập, nên các điểm dưới đây để trả lời khi được hỏi về thiết kế.
 
-**Tài liệu AWS nêu:**
-- Đầu vào và đầu ra không được dùng để huấn luyện model, và không chia sẻ với nhà cung cấp model.
-- Với cross-Region inference, dữ liệu không lưu ở vùng đích, trừ các model bắt buộc lưu giữ.
+**Tài liệu Groq nêu:** mặc định không giữ dữ liệu suy luận lâu dài, nhưng có thể giữ tới 30 ngày để giám sát hệ thống. Zero Data Retention bật được trong Data Controls. Chưa xác nhận được câu "không dùng để huấn luyện" trong tài liệu đã đọc.
 
-**Model không dùng cho chat thật vì có lưu giữ:**
-- Claude Fable 5 và 5.1: lưu toàn bộ tới 30 ngày, ca bị gắn cờ có thể bị AWS xem xét.
-- Các model OpenAI (trừ dòng `gpt-oss` và `gpt-oss-safeguard`): lưu lượt bị gắn cờ tới 30 ngày.
+**Khi trình bày, không nói "không ai lưu gì".** Nói đúng: gateway không lưu nội dung; tin đã che PII mới gửi tới Groq; Groq có thể giữ tối đa 30 ngày để giám sát trừ khi bật ZDR; nhóm chưa dùng cho chat thật.
 
-Claude Opus 5.5, Haiku 5.5 và Nova không nằm trong danh sách lưu giữ này tại ngày 2026-11-07. Dù vậy, tài liệu vẫn cho phép lưu hoặc xem xét trong trường hợp hạn chế để phát hiện lạm dụng.
-
-**Không được nói "không ai lưu gì" khi trình bày.** Nói đúng: gateway không lưu; AWS không dùng để huấn luyện và không chia sẻ với hãng model; có cơ chế phát hiện lạm dụng theo điều khoản AWS.
-
-**Công cụ có sẵn trên Bedrock nên tận dụng (P1, có đo):**
-- **Prompt caching:** Haiku và Opus 5.5 hỗ trợ từ 512 token, Nova từ 1.000 token. System prompt có thể đủ dài, giảm chi phí cho tiêu chí VI.
-- **Guardrails:** thử lọc độc hại và che dữ liệu nhạy cảm cho III.3. Chỉ giữ nếu chất lượng và chi phí đo được chấp nhận.
+**Đổi nhà cung cấp:** phần gọi model nằm sau một interface, chọn bằng `AI_PROVIDER`. Prompt và kiểm tra đầu ra vẫn ở `@safechat/core/ai` nên không đổi theo nhà cung cấp.
 
 ## 10. Chọn model
 
-Model production được chọn bằng cách thử từ model mạnh xuống model rẻ, theo tiêu chí viết trước khi có kết quả: JSON hợp lệ ≥ 95%, không bỏ sót nhiều hơn chỉ dùng luật, rồi xếp theo bỏ sót nguy hiểm, báo nhầm, chi phí, độ trễ. Kết quả ghi ở `docs/MODEL_REPORT.md`. Ứng viên ban đầu:
+Tiêu chí viết trước khi có kết quả: JSON hợp lệ ≥ 95%, không bỏ sót nhiều hơn chỉ dùng luật, rồi xếp theo bỏ sót nguy hiểm, báo nhầm, độ trễ, số token. Kết quả ghi trong `research/experiments` và `docs/MODEL_REPORT.md`.
 
-| Tầng | Ứng viên | Mã trên Bedrock (Tokyo) | Ghi chú |
-|---|---|---|---|
-| Nhỏ | Nova 2 Lite | `jp.amazon.nova-2-lite-v1:0` | Model của Amazon. Không có structured output, cần parse JSON cẩn thận |
-| Nhỏ hoặc lớn | Claude Haiku 5.5 | `jp.anthropic.claude-haiku-5-5` | Tính phí qua AWS Marketplace. Có structured output, tắt được adaptive thinking |
-| Lớn nếu cần | Claude Sonnet 5.5 | Kiểm tra lúc chạy | Tính phí qua AWS Marketplace |
+| Vai trò | Ứng viên trên Groq | Ghi chú |
+|---|---|---|
+| Nhỏ (`MODEL_SMALL`) | `llama-3.1-8b-instant`, `openai/gpt-oss-20b` | Dùng cho đa số lượt gọi |
+| Lớn (`MODEL_LARGE`) | `llama-3.3-70b-versatile`, `openai/gpt-oss-120b` | Dùng khi tín hiệu luật đáng ngờ, tốn hạn mức hơn |
 
-Giá và khả dụng **phải kiểm tra lại lúc chạy**. Luật vẫn chạy trước và gửi gói gợi ý H2 cho AI nếu số đo xác nhận có ích. Gemini Nano giữ ở dạng thử nghiệm, không demo.
+Danh sách model và hạn mức miễn phí **phải kiểm tra lại lúc chạy** ở trang Limits của tài khoản Groq. Chưa model nào được đo trên tune. Gemini Nano giữ ở dạng thử nghiệm, không demo.
 
 ## 11. Không làm trong 24h
 
@@ -204,11 +189,10 @@ Tự huấn luyện hoặc fine-tune mô hình · RAG · iOS · viết app nativ
 
 ## Nguồn
 
+- [Groq: Models](https://console.groq.com/docs/models) · [Rate limits](https://console.groq.com/docs/rate-limits) · [Structured outputs](https://console.groq.com/docs/structured-outputs) · [Your data](https://console.groq.com/docs/your-data)
+- [FAQ của FCAJ](https://000001.awsfcaj.com/vi/7-faq---gi%E1%BA%A3i-%C4%91%C3%A1p-m%E1%BB%8Di-th%E1%BA%AFc-m%E1%BA%AFc/) (trang cộng đồng)
 - [AWS Free Tier](https://aws.amazon.com/free/) · [Free Tier FAQs](https://aws.amazon.com/free/free-tier-faqs/)
 - [So sánh các kiểu đăng ký AWS](https://docs.aws.amazon.com/accounts/latest/reference/sign-up-for-aws.html)
 - [Dịch vụ hỗ trợ khi đăng ký kiểu new](https://docs.aws.amazon.com/accounts/latest/reference/supported-services-sign-up-new.html) · [Vùng của project](https://docs.aws.amazon.com/accounts/latest/reference/project-regions.html)
-- [Claude Opus 5.5 trên Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-opus-5-5.html) · [Claude Haiku 5.5](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html) · [Nova 2 Lite](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-2-lite.html)
-- [Bedrock FAQs](https://aws.amazon.com/bedrock/faqs/) · [Data protection](https://docs.aws.amazon.com/bedrock/latest/userguide/data-protection.html) · [Data retention](https://docs.aws.amazon.com/bedrock/latest/userguide/data-retention.html) · [Abuse detection](https://docs.aws.amazon.com/bedrock/latest/userguide/abuse-detection.html)
-- [Cross-Region inference](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-region-inference.html)
 - [Thay đổi về App Runner](https://docs.aws.amazon.com/apprunner/latest/dg/apprunner-availability-change.html)
 - [GitHub OIDC với AWS](https://docs.github.com/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services) · [SAM Pipelines và OIDC](https://aws.amazon.com/blogs/compute/securing-ci-cd-pipelines-with-aws-sam-pipelines-and-oidc/)

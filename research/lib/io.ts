@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { scenarios } from '../../fixtures/scenarios';
 import { parseCsv } from './csv';
 import { rowsToCases, type BenchCase } from './dataset';
+import { hashSplit, type TuneCheckSplit } from './tunecheck';
 import { readXlsxSheet } from './xlsx';
 
 export const RESEARCH_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -39,6 +40,31 @@ export function fixtureCases(): BenchCase[] {
   }));
 }
 
+function tuneCheckFile(name: string): string {
+  return join(RESEARCH_DIR, 'splits', `${name.replace(':', '_')}_tune_check.json`);
+}
+
+/** Bộ đề có file chia tune/check đã khóa hay không (vd. `set:v2`). */
+export function hasTuneCheckSplit(name: string): boolean {
+  return existsSync(tuneCheckFile(name));
+}
+
+function readTuneCheckSplit(name: string): TuneCheckSplit {
+  const sp = JSON.parse(readFileSync(tuneCheckFile(name), 'utf8')) as TuneCheckSplit;
+  if (hashSplit(sp.tune, sp.check) !== sp.sha256) throw new Error('Tập tune/check đã bị sửa');
+  return sp;
+}
+
+/** Danh sách ca tune của tập đã khóa (`set:v2` → splits/set_v2_tune_check.json). Tập bị sửa thì dừng. */
+export function lockedTuneIds(name: string): string[] {
+  return readTuneCheckSplit(name).tune;
+}
+
+/** Danh sách ca check của tập đã khóa (`set:v2` → splits/set_v2_tune_check.json). Tập bị sửa thì dừng. */
+export function lockedCheckIds(name: string): string[] {
+  return readTuneCheckSplit(name).check;
+}
+
 export function loadDataset(name: string, split: string): BenchCase[] {
   if (name === 'fixtures') return fixtureCases();
   // Bộ dữ liệu ngoài (bench:external, nhãn 2 lớp) hoặc bộ đề đặt tên (bench:import --name)
@@ -46,6 +72,14 @@ export function loadDataset(name: string, split: string): BenchCase[] {
     const dir = join(DATA_DIR, name.startsWith('ext:') ? 'external' : 'sets', name.slice(4));
     const all = JSON.parse(readFileSync(join(dir, 'cases.json'), 'utf8')) as BenchCase[];
     if (split === 'all') return all;
+    if (split === 'tune') {
+      const tune = new Set(lockedTuneIds(name));
+      return all.filter((c) => tune.has(c.id));
+    }
+    if (split === 'check') {
+      const check = new Set(lockedCheckIds(name));
+      return all.filter((c) => check.has(c.id));
+    }
     const sp = JSON.parse(readFileSync(join(dir, 'split.json'), 'utf8')) as { dev: string[]; test: string[] };
     const ids = new Set(split === 'test' ? sp.test : sp.dev);
     return all.filter((c) => ids.has(c.id));

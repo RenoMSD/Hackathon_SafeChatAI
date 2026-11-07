@@ -1,11 +1,12 @@
-// npm run bench:run -- --configs rules,ai,hybrid,hybrid-veto --models <id1,id2> --split dev [--limit 50] [--repeat 3]
+// npm run bench:run -- --configs rules,ai,hybrid,hybrid-veto --models <id1,id2> --split tune [--limit 50] [--repeat 3]
 //   Cấu hình phát lại từng tin (mô phỏng phiên thật, chấm theo mốc moc_muc):
 //     replay-rules  — chỉ bộ luật, chạy lại sau mỗi tin, qua lớp chống dao động như sản phẩm
 //     replay-rules-raw — như trên nhưng KHÔNG qua lớp chống dao động (để đo hiệu quả của lớp này)
 //     replay-hybrid — luật + AI theo đúng chính sách gọi AI của sản phẩm (decideAiRun, delta + tóm tắt)
 //   --gap-sec 20               (khoảng cách giả lập giữa 2 tin khi phát lại; ảnh hưởng giãn cách gọi AI)
 //   --dataset bench|fixtures|set:<tên>|ext:<tên>   (bench = research/data/cases.json; set:<tên> = bộ đề nhập bằng --name)
-//   --split dev|test|all       (mặc định dev; test chỉ chạy ở mốc chốt)
+//   --split dev|test|all|tune|check  (trên tập đã khóa tune/check như set:v2, AI chỉ chạy trên tune; xem check cần --unlock-check)
+//   --provider openrouter|groq (mặc định openrouter; groq đọc GROQ_API_KEY, cache riêng ở research/cache/groq)
 //   --daily-cap 950            (trần lượt gọi thật/ngày; 45 nếu tài khoản chưa nạp credit)
 //   --interval-ms 3200         (khoảng cách giữa các lượt gọi; chỉ giảm khi thử với server giả lập)
 // Kết quả (ghi liên tục trong lúc chạy, dừng giữa chừng vẫn còn):
@@ -20,8 +21,9 @@ import { join } from 'node:path';
 import { analyze } from '@safechat/core/analyzer';
 import type { RiskLevel } from '@safechat/core/types';
 import { benchRequest, hybridHintLevel, hybridLevel, hybridVetoLevel, PROMPT_VERSION, readAiOutcome, type AiOutcome, type BenchConfig } from './lib/bench';
-import { arg, CACHE_DIR, loadDataset, loadEnv, RESEARCH_DIR, RESULTS_DIR } from './lib/io';
+import { arg, CACHE_DIR, hasTuneCheckSplit, loadDataset, loadEnv, RESEARCH_DIR, RESULTS_DIR } from './lib/io';
 import { caseReplayStats, replayCase, type CaseReplayStats, type ReplayTurn } from './lib/replay';
+import { GROQ_LABEL, GROQ_URL } from './providers/groq';
 import { DailyCapReached, OpenRouterClient, type ChatResult } from './providers/openrouter';
 
 export interface ResultRow {
@@ -39,6 +41,7 @@ export interface ResultRow {
   aiLevel?: RiskLevel | null;
   signals: string[];
   rejected?: number;
+  schemaDropped?: number;
   latencyMs?: number;
   cached?: boolean;
   promptTokens?: number;
@@ -65,13 +68,48 @@ const intervalMs = Number(arg('interval-ms', '3200'));
 
 const needsAi = configs.some((c) => !['rules', 'replay-rules', 'replay-rules-raw'].includes(c));
 const gapSec = Number(arg('gap-sec', '20'));
+const unlockCheck = process.argv.includes('--unlock-check');
+if (hasTuneCheckSplit(dataset)) {
+  if (needsAi && split !== 'tune' && !(split === 'check' && unlockCheck)) {
+    console.error(
+      `Bộ ${dataset} đã khóa tune/check: cấu hình AI chỉ được chạy trên --split tune (hoặc --split check --unlock-check cho lần xem check duy nhất).`,
+    );
+    process.exit(1);
+  }
+  if (!needsAi && split === 'check' && !unlockCheck) {
+    console.error(`Bộ ${dataset}: cần cờ --unlock-check khi chạy --split check.`);
+    process.exit(1);
+  }
+}
 if (needsAi && !models.length) {
   console.error('Cấu hình ai/hybrid cần --models (xem danh sách: npm run bench:models).');
   process.exit(1);
 }
-const apiKey = process.env.OPENROUTER_API_KEY;
+const provider = arg('provider', 'openrouter')!;
+if (provider !== 'openrouter' && provider !== 'groq') {
+  console.error(`Không biết --provider ${provider}. Dùng openrouter hoặc groq.`);
+  process.exit(1);
+}
+const keyName = provider === 'groq' ? 'GROQ_API_KEY' : 'OPENROUTER_API_KEY';
+const apiKey = process.env[keyName];
 if (needsAi && !apiKey) {
-  console.error('Chưa có OPENROUTER_API_KEY (đặt trong research/.env hoặc biến môi trường).');
+  console.error(`Chưa có ${keyName} (đặt trong research/.env hoặc biến môi trường).`);
+  process.exit(1);
+}
+
+let commit = 'unknown';
+let isDirty = false;
+try {
+  commit = execSync('git rev-parse --short HEAD', { cwd: RESEARCH_DIR }).toString().trim();
+  if (execSync('git status --porcelain -- ../packages/core ../research/lib', { cwd: RESEARCH_DIR }).toString().trim()) {
+    commit += '+dirty';
+    isDirty = true;
+  }
+} catch {
+  /* không có git */
+}
+if (needsAi && isDirty && !process.argv.includes('--allow-dirty')) {
+  console.error('Thư mục packages/core hoặc research/lib đang có thay đổi chưa commit (+dirty). Hãy commit trước khi chạy AI để số đo tái lập được.');
   process.exit(1);
 }
 
@@ -98,13 +136,6 @@ async function chatLogged(caseId: string, purpose: string, req: { model: string;
   }
 }
 
-let commit = 'unknown';
-try {
-  commit = execSync('git rev-parse --short HEAD', { cwd: RESEARCH_DIR }).toString().trim();
-  if (execSync('git status --porcelain -- ../src', { cwd: RESEARCH_DIR }).toString().trim()) commit += '+dirty';
-} catch {
-  /* không có git */
-}
 const lock = dataset.startsWith('ext:') || dataset.startsWith('set:')
   ? join(RESEARCH_DIR, 'data', dataset.startsWith('ext:') ? 'external' : 'sets', dataset.slice(4), 'test.lock')
   : join(RESEARCH_DIR, 'test.lock');
@@ -113,6 +144,7 @@ const meta = {
   startedAt: new Date().toISOString(),
   dataset,
   split,
+  provider,
   configs,
   models,
   repeats,
@@ -123,7 +155,18 @@ const meta = {
   stoppedEarly: false as boolean | string,
 };
 
-const client = needsAi ? new OpenRouterClient({ apiKey: apiKey!, cacheDir: CACHE_DIR, dailyCap, minIntervalMs: intervalMs }) : null;
+const client = needsAi
+  ? new OpenRouterClient({
+      apiKey: apiKey!,
+      cacheDir: provider === 'groq' ? join(CACHE_DIR, 'groq') : CACHE_DIR,
+      dailyCap,
+      minIntervalMs: intervalMs,
+      timeoutMs: 60_000,
+      ...(provider === 'groq'
+        ? { baseUrl: GROQ_URL, label: GROQ_LABEL, disableJsonFallback: true, maxCompletionTokens: 2048 }
+        : {}),
+    })
+  : null;
 const base = (c: (typeof cases)[number]) => ({ runId, caseId: c.id, gold: c.gold, kind: c.kind, group: c.group, tags: c.tags });
 
 const metaFile = join(RESULTS_DIR, `${runId}.meta.json`);
@@ -178,6 +221,7 @@ outer: for (const c of cases) {
         aiLevel: x.out.level,
         signals: x.out.parsed?.signals.map((s) => s.type) ?? [],
         rejected: x.out.parsed?.rejected,
+        schemaDropped: x.out.parsed?.schemaDropped,
         latencyMs: x.res?.latencyMs,
         cached: x.res?.cached,
         promptTokens: x.res?.promptTokens,

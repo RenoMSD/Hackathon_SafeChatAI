@@ -1,14 +1,47 @@
 # Hướng dẫn chạy so sánh bộ luật với model AI miễn phí
 
-Dành cho thành viên phụ trách chạy model. Mục tiêu: đo **model AI miễn phí (OpenRouter `:free`)** so với **bộ luật** trên cùng bộ đề, rồi lưu kết quả thành một đợt bằng chứng.
+Dành cho thành viên phụ trách chạy model. Mục tiêu: đo **model AI (Groq / OpenRouter `:free`)** so với **bộ luật** trên cùng bộ đề, rồi lưu kết quả thành một đợt bằng chứng.
 
 ## 0. Quy tắc bắt buộc
 
-- **Chỉ chạy `--split dev`.** Không chạy `--split test`; test chỉ chạy ở mốc chốt do cả nhóm quyết định.
+- **Trên `set:v2` (đã khóa tune/check): chỉ chạy `--split tune`.** Không chạy `--split dev` (vì `dev` của `set:v2` gồm cả 40 ca `check`), không chạy `--split check` trừ lần xem duy nhất sau khi đã chọn xong model (`--split check --unlock-check`).
+- **Trên bộ đề thường (`bench`, `ext:sms`): chỉ chạy `--split dev`.** Không chạy `--split test`; test chỉ chạy ở mốc chốt do cả nhóm quyết định.
 - **Không sửa `test.lock`**, không dùng `--force-new-test` trừ khi nhóm đã thống nhất.
 - **Không commit** `research/.env` (key), `research/data/`, `research/results/`, `research/reports/`, `research/cache/`. Các thư mục này đã được gitignore, đừng `git add -f`.
 - Chỉ dùng bộ đề trong hướng dẫn này (hội thoại giả lập / chuyển thể). **Không gửi chat thật** của ai lên model miễn phí: endpoint miễn phí có thể lưu dữ liệu gửi lên.
 - Phạm vi sản phẩm là **tin nhắn / chat**. Không dùng các bộ lời thoại cuộc gọi (`tele28k`, `scamtext`).
+
+## Đo trên Groq (đường chính của nhóm)
+
+Sản phẩm dừng ở Tầng 1 nên model sẽ dùng là model trên Groq. Đo trên **tune**, không chạy trên check.
+
+1. Tạo khóa ở console.groq.com, thêm `GROQ_API_KEY=` vào `research/.env`. Dùng khóa benchmark, không dùng khóa của gateway.
+2. Xem hạn mức thật ở trang Limits. Prompt trung bình khoảng 4.200 ký tự mỗi lượt, nên một cấu hình có 65 lượt, khoảng 270.000 ký tự đầu vào. Số token cần đo ở lần chạy thử. Nếu hạn mức token mỗi phút thấp, tăng `--interval-ms` (ví dụ 15000) để đỡ phải chờ khi bị 429.
+3. Chạy thử 2 ca:
+
+```bash
+npm run bench:run -- --provider groq --dataset set:v2 --split tune --limit 2 --configs ai,hybrid-hint --models llama-3.1-8b-instant --run-id groq_thu
+```
+
+4. Chạy đủ tune cho từng model. `hybrid-hint` là cấu hình chấm chính (giống sản phẩm nhất); `ai`, `hybrid`, `hybrid-veto` dùng chung một lượt gọi, còn `hybrid-hint` tốn thêm một lượt nên có thể chạy gộp hoặc tách ngày nếu hạn mức ít:
+
+```bash
+npm run bench:run -- --provider groq --dataset set:v2 --split tune --configs rules,ai,hybrid,hybrid-veto,hybrid-hint --models llama-3.1-8b-instant --interval-ms 15000 --run-id groq_8b_tune
+```
+
+Hết hạn mức ngày thì lệnh tự dừng. Hôm sau chạy lại đúng lệnh, cùng `--run-id`; ca đã xong lấy từ cache.
+
+5. Ghi vào sổ thí nghiệm (chấm theo `--config hybrid-hint`), rồi tự viết `README.md` của thí nghiệm đó:
+
+```bash
+npm run bench:experiment-ai -- --id EXP-009 --run groq_8b_tune --model llama-3.1-8b-instant --config hybrid-hint --title "Luật + Groq 8B" --hypothesis "..."
+```
+
+```bash
+npm run bench:experiment -- --ledger
+```
+
+**Khi đọc số:** luật đã được sửa theo chính tập tune (1/31 bỏ sót), nên trên tune AI gần như không còn chỗ để bắt thêm. Lợi ích nhìn thấy được trên tune chủ yếu là giảm báo nhầm ở `hybrid-hint`, năng lực riêng của model đọc ở `ai`, và bài kiểm tra thật là lần xem check duy nhất sau khi đã chọn model. Check đã xem 2 lần, không xem thêm để chọn giữa các model.
 
 ## 1. Cài đặt
 
@@ -21,8 +54,8 @@ Chạy ở thư mục gốc của repo.
 
 - Cần Node.js 20 trở lên.
 - `npm run check` chạy typecheck, test, eval so với mốc và build. Lệnh phải đạt trước khi làm tiếp.
-- Tạo file `research/.env` từ `research/.env.example`, điền `OPENROUTER_API_KEY=` bằng **key của chính bạn** (tạo ở openrouter.ai → Keys).
-- Hạn mức model `:free`:
+- Tạo file `research/.env` từ `research/.env.example`, điền `GROQ_API_KEY=` hoặc `OPENROUTER_API_KEY=` bằng **key của chính bạn**.
+- Hạn mức model `:free` trên OpenRouter:
   - tối đa 20 lượt/phút;
   - **50 lượt/ngày** nếu tài khoản chưa từng nạp tiền;
   - **1.000 lượt/ngày** nếu đã từng nạp từ 10 credits. Dùng model `:free` không trừ credit.
@@ -35,14 +68,14 @@ Chạy ở thư mục gốc của repo.
 git fetch origin research/evidence
 ```
 
-**Bộ đề v2** (105 hội thoại dài, có mốc mức cảnh báo theo từng tin, toàn bộ ở dev). Đây là **bộ chính cần chạy**:
+**Bộ đề v2** (105 hội thoại dài, đã chia khóa cứng 65 ca `tune` / 40 ca `check`). Đây là **bộ chính cần chạy**:
 
 ```bash
 git show origin/research/evidence:bo-de/v2_2026-11-04/bo_de_v2.csv > research/dataset/bo_de_v2.csv
 npm run bench:import -- research/dataset/bo_de_v2.csv --name v2
 ```
 
-Kết quả đúng là in ra `dev 105 / test 0`. Từ đây dùng `--dataset set:v2`.
+Kết quả đúng là in ra `dev 105 / test 0`. Từ đây luôn dùng `--dataset set:v2 --split tune`.
 
 **Bộ đề nhóm Đợt 1** (100 ca ngắn, có chia dev/test):
 
@@ -64,7 +97,7 @@ done
 
 Từ đây dùng `--dataset ext:sms`.
 
-## 3. Chạy
+## 3. Chạy trên OpenRouter (phụ)
 
 **Bước 1: xem các model miễn phí đang có**
 
@@ -74,24 +107,24 @@ npm run bench:models
 
 Chọn 5–6 model, ưu tiên model lớn, có hỗ trợ tiếng Việt và cửa sổ ngữ cảnh dài.
 
-**Bước 2: sàng lọc nhanh**, 20 ca × các model đã chọn:
+**Bước 2: sàng lọc nhanh**, 20 ca `tune` × các model đã chọn:
 
 ```bash
-npm run bench:run -- --dataset set:v2 --split dev --limit 20 --configs ai,hybrid --models <id1>,<id2>,<id3>,<id4>,<id5> --run-id dot09_sangloc
+npm run bench:run -- --dataset set:v2 --split tune --limit 20 --configs ai,hybrid-hint --models <id1>,<id2>,<id3>,<id4>,<id5> --run-id dot09_sangloc
 ```
 
 Thêm `--daily-cap 45` nếu tài khoản chưa nạp credit.
 
-**Bước 3: chạy đầy đủ** với 2–3 model tốt nhất:
+**Bước 3: chạy đầy đủ trên `tune`** với 2–3 model tốt nhất:
 
 ```bash
-npm run bench:run -- --dataset set:v2 --split dev --configs rules,ai,hybrid,hybrid-veto --models <top1>,<top2>,<top3> --run-id dot09_v2_full
+npm run bench:run -- --dataset set:v2 --split tune --configs rules,ai,hybrid,hybrid-veto,hybrid-hint --models <top1>,<top2>,<top3> --run-id dot09_v2_full
 ```
 
 **Bước 4 (tùy chọn, tốn lượt): phát lại từng tin như phiên thật**
 
 ```bash
-npm run bench:run -- --dataset set:v2 --split dev --configs replay-rules,replay-hybrid --models <top1> --run-id dot09_v2_replay
+npm run bench:run -- --dataset set:v2 --split tune --configs replay-rules,replay-hybrid --models <top1> --run-id dot09_v2_replay
 ```
 
 **Ước lượng số lượt gọi:**
@@ -103,7 +136,7 @@ npm run bench:run -- --dataset set:v2 --split dev --configs replay-rules,replay-
 | `hybrid-hint` | 1 lượt / ca |
 | `replay-hybrid` | ~3–5 lượt / ca |
 
-Ví dụ: v2 có 105 ca × 3 model × `ai` ≈ 315 lượt, vượt hạn mức 50/ngày nếu chưa nạp credit.
+Ví dụ: `set:v2` tập `tune` có 65 ca × 1 cấu hình gọi mạng (`ai` hoặc `hybrid-hint`) = 65 lượt / model.
 
 **Khi gặp sự cố:**
 - Hết lượt trong ngày hoặc bị lỗi 429: lệnh tự dừng an toàn, tiến độ nằm ở `research/results/<runId>.meta.json`. Hôm sau **chạy lại đúng lệnh cũ, cùng `--run-id`**. Ca nào đã có phản hồi sẽ lấy từ cache, không tốn lượt.
@@ -132,7 +165,7 @@ Mốc của bộ luật trên v2, chạy ngày 2026-11-04: đúng mức 45,7%, b
 Cần quyền **Write** vào repo:
 
 ```bash
-npm run bench:archive -- --dot dot-09-model-v2 --runs dot09_sangloc,dot09_v2_full --title "So sánh bộ luật với model miễn phí trên bộ đề v2 (dev)" --push
+npm run bench:archive -- --dot dot-09-model-v2 --runs dot09_sangloc,dot09_v2_full --title "So sánh bộ luật với model miễn phí trên bộ đề v2 (tune)" --push
 ```
 
 Lệnh này:

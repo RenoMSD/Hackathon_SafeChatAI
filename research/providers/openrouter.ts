@@ -1,8 +1,8 @@
 // Client OpenRouter (OpenAI-compatible) cho nghiên cứu:
 //  - giới hạn 20 req/phút (khoảng cách tối thiểu giữa các lượt), đếm lượt/ngày (lưu file), dừng khi chạm trần;
-//  - thử lại khi 429/5xx (lùi dần);
+//  - thử lại khi 429/5xx (lùi dần), có timeout mặc định 60 giây mỗi lượt;
 //  - cache phản hồi theo sha256(model + prompt) → chạy lại không tốn lượt;
-//  - thử `response_format: json_object`, nếu model không hỗ trợ (400) thì gọi lại không có.
+//  - thử `response_format: json_object`, nếu model không hỗ trợ (400) thì gọi lại không có (tắt với Groq qua disableJsonFallback).
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -29,10 +29,19 @@ export interface ChatResult {
 export interface ProviderOptions {
   apiKey: string;
   cacheDir: string;
+  /** Dùng cho nhà cung cấp tương thích OpenAI khác (Groq). Mặc định OpenRouter. */
+  baseUrl?: string;
+  label?: string;
   /** Trần lượt gọi thật mỗi ngày (cache trúng không tính). */
   dailyCap: number;
   minIntervalMs?: number;
   maxRetries?: number;
+  /** Timeout mỗi lượt gọi mạng (mặc định 60.000 ms). */
+  timeoutMs?: number;
+  /** Giới hạn token sinh ra (max_completion_tokens) để giữ trong hạn mức và tránh cắt JSON trên model có suy luận. */
+  maxCompletionTokens?: number;
+  /** Tắt việc tự gọi lại không có response_format khi gặp HTTP 400 (dùng cho Groq để không che lỗi JSON). */
+  disableJsonFallback?: boolean;
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
@@ -83,13 +92,15 @@ export class OpenRouterClient {
 
     let jsonMode = true;
     const maxRetries = this.o.maxRetries ?? 4;
+    const timeoutMs = this.o.timeoutMs ?? 60_000;
     for (let attempt = 0; ; attempt++) {
       const wait = (this.o.minIntervalMs ?? 3200) - (this.now() - this.lastCallAt);
       if (wait > 0) await this.sleep(wait);
       this.lastCallAt = this.now();
       const t0 = this.now();
-      const res = await this.fetchImpl(`${OPENROUTER_URL}/chat/completions`, {
+      const res = await this.fetchImpl(`${this.o.baseUrl ?? OPENROUTER_URL}/chat/completions`, {
         method: 'POST',
+        signal: AbortSignal.timeout(timeoutMs),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.o.apiKey}`,
@@ -98,6 +109,7 @@ export class OpenRouterClient {
         body: JSON.stringify({
           model: req.model,
           temperature: 0.1, // giống cấu hình sản phẩm (background/groq.ts)
+          ...(this.o.maxCompletionTokens ? { max_completion_tokens: this.o.maxCompletionTokens } : {}),
           ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
           messages: [
             { role: 'system', content: req.system },
@@ -124,21 +136,35 @@ export class OpenRouterClient {
         return { ...out, cached: false };
       }
       const body = await res.text().catch(() => '');
-      if (res.status === 400 && jsonMode && /response_format|json/i.test(body)) {
+      const label = this.o.label ?? 'OpenRouter';
+      // Groq báo model sinh JSON sai bằng lỗi 400 (json_validate_failed / failed_generation). Đây là kết quả của model,
+      // không phải lỗi mạng: lưu thành phản hồi rỗng để bị tính là JSON không hợp lệ.
+      if (res.status === 400 && /json_validate_failed|failed_generation|failed to generate json/i.test(body)) {
+        const out = { content: '', latencyMs: this.now() - t0 };
+        writeFileSync(file, JSON.stringify(out));
+        return { ...out, cached: false };
+      }
+      if (res.status === 400 && jsonMode && !this.o.disableJsonFallback && /response_format|json/i.test(body)) {
         jsonMode = false; // model không hỗ trợ chế độ JSON → gọi lại thường
         continue;
       }
+      // Hết hạn mức ngày thì thử lại vô ích: dừng an toàn để các ca sau không bị ghi thành lỗi.
+      if (res.status === 429 && /per day|\b[RT]PD\b/i.test(body)) throw new DailyCapReached(`${label}: hết hạn mức trong ngày`);
       if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
-        await this.sleep(Math.min(60_000, 5_000 * 2 ** attempt));
+        const retryAfterSec = Number(res.headers.get('retry-after'));
+        await this.sleep(retryAfterSec > 0 ? Math.min(120_000, retryAfterSec * 1000) : Math.min(60_000, 5_000 * 2 ** attempt));
         continue;
       }
-      throw new Error(`OpenRouter HTTP ${res.status}: ${body.slice(0, 200)}`);
+      throw new Error(`${label} HTTP ${res.status}: ${body.slice(0, 200)}`);
     }
   }
 
   /** Danh sách model miễn phí (id kết thúc bằng ":free") kèm giá bản trả phí tương ứng nếu có. */
   async listFreeModels(): Promise<{ id: string; name: string; context: number; paidPrice?: { prompt: number; completion: number } }[]> {
-    const res = await this.fetchImpl(`${OPENROUTER_URL}/models`, { headers: { Authorization: `Bearer ${this.o.apiKey}` } });
+    const res = await this.fetchImpl(`${OPENROUTER_URL}/models`, {
+      signal: AbortSignal.timeout(this.o.timeoutMs ?? 60_000),
+      headers: { Authorization: `Bearer ${this.o.apiKey}` },
+    });
     if (!res.ok) throw new Error(`OpenRouter HTTP ${res.status}`);
     const data = (await res.json()) as {
       data: { id: string; name: string; context_length: number; pricing?: { prompt: string; completion: string } }[];

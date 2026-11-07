@@ -29,7 +29,9 @@
     "bench:analyze-rules": "tsx research/rule-analysis.ts",
     "bench:notebook": "python research/notebooks/run_notebook.py",
     "bench:experiment": "tsx research/experiment.ts",
-    "bench:label-audit": "tsx research/label-audit.ts"
+    "bench:experiment-ai": "tsx research/experiment-ai.ts",
+    "bench:label-audit": "tsx research/label-audit.ts",
+    "bench:pair-gap": "tsx research/pair-gap.ts"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",
