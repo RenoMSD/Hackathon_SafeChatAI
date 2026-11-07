@@ -12,6 +12,30 @@ const msgs = (...texts: (string | [ChatMessage['sender'], string])[]): ChatMessa
     return { id: `msg-${String(i + 1).padStart(3, '0')}`, seq: i + 1, sender, text };
   });
 
+describe('hạ mức theo ngữ cảnh gần bằng chứng', () => {
+  const chat = (lines: string[]): ChatMessage[] => lines.map((text, i) => ({ id: `msg-${String(i + 1).padStart(3, '0')}`, seq: i + 1, sender: 'other' as const, text }));
+  const talk = ['Hôm qua đi đá bóng vui ghê', 'Cuối tuần có về quê không', 'Mẹ tao vừa làm bánh ngon lắm', 'Phim đó xem chán thật', 'Chiều nay trời mưa to quá', 'Xe tao mới thay lốp xong'];
+  const lunch = ['Tiền cơm trưa nay 50k nhé', 'Chuyển khoản 50k cho t nha', 'Đi ăn trưa thôi'];
+  it('chuyện ở xa không làm mất ngữ cảnh tiền cơm', () => {
+    const r = analyze(chat(['Tháng trước tao mua xe hết 300 triệu', 'Công ty tao tuần sau phỏng vấn đó', ...talk, ...lunch]));
+    expect(r.signals.find((s) => s.type === 'money_transfer')?.mitigation).toBeTruthy();
+    expect(r.risk_level).toBe('low');
+  });
+  it('số tiền lớn ngay gần thì không hạ', () => {
+    const r = analyze(chat([...talk, 'Tiền cơm 50k với 30 triệu tiền hàng', 'Chuyển khoản cho t nha']));
+    expect(r.signals.find((s) => s.type === 'money_transfer')?.mitigation).toBeUndefined();
+  });
+  it('chốt chặn: tín hiệu nguy hiểm ở xa thì không hạ', () => {
+    const r = analyze(chat(['Nhớ giữ bí mật, đừng nói với gia đình', ...talk, ...talk, ...lunch]));
+    expect(r.signals.find((s) => s.type === 'money_transfer')?.mitigation).toBeUndefined();
+  });
+  it('chốt chặn: lừa việc làm ở xa thì không hạ', () => {
+    const r = analyze(chat(['Bên chị tuyển cộng tác viên, việc nhẹ lương cao', ...talk, ...talk, 'Tiền cơm trưa nay 50k nhé', 'Em đóng phí 50k vào cho chị', 'Đi ăn trưa thôi']));
+    expect(r.signals.find((s) => s.type === 'upfront_fee')?.mitigation).toBeUndefined();
+    expect(r.risk_level).toBe('high');
+  });
+});
+
 describe('chuẩn hóa v0.3', () => {
   it('gỡ chữ ngắt quãng, leetspeak, viết tắt chấm', () => {
     expect(normalizeForMatch('c.h.u.y.ể.n s-t-k ti3n v0n')).toBe('chuyen so tai khoan tien von');

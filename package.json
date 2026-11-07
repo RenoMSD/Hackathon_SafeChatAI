@@ -34,7 +34,8 @@
     "bench:experiment-ai": "tsx research/experiment-ai.ts",
     "bench:label-audit": "tsx research/label-audit.ts",
     "bench:pair-gap": "tsx research/pair-gap.ts",
-    "bench:ai-calls": "tsx research/ai-call-count.ts"
+    "bench:ai-calls": "tsx research/ai-call-count.ts",
+    "bench:long-eval": "tsx research/long-eval.ts"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",

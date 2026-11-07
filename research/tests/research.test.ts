@@ -395,6 +395,12 @@ describe('hội thoại dài từ ca có sẵn', () => {
     expect(out[0]!.messages.at(-1)!.id).toBe('msg-012');
     expect(out[0]!.messages.slice(0, 7).every((m) => !m.text.startsWith('A '))).toBe(true);
   });
+  it('position after: đoạn gốc nằm đầu', () => {
+    const out = padCases(set, 12, 'after');
+    expect(out[0]!.messages[0]!.text).toBe('A tin 1');
+    expect(out[0]!.messages[4]!.text).toBe('A tin 5');
+    expect(out[0]!.messages).toHaveLength(12);
+  });
   it('không đệm bằng tin của chính ca đó', () => {
     expect(padCases(set, 12)[1]!.messages.slice(0, 6).every((m) => !m.text.startsWith('B '))).toBe(true);
   });

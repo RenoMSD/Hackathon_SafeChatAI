@@ -1,8 +1,9 @@
 // Ngữ cảnh hội thoại:
 //  1. Tín hiệu từ thực thể (link đáng ngờ, ví crypto, link kênh kín).
 //  2. Luật ngữ cảnh GIẢM cảnh báo nhầm: giao dịch đời thường (chia tiền ăn, mua hàng có COD) với số tiền
-//     nhỏ được hạ chuyển khoản/đặt cọc xuống mức Thấp — chỉ khi KHÔNG có bất kỳ dấu hiệu rủi ro nào khác
-//     và không có ngữ cảnh tuyển dụng/nhiệm vụ (phí việc làm luôn là dấu hiệu chính của đề tài).
+//     nhỏ được hạ chuyển khoản/đặt cọc xuống mức Thấp. Ngữ cảnh xét trong ±4 tin quanh bằng chứng, vì hội thoại
+//     dài thường có chuyện khác ở xa. Chốt chặn: tín hiệu nguy hiểm, cô lập, kỹ thuật hoặc lừa việc làm ở BẤT KỲ
+//     ĐÂU trong hội thoại thì không hạ, để kẻ gian không né được bằng cách chèn "tiền cơm" cạnh yêu cầu đóng phí.
 import { extractEntities } from './entities';
 import { normalizeForMatch, stripDiacritics } from './normalize';
 import type { ChatMessage, Signal } from './types';
@@ -83,36 +84,51 @@ const SHOP_SAFE = /\b(cod|thanh toan khi nhan|nhan hang\b.{0,15}\b(kiem tra|roi|
 const MITIGABLE = new Set(['money_transfer', 'upfront_fee']);
 const RISKY_CATEGORIES = new Set(['isolation', 'impersonation', 'technical', 'investment', 'account', 'contradiction', 'pressure']);
 
-export function applyContextMitigations(signals: Signal[], messages: ChatMessage[]): Signal[] {
-  const targets = signals.filter((s) => MITIGABLE.has(s.type));
-  if (!targets.length) return signals;
-  const others = messages.filter((m) => m.sender !== 'self').map((m) => normalizeForMatch(m.text));
+/** Số tin xét trước và sau bằng chứng khi quyết định có phải giao dịch đời thường không. */
+const MITIGATION_RADIUS = 4;
+const GUARD_CATEGORIES = new Set(['isolation', 'technical', 'job_terms']);
+
+function everydayReason(window: ChatMessage[], signals: Signal[]): string | null {
+  const windowIds = new Set(window.map((m) => m.id));
+  const nearby = signals.filter((s) => !MITIGABLE.has(s.type) && s.evidence_message_ids.some((id) => windowIds.has(id)));
+  const otherRisk = nearby.some(
+    (s) => s.severity === 'critical' || s.direct_danger || RISKY_CATEGORIES.has(s.category) || s.severity === 'high' || s.category === 'job_terms' || s.category === 'finance',
+  );
+  const others = window.filter((m) => m.sender !== 'self').map((m) => normalizeForMatch(m.text));
   const all = others.join(' \n ');
-  const otherRisk = signals.some(
-    (s) => !MITIGABLE.has(s.type) && (s.severity === 'critical' || s.direct_danger || RISKY_CATEGORIES.has(s.category) || s.severity === 'high' || s.category === 'job_terms' || s.category === 'finance'),
-  );
-  if (otherRisk || JOB_CONTEXT.test(all)) return signals;
+  if (otherRisk || JOB_CONTEXT.test(all)) return null;
   const amounts = others.flatMap(parseAmounts);
-  if (!amounts.length || Math.max(...amounts) > SMALL_AMOUNT) return signals;
+  if (!amounts.length || Math.max(...amounts) > SMALL_AMOUNT) return null;
+  if (EVERYDAY.test(all)) return 'Ngữ cảnh chia tiền sinh hoạt với số tiền nhỏ';
+  if (SHOP.test(all) && SHOP_SAFE.test(all)) return 'Ngữ cảnh mua hàng có kiểm tra hàng/COD, số tiền nhỏ';
+  return null;
+}
 
-  let reason: string | null = null;
-  if (EVERYDAY.test(all)) reason = 'Ngữ cảnh chia tiền sinh hoạt với số tiền nhỏ';
-  else if (SHOP.test(all) && SHOP_SAFE.test(all)) reason = 'Ngữ cảnh mua hàng có kiểm tra hàng/COD, số tiền nhỏ';
-  if (!reason) return signals;
-
-  return signals.map((s) =>
-    MITIGABLE.has(s.type)
-      ? {
-          ...s,
-          severity: 'low' as const,
-          mitigation: reason!,
-          // Tiêu đề/lời khuyên gốc nói về phí tuyển dụng — thay bằng nội dung trung lập hợp ngữ cảnh
-          title: s.type === 'upfront_fee' ? 'Đặt cọc trong giao dịch thông thường' : 'Chuyển khoản trong giao dịch thông thường',
-          explanation: `Có đề nghị chuyển tiền/đặt cọc nhưng thuộc ${reason!.toLowerCase()}, nên được hạ xuống mức Thấp.`,
-          recommended_action: 'Kiểm tra đúng người nhận/uy tín cửa hàng; ưu tiên thanh toán khi nhận hàng và không chuyển thêm nếu bị hối thúc.',
-        }
-      : s,
+export function applyContextMitigations(signals: Signal[], messages: ChatMessage[]): Signal[] {
+  if (!signals.some((s) => MITIGABLE.has(s.type))) return signals;
+  const guarded = signals.some(
+    (s) => !MITIGABLE.has(s.type) && (s.direct_danger || s.severity === 'critical' || GUARD_CATEGORIES.has(s.category)),
   );
+  if (guarded) return signals;
+  const index = new Map(messages.map((m, i) => [m.id, i]));
+
+  return signals.map((s) => {
+    if (!MITIGABLE.has(s.type)) return s;
+    const at = s.evidence_message_ids.map((id) => index.get(id)).filter((i): i is number => i !== undefined);
+    if (!at.length) return s;
+    const window = messages.slice(Math.max(0, Math.min(...at) - MITIGATION_RADIUS), Math.max(...at) + MITIGATION_RADIUS + 1);
+    const reason = everydayReason(window, signals);
+    if (!reason) return s;
+    return {
+      ...s,
+      severity: 'low' as const,
+      mitigation: reason,
+      // Tiêu đề/lời khuyên gốc nói về phí tuyển dụng — thay bằng nội dung trung lập hợp ngữ cảnh
+      title: s.type === 'upfront_fee' ? 'Đặt cọc trong giao dịch thông thường' : 'Chuyển khoản trong giao dịch thông thường',
+      explanation: `Có đề nghị chuyển tiền/đặt cọc nhưng thuộc ${reason.toLowerCase()}, nên được hạ xuống mức Thấp.`,
+      recommended_action: 'Kiểm tra đúng người nhận/uy tín cửa hàng; ưu tiên thanh toán khi nhận hàng và không chuyển thêm nếu bị hối thúc.',
+    };
+  });
 }
 
 // ---------------------------------------------------------------- người dùng đã tự xác minh

@@ -2558,5 +2558,449 @@
       "level": "low",
       "signals": []
     }
+  },
+  {
+    "id": "112_long_lunch_far_job_word",
+    "title": "Nhắc phỏng vấn ở xa, tiền cơm ở cuối → Thấp",
+    "source": "v0.8: hội thoại dài khi quét ban đầu 50 tin",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Công ty tao tuần sau phỏng vấn đó"
+      },
+      {
+        "sender": "other",
+        "text": "Hôm qua đi đá bóng vui ghê"
+      },
+      {
+        "sender": "other",
+        "text": "Cuối tuần có về quê không"
+      },
+      {
+        "sender": "other",
+        "text": "Mẹ tao vừa làm bánh ngon lắm"
+      },
+      {
+        "sender": "other",
+        "text": "Phim đó xem chán thật"
+      },
+      {
+        "sender": "other",
+        "text": "Chiều nay trời mưa to quá"
+      },
+      {
+        "sender": "other",
+        "text": "Xe tao mới thay lốp xong"
+      },
+      {
+        "sender": "other",
+        "text": "Con mèo nhà tao béo lên hẳn"
+      },
+      {
+        "sender": "other",
+        "text": "Mai nhớ mang áo khoác nha"
+      },
+      {
+        "sender": "other",
+        "text": "Quán đó đông người quá"
+      },
+      {
+        "sender": "other",
+        "text": "Tối nay có đá giải không"
+      },
+      {
+        "sender": "other",
+        "text": "Sách đó đọc hay phết"
+      },
+      {
+        "sender": "other",
+        "text": "Thôi đi ngủ sớm đây"
+      },
+      {
+        "sender": "other",
+        "text": "Tiền cơm trưa nay 50k nhé"
+      },
+      {
+        "sender": "other",
+        "text": "Chuyển khoản 50k cho t nha"
+      },
+      {
+        "sender": "other",
+        "text": "Đi ăn trưa thôi"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "113_long_lunch_far_big_amount",
+    "title": "Khoản tiền lớn ở xa, tiền cơm ở cuối → Thấp",
+    "source": "v0.8: hội thoại dài khi quét ban đầu 50 tin",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Tháng trước tao mua xe hết 300 triệu"
+      },
+      {
+        "sender": "other",
+        "text": "Hôm qua đi đá bóng vui ghê"
+      },
+      {
+        "sender": "other",
+        "text": "Cuối tuần có về quê không"
+      },
+      {
+        "sender": "other",
+        "text": "Mẹ tao vừa làm bánh ngon lắm"
+      },
+      {
+        "sender": "other",
+        "text": "Phim đó xem chán thật"
+      },
+      {
+        "sender": "other",
+        "text": "Chiều nay trời mưa to quá"
+      },
+      {
+        "sender": "other",
+        "text": "Xe tao mới thay lốp xong"
+      },
+      {
+        "sender": "other",
+        "text": "Con mèo nhà tao béo lên hẳn"
+      },
+      {
+        "sender": "other",
+        "text": "Mai nhớ mang áo khoác nha"
+      },
+      {
+        "sender": "other",
+        "text": "Quán đó đông người quá"
+      },
+      {
+        "sender": "other",
+        "text": "Tối nay có đá giải không"
+      },
+      {
+        "sender": "other",
+        "text": "Sách đó đọc hay phết"
+      },
+      {
+        "sender": "other",
+        "text": "Thôi đi ngủ sớm đây"
+      },
+      {
+        "sender": "other",
+        "text": "Tiền cơm trưa nay 50k nhé"
+      },
+      {
+        "sender": "other",
+        "text": "Chuyển khoản 50k cho t nha"
+      },
+      {
+        "sender": "other",
+        "text": "Đi ăn trưa thôi"
+      }
+    ],
+    "expected": {
+      "level": "low",
+      "signals": []
+    }
+  },
+  {
+    "id": "114_long_fee_near_big_amount",
+    "title": "Tiền cơm kèm số tiền lớn ngay cạnh → không hạ",
+    "source": "v0.8: hội thoại dài khi quét ban đầu 50 tin",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Hôm qua đi đá bóng vui ghê"
+      },
+      {
+        "sender": "other",
+        "text": "Cuối tuần có về quê không"
+      },
+      {
+        "sender": "other",
+        "text": "Mẹ tao vừa làm bánh ngon lắm"
+      },
+      {
+        "sender": "other",
+        "text": "Phim đó xem chán thật"
+      },
+      {
+        "sender": "other",
+        "text": "Chiều nay trời mưa to quá"
+      },
+      {
+        "sender": "other",
+        "text": "Xe tao mới thay lốp xong"
+      },
+      {
+        "sender": "other",
+        "text": "Con mèo nhà tao béo lên hẳn"
+      },
+      {
+        "sender": "other",
+        "text": "Mai nhớ mang áo khoác nha"
+      },
+      {
+        "sender": "other",
+        "text": "Quán đó đông người quá"
+      },
+      {
+        "sender": "other",
+        "text": "Tối nay có đá giải không"
+      },
+      {
+        "sender": "other",
+        "text": "Sách đó đọc hay phết"
+      },
+      {
+        "sender": "other",
+        "text": "Thôi đi ngủ sớm đây"
+      },
+      {
+        "sender": "other",
+        "text": "Tiền cơm 50k với 30 triệu tiền hàng"
+      },
+      {
+        "sender": "other",
+        "text": "Chuyển khoản cho t nha"
+      }
+    ],
+    "expected": {
+      "level": "attention",
+      "signals": [
+        "money_transfer"
+      ]
+    }
+  },
+  {
+    "id": "115_evade_lunch_far_recruit",
+    "title": "Né luật: tuyển CTV ở xa, chèn tiền cơm cạnh yêu cầu đóng phí → Cao",
+    "source": "v0.8: hội thoại dài khi quét ban đầu 50 tin",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Bên chị tuyển cộng tác viên, việc nhẹ lương cao"
+      },
+      {
+        "sender": "other",
+        "text": "Hôm qua đi đá bóng vui ghê"
+      },
+      {
+        "sender": "other",
+        "text": "Cuối tuần có về quê không"
+      },
+      {
+        "sender": "other",
+        "text": "Mẹ tao vừa làm bánh ngon lắm"
+      },
+      {
+        "sender": "other",
+        "text": "Phim đó xem chán thật"
+      },
+      {
+        "sender": "other",
+        "text": "Chiều nay trời mưa to quá"
+      },
+      {
+        "sender": "other",
+        "text": "Xe tao mới thay lốp xong"
+      },
+      {
+        "sender": "other",
+        "text": "Con mèo nhà tao béo lên hẳn"
+      },
+      {
+        "sender": "other",
+        "text": "Mai nhớ mang áo khoác nha"
+      },
+      {
+        "sender": "other",
+        "text": "Quán đó đông người quá"
+      },
+      {
+        "sender": "other",
+        "text": "Tối nay có đá giải không"
+      },
+      {
+        "sender": "other",
+        "text": "Sách đó đọc hay phết"
+      },
+      {
+        "sender": "other",
+        "text": "Thôi đi ngủ sớm đây"
+      },
+      {
+        "sender": "other",
+        "text": "Tiền cơm trưa nay 50k nhé"
+      },
+      {
+        "sender": "other",
+        "text": "Em đóng phí 50k vào cho chị"
+      },
+      {
+        "sender": "other",
+        "text": "Đi ăn trưa thôi"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee",
+        "unrealistic_pay"
+      ]
+    }
+  },
+  {
+    "id": "116_evade_lunch_far_threat",
+    "title": "Né luật: bảo giấu gia đình ở xa, chèn tiền cơm → Nghiêm trọng",
+    "source": "v0.8: hội thoại dài khi quét ban đầu 50 tin",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Không đóng là chị cho người đến tận nhà xử lý em đó"
+      },
+      {
+        "sender": "other",
+        "text": "Nhớ giữ bí mật, đừng nói với gia đình"
+      },
+      {
+        "sender": "other",
+        "text": "Hôm qua đi đá bóng vui ghê"
+      },
+      {
+        "sender": "other",
+        "text": "Cuối tuần có về quê không"
+      },
+      {
+        "sender": "other",
+        "text": "Mẹ tao vừa làm bánh ngon lắm"
+      },
+      {
+        "sender": "other",
+        "text": "Phim đó xem chán thật"
+      },
+      {
+        "sender": "other",
+        "text": "Chiều nay trời mưa to quá"
+      },
+      {
+        "sender": "other",
+        "text": "Xe tao mới thay lốp xong"
+      },
+      {
+        "sender": "other",
+        "text": "Con mèo nhà tao béo lên hẳn"
+      },
+      {
+        "sender": "other",
+        "text": "Mai nhớ mang áo khoác nha"
+      },
+      {
+        "sender": "other",
+        "text": "Quán đó đông người quá"
+      },
+      {
+        "sender": "other",
+        "text": "Tối nay có đá giải không"
+      },
+      {
+        "sender": "other",
+        "text": "Sách đó đọc hay phết"
+      },
+      {
+        "sender": "other",
+        "text": "Thôi đi ngủ sớm đây"
+      },
+      {
+        "sender": "other",
+        "text": "Tiền cơm trưa nay 50k nhé"
+      },
+      {
+        "sender": "other",
+        "text": "Em đóng phí 50k vào cho chị"
+      },
+      {
+        "sender": "other",
+        "text": "Đi ăn trưa thôi"
+      }
+    ],
+    "expected": {
+      "level": "critical",
+      "signals": [
+        "secrecy_from_family",
+        "upfront_fee"
+      ]
+    }
+  },
+  {
+    "id": "117_old_fee_then_small_talk",
+    "title": "Đòi phí từ sớm rồi nói chuyện thường → vẫn Cao",
+    "source": "v0.8: hội thoại dài khi quét ban đầu 50 tin",
+    "messages": [
+      {
+        "sender": "other",
+        "text": "Em đóng phí kích hoạt 500k rồi mới nhận việc nhé"
+      },
+      {
+        "sender": "other",
+        "text": "Hôm qua đi đá bóng vui ghê"
+      },
+      {
+        "sender": "other",
+        "text": "Cuối tuần có về quê không"
+      },
+      {
+        "sender": "other",
+        "text": "Mẹ tao vừa làm bánh ngon lắm"
+      },
+      {
+        "sender": "other",
+        "text": "Phim đó xem chán thật"
+      },
+      {
+        "sender": "other",
+        "text": "Chiều nay trời mưa to quá"
+      },
+      {
+        "sender": "other",
+        "text": "Xe tao mới thay lốp xong"
+      },
+      {
+        "sender": "other",
+        "text": "Con mèo nhà tao béo lên hẳn"
+      },
+      {
+        "sender": "other",
+        "text": "Mai nhớ mang áo khoác nha"
+      },
+      {
+        "sender": "other",
+        "text": "Quán đó đông người quá"
+      },
+      {
+        "sender": "other",
+        "text": "Tối nay có đá giải không"
+      },
+      {
+        "sender": "other",
+        "text": "Sách đó đọc hay phết"
+      },
+      {
+        "sender": "other",
+        "text": "Thôi đi ngủ sớm đây"
+      }
+    ],
+    "expected": {
+      "level": "high",
+      "signals": [
+        "upfront_fee"
+      ]
+    }
   }
 ]
