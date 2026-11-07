@@ -805,14 +805,56 @@ md("""
 - **SMS dev bắt thêm được một ít** tin lừa đảo, rác mà không tăng báo nhầm.
 - **Kết luận cho kế hoạch:** theo điều kiện dừng ở bước 12, không tiếp tục thêm luật theo từng ca. Viết thêm mẫu câu rất khó đuổi kịp cách nói mới, nên phần bỏ sót còn lại là chỗ cần đo tác dụng của AI. Vẫn phải đo, không mặc định AI tốt hơn.
 
+## Bước 14. Thử các hướng suy luận khác, có ghi sổ
+
+Sau khi thấy check không đổi, nhóm thử 3 hướng. Mỗi hướng là một thí nghiệm có giả thuyết viết trước, lưu ở `research/experiments/`. Hướng nào không có lý do chọn trên tune thì **không xem check**, để giữ check cho lần xác nhận thật.
+""")
+
+code("""
+rows = []
+looks = 0
+for path in sorted((ROOT / "experiments").glob("EXP-*/metrics.json")):
+    r = json.loads(path.read_text(encoding="utf-8"))
+    looks += 1 if r.get("checkViewed") else 0
+    t, c, s = r.get("tune") or {}, r.get("check") or {}, r.get("sms") or {}
+    rows.append({
+        "Mã": r["id"], "Nội dung": r["title"], "Tune bỏ sót": t.get("dangerMissCount", "–"), "Tune báo nhầm Cao+": t.get("falseAlarmHighCount", "–"),
+        "Check bỏ sót": c.get("dangerMissCount", "chưa xem"), "SMS BT Cao+": f"{s['benignHigh']:.1%}" if s else "–", "SMS LĐ Cao+": f"{s['scamHigh']:.1%}" if s else "–", "Lần xem check": looks,
+    })
+show(pd.DataFrame(rows))
+leak = json.loads((ROOT / "experiments" / "EXP-006" / "metrics.json").read_text(encoding="utf-8"))
+loso = json.loads((ROOT / "experiments" / "EXP-004" / "metrics.json").read_text(encoding="utf-8"))["leaveOneScenarioOut"]
+caught = sum(v["caught"] for v in loso.values())
+total = sum(v["n"] for v in loso.values())
+audit = json.loads((ROOT / "experiments" / "label_audit.json").read_text(encoding="utf-8"))
+display(Markdown(
+    f"**Kiểm tra rò rỉ:** nhãn nguy hiểm trùng với nguồn chuyển thể ở **{leak['dangerEqualsAdaptedSource']:.1%}** ca. Mô hình đoán đúng nguồn **{leak['sourcePredictionAccuracy']:.1%}** chỉ từ chữ. "
+    f"Bỏ ca AI sinh khi huấn luyện thì báo nhầm **{leak['aiGeneratedBenignFalseAlarm']}** ca đó. Với kịch bản chưa thấy, mô hình bắt được **{caught}/{total}**.\\n\\n"
+    f"**Đồng thuận nhãn theo nguồn:** toàn bộ κ = {audit['all']['kappa']:.3f}, riêng phần chuyển thể κ = {audit['bySource']['chuyen_the']['kappa']:.3f}. Hai phần còn lại κ không có ý nghĩa vì gần như cùng một nhãn."
+))
+""")
+
+md("""
+**Kết luận:**
+
+| Hướng | Kết quả | Quyết định |
+|---|---|---|
+| Thêm mẫu câu | Tune tốt, check không đổi | Dừng thêm theo từng ca. Giữ phần giảm báo nhầm |
+| Khung ý định (yêu cầu + cớ + sức ép) | Tệ hơn luật trên tune, báo nhầm cao trên SMS thật | Bỏ |
+| Mô hình học từ dữ liệu | Số đẹp nhưng chủ yếu học văn phong nguồn | Bỏ trên dữ liệu hiện tại |
+| Mô hình ngôn ngữ kèm gợi ý từ luật | Chưa đo. Không cần huấn luyện trên bộ này nên ít bị lỗi học văn phong hơn, nhưng vẫn phải đo | **Hướng tiếp theo**, sau khi có Bedrock |
+
+**Phát hiện quan trọng nhất của cả quy trình:** bộ đề cần **cặp đối chứng cùng văn phong** trước khi kết luận về bất kỳ mô hình nào. Check có cùng lỗi với tune nên không phát hiện được việc này. Cách giảm từng hạn chế ở `research/experiments/GIAM_HAN_CHE.md`.
+
 ## Hạn chế cần nói rõ khi báo cáo
 
-1. **Bộ v2 chưa độc lập:** phần lớn ca do người viết luật chuyển thể. Mọi số ở đây là số dev.
-2. **Nhãn:** mức chốt luôn theo người A, mốc thực chất do một người gán, 12 ca đối chứng do AI sinh, 36 ca bình thường nghi có khuôn sinh tự động.
-3. **Mẫu nhỏ:** nhiều nhóm chỉ vài ca, nên số theo nhóm chỉ để định hướng.
-4. **Đo trên dữ liệu đã đọc:** ứng viên luật viết từ chính tune nên số tune sẽ đẹp hơn thực tế. Số tin cậy hơn đến từ check, SMS test, bộ nhóm test và bộ đề kín nếu có.
-5. **Không suy rộng:** dữ liệu chủ yếu là kịch bản đã được công khai, có thể khác lừa đảo chưa được ghi nhận.
-6. **Phân tích nguyên nhân là đánh giá của người phân tích**, không phải đo tự động.
+1. **Nhãn trùng với nguồn dữ liệu:** ca nguy hiểm gần như đều chuyển thể, ca bình thường gần như đều tự viết hoặc AI sinh. Số của mô hình trên bộ này chưa đáng tin.
+2. **Bộ v2 chưa độc lập:** phần lớn ca do người viết luật chuyển thể. Mọi số ở đây là số dev.
+3. **Nhãn:** mức chốt luôn theo người A, mốc thực chất do một người gán, 12 ca đối chứng do AI sinh, 36 ca bình thường nghi có khuôn sinh tự động. Riêng phần chuyển thể κ = 0,788.
+4. **Mẫu nhỏ:** nhiều nhóm chỉ vài ca, nên số theo nhóm chỉ để định hướng.
+5. **Đo trên dữ liệu đã đọc:** luật viết từ chính tune nên số tune đẹp hơn thực tế, đúng như check đã cho thấy. Check cũng đã xem nhiều lần, số lần được ghi trong sổ thí nghiệm.
+6. **Không suy rộng:** dữ liệu chủ yếu là kịch bản đã được công khai, có thể khác lừa đảo chưa được ghi nhận.
+7. **Phân tích nguyên nhân là đánh giá của người phân tích**, không phải đo tự động.
 
 ## Xem một ca
 
