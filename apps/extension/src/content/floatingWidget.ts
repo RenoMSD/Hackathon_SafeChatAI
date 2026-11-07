@@ -26,6 +26,9 @@ import {
   type ProbeResult,
   type Session,
   type ThreadInfo,
+  DEFAULT_SETTINGS,
+  SETTINGS_KEY,
+  type Settings,
 } from '../shared/protocol';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -1112,6 +1115,18 @@ export function initFloatingWidget(
   let session: Session | null = null;
   let minimized = true;
   let consent = true;
+  // Cách đọc khi bắt đầu quét, dùng chung với cài đặt của side panel.
+  let scrollHistory = DEFAULT_SETTINGS.historyScroll;
+  chrome.storage?.local
+    ?.get?.(SETTINGS_KEY)
+    ?.then((res) => {
+      const saved = (res?.[SETTINGS_KEY] as Partial<Settings> | undefined)?.historyScroll;
+      if (typeof saved === 'boolean' && saved !== scrollHistory) {
+        scrollHistory = saved;
+        renderWidget();
+      }
+    })
+    .catch(() => {});
   let hasScanned = false;
   let isScanning = false;
   let chosenThreadId: string | null = null;
@@ -1382,7 +1397,7 @@ export function initFloatingWidget(
     dockedToChat = true;
     sessionViewMode = 'mini';
     showSpotlight(t.threadId, t.threadLabel, 900);
-    const res = await sendReq({ kind: 'start', tabId: -1, threadId: t.threadId });
+    const res = await sendReq({ kind: 'start', tabId: -1, threadId: t.threadId, allowScroll: scrollHistory });
     if (!res?.ok) {
       scanNotice = res?.reason ?? 'Không thể khóa đoạn chat này. Hãy bấm Quét lại.';
       renderWidget();
@@ -1860,6 +1875,30 @@ export function initFloatingWidget(
                   }),
                 ),
             h(
+              'div',
+              { style: 'margin-top:8px;font-size:11.5px;font-weight:700;color:#334155' },
+              'Cách đọc khi khóa chat:',
+            ),
+            ...[
+              { value: true, title: 'Tự cuộn đọc lịch sử', note: 'tải tối đa 50 tin rồi trả về chỗ cũ' },
+              { value: false, title: 'Không cuộn', note: 'chỉ đọc các tin đang có, có thể thiếu tin cũ' },
+            ].map((o) =>
+              h(
+                'label',
+                { class: 'consent-label', style: 'margin-top:4px' },
+                h('input', {
+                  type: 'radio',
+                  name: 'safechat-read-mode',
+                  checked: scrollHistory === o.value,
+                  onchange: () => {
+                    scrollHistory = o.value;
+                    renderWidget();
+                  },
+                }),
+                h('span', {}, h('b', {}, o.title), `: ${o.note}.`),
+              ),
+            ),
+            h(
               'label',
               { class: 'consent-label' },
               h('input', {
@@ -1870,7 +1909,13 @@ export function initFloatingWidget(
                   renderWidget();
                 },
               }),
-              h('span', {}, 'Đồng ý cho SafeChat AI đọc văn bản của đoạn chat bạn chọn khóa.'),
+              h(
+                'span',
+                {},
+                scrollHistory
+                  ? 'Đồng ý cho SafeChat AI đọc văn bản của đoạn chat bạn chọn khóa, gồm tối đa 50 tin gần nhất, có thể tự cuộn khung chat rồi trả về chỗ cũ.'
+                  : 'Đồng ý cho SafeChat AI đọc văn bản của đoạn chat bạn chọn khóa, tối đa 50 tin đang có trên trang, không cuộn khung chat.',
+              ),
             ),
           ),
         ),

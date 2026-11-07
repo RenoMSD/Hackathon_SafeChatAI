@@ -219,6 +219,22 @@ describe('background — vòng đời phiên', () => {
     expect(s.ai.lastReason).toBe('Quét ban đầu 30 tin');
   });
 
+  it('widget chọn không cuộn khi khóa chat: không cuộn và lưu lại lựa chọn', async () => {
+    mockGateway(() => okResponse([]));
+    await fake.chrome.storage.local.set({ safechat_settings: { policyVersion: 2, gatewayEnabled: true, gatewayUrl: GW, dailyBudget: 50, historyScroll: true } });
+    thread = { threadId: 'mock:widget', threadLabel: 'Widget' };
+    await fake.panel({ kind: 'stop_and_clear' });
+    startMsgs.length = 0;
+    await fake.panel({ kind: 'start', tabId: TAB, allowScroll: false });
+    expect(startMsgs).toEqual([{ kind: 'cs_start', threadId: 'mock:widget', loadHistory: true, allowScroll: false }]);
+    const local = (await fake.chrome.storage.local.get(null)) as Record<string, any>;
+    expect(local.safechat_settings.historyScroll).toBe(false);
+    await fake.panel({ kind: 'stop_and_clear' });
+    startMsgs.length = 0;
+    await fake.panel({ kind: 'start', tabId: TAB });
+    expect(startMsgs).toEqual([{ kind: 'cs_start', threadId: 'mock:widget', loadHistory: true, allowScroll: false }]);
+  });
+
   it('chọn không cuộn: báo content script không được cuộn, vẫn đọc và đánh giá ngay', async () => {
     const gw = mockGateway(() => okResponse([]));
     await fake.chrome.storage.local.set({

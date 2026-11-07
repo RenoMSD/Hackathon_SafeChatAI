@@ -15,7 +15,7 @@ import {
 import { AI_IDLE_ALARM, cancelAi, handleNanoResult, kickAi, resetGatewayBackoff, setPanelNanoStatus } from './ai';
 import { clearDevice } from './gateway';
 import { recompute, sendToTab, serial, updateBadge } from './runtime';
-import { clearSessionVerified, loadSession, loadSettings, saveSession } from './store';
+import { clearSessionVerified, loadSession, loadSettings, saveSession, saveSettings } from './store';
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 // Widget mèo trong content script đọc phiên trực tiếp để hiện mức, bằng chứng và tóm tắt.
 chrome.storage.session.setAccessLevel?.({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
@@ -44,6 +44,10 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
       const t = pickThread(p, req.threadId);
       if (!t) return { ok: false, reason: 'Hãy chọn một cuộc trò chuyện đang mở để theo dõi.' };
       const settings = await loadSettings();
+      if (req.allowScroll !== undefined && req.allowScroll !== settings.historyScroll) {
+        settings.historyScroll = req.allowScroll;
+        await saveSettings(settings);
+      }
       const s: Session = {
         status: 'tracking',
         tabId: req.tabId,

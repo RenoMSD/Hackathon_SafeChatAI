@@ -164,7 +164,8 @@ export function probeThreads(p: ProbeResult | null | undefined): ThreadInfo[] {
 /** Side panel → background */
 export type PanelRequest =
   | { kind: 'probe'; tabId: number }
-  | { kind: 'start'; tabId: number; threadId?: string }
+  /** allowScroll: lựa chọn cách đọc từ widget, được lưu lại vào cài đặt. Không có thì dùng cài đặt đã lưu. */
+  | { kind: 'start'; tabId: number; threadId?: string; allowScroll?: boolean }
   /** Context Manager: khôi phục phiên từ file ảnh chụp (chuỗi JSON) và gắn vào cuộc chat đang mở ở tab. */
   | { kind: 'resume_snapshot'; tabId: number; snapshot: string; threadId?: string }
   | { kind: 'pause' }
