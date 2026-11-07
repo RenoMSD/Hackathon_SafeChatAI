@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "SafeChat AI Shield",
+    "slug": "safechat-ai-shield",
+    "version": "0.5.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "safechat",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.safechat.shield"
+    },
+    "android": {
+      "package": "com.safechat.shield",
+      "softwareKeyboardLayoutMode": "resize",
+      "intentFilters": [
+        {
+          "action": "SEND",
+          "category": ["DEFAULT"],
+          "data": [{ "mimeType": "text/plain" }]
+        }
+      ]
+    },
+    "plugins": [
+      [
+        "expo-share-intent",
+        {
+          "androidIntentFilters": ["text/plain"],
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsText": true,
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1
+          },
+          "iosShareExtensionName": "SafeChat Share",
+          "androidMainActivityAttributes": {
+            "android:launchMode": "singleTask"
+          }
+        }
+      ]
+    ]
+  }
+}
