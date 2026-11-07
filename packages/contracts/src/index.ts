@@ -63,6 +63,8 @@ export interface AnalysisResponse {
   /** Có giá trị khi AI đề nghị hạ 1 bậc. Client vẫn áp dụng giới hạn trong core. */
   downgradeReason?: string;
   detectedStage?: ScamStage;
+  /** Gợi ý bước tiếp theo, đã qua kiểm tra an toàn. Client kiểm tra lại lần nữa. */
+  nextStep?: { question: string | null; reason?: string; assessment: 'answered' | 'evasive' | 'contradictory' | 'not_answered' | 'none' };
   usage: AnalysisUsage;
 }
 

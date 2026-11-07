@@ -931,6 +931,9 @@ function adviceCard(s: Session): Node | null {
         { class: 'small', style: 'margin-top:8px' },
         ...a.actions.slice(0, state.adviceExpanded ? 6 : 2).map((x) => h('li', {}, x)),
       ),
+      a.answer_assessment === 'evasive' && h('p', { class: 'small', style: 'margin:8px 0 0;font-weight:700' }, 'AI: câu trả lời còn né tránh, chung chung.'),
+      a.answer_assessment === 'contradictory' && h('p', { class: 'small', style: 'margin:8px 0 0;font-weight:700' }, 'AI: câu trả lời mâu thuẫn với điều đã nói trước đó.'),
+      a.waiting_answer && h('p', { class: 'muted small', style: 'margin:8px 0 0' }, 'Đang chờ đối phương trả lời. Đọc kỹ câu trả lời trước khi làm tiếp.'),
       state.adviceExpanded &&
         a.questions.length > 0 &&
         h(
@@ -938,6 +941,7 @@ function adviceCard(s: Session): Node | null {
           { style: 'margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)' },
           h('div', { class: 'small', style: 'font-weight:700;margin-bottom:4px' }, 'Câu hỏi bạn có thể tự gửi:'),
           h('p', { class: 'muted small', style: 'margin:0 0 6px' }, 'SafeChat AI không tự gửi tin. Hãy sao chép và tự quyết định có gửi hay không.'),
+          a.question_reason && h('p', { class: 'muted small', style: 'margin:0 0 6px' }, `Vì sao nên hỏi câu đầu: ${a.question_reason}`),
           ...a.questions.map((q) =>
             h(
               'div',

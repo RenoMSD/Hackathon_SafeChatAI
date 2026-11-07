@@ -74,10 +74,30 @@ export interface Claim {
   evidence_quotes: string[];
 }
 
+export type AnswerAssessment = 'answered' | 'evasive' | 'contradictory' | 'not_answered' | 'none';
+
+/** Gợi ý bước tiếp theo của AI, đã qua kiểm tra trong sanitizeNextStep. */
+export interface AiNextStep {
+  /** null: AI cho rằng lúc này chưa cần hỏi gì. */
+  question: string | null;
+  reason?: string;
+  assessment: AnswerAssessment;
+  /** seq của tin cuối AI đã đọc. */
+  atSeq?: number;
+}
+
 export interface Advice {
   actions: string[];
-  /** Câu hỏi xác minh trung lập; rỗng khi safety_priority = true. */
+  /** Câu hỏi xác minh trung lập, câu nên hỏi trước đứng đầu; rỗng khi safety_priority = true. */
   questions: string[];
+  /** Vừa hỏi xong, chờ đối phương trả lời nên chưa gợi ý thêm. */
+  waiting_answer?: boolean;
+  /** Tiêu đề tín hiệu mới nhất, để phần trên khớp với câu hỏi. */
+  focus_title?: string;
+  /** Lý do AI gợi ý câu hỏi đầu tiên. */
+  question_reason?: string;
+  /** AI đánh giá câu trả lời vừa rồi. Chỉ để hiển thị, không bao giờ làm hạ mức. */
+  answer_assessment?: AnswerAssessment;
   safety_message?: string;
   support_resources?: string[];
 }

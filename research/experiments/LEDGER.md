@@ -24,3 +24,4 @@ Tự sinh bằng `npm run bench:experiment -- --ledger`. Không sửa tay. Cách
 | [EXP-015](EXP-015/README.md) | Sửa luật theo bộ phát triển của nhóm, vòng 1 | rules | `xem-git-log` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |
 | [EXP-016](EXP-016/README.md) | Sửa luật vòng 2, giả danh cán bộ hành chính | rules | `xem-git-log` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |
 | [EXP-017](EXP-017/README.md) | Nhận ra việc like, theo dõi được trả tiền theo lượt | rules | `xem-git-log` | 3.2% (1/31) | 9.4% (3/32) | chưa xem | chưa xem | 3.6% | 33.1% | 2 |
+| [EXP-018](EXP-018/README.md) | Gợi ý Hỏi thử theo diễn biến và bước tiếp theo của AI | rules+ai | `xem-git-log` | – (–) | – (–) | chưa xem | chưa xem | – | – | 2 |

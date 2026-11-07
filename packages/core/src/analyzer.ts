@@ -8,7 +8,7 @@ import { isProtectiveWarning } from './rules/warning';
 import { levelOf, scoreSignals } from './scoring';
 import { deriveStages } from './stages';
 import { canonicalSignalType } from './taxonomy';
-import type { AnalysisResult, ChatMessage, RiskLevel, Signal } from './types';
+import type { AiNextStep, AnalysisResult, ChatMessage, RiskLevel, Signal } from './types';
 import { RISK_LEVEL_LABEL, RISK_LEVEL_ORDER } from './types';
 
 function quote(m: ChatMessage): string {
@@ -103,6 +103,8 @@ export interface AnalyzeOptions {
    * Nghiêm trọng và không khi có tín hiệu nguy hiểm trực tiếp.
    */
   aiDowngrade?: { reason: string; fromLevel: RiskLevel };
+  /** Gợi ý bước tiếp theo của AI. Chỉ đổi phần câu hỏi, không ảnh hưởng mức và điểm. */
+  aiNextStep?: AiNextStep;
 }
 
 const LEVEL_CEILING: Record<RiskLevel, number> = { low: 24, attention: 59, high: 99, critical: 100 };
@@ -179,7 +181,7 @@ export function analyze(messages: ChatMessage[], opts: AnalyzeOptions = {}): Ana
     claims: ledger.claims,
     uncertainties: unc.slice(0, 8),
     safety_priority: scored.safety_priority,
-    advice: buildAdvice(level, signals, scored.safety_priority),
+    advice: buildAdvice(level, signals, scored.safety_priority, { messages, nextStep: opts.aiNextStep }),
     analyzed_message_count: messages.length,
     ai_status: opts.aiStatus ?? 'off',
     ai_error: opts.aiError,

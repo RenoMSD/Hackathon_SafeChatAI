@@ -1,4 +1,5 @@
-import type { Advice, RiskLevel, Signal } from './types';
+import { normalizeForMatch } from './normalize';
+import type { Advice, AiNextStep, ChatMessage, RiskLevel, Signal } from './types';
 
 const LEVEL_ACTIONS: Record<RiskLevel, string[]> = {
   low: [
@@ -47,6 +48,37 @@ const QUESTIONS: Record<string, string> = {
   channel_migration: 'Mình trao đổi tiếp ở đây được không ạ? Em muốn giữ lại nội dung để đối chiếu.',
 };
 
+/** Người dùng tự hỏi bằng lời khác nhưng cùng ý thì cũng coi như đã hỏi. */
+const ASKED_TOPIC: Record<string, RegExp> = {
+  task_recruitment: /\b(cong ty nao|ten cong ty|hop dong|phai (nap|ung|dong) tien|mat phi)\b/,
+  channel_migration: /\b(sao|tai sao|vi sao)\b.{0,20}\b(telegram|zalo|phai qua|nhan qua)\b|\btrao doi (tiep )?o day\b|\bqua day luon\b/,
+  hidden_company_identity: /\b(ten phap nhan|ma so thue|ten cong ty|dia chi van phong)\b/,
+  no_written_contract: /\bhop dong\b/,
+  money_transfer: /\btai khoan\b.{0,20}\b(ten ai|dung ten|cua ai|ca nhan|cong ty)\b/,
+  upfront_fee: /\b(phi|khoan phi)\b.{0,20}\b(gi|hoa don|ai thu|de lam gi)\b/,
+  investment_scam: /\b(cap phep|giay phep)\b/,
+  urgency_pressure: /\b(tim hieu|hoi y kien|suy nghi them|hoi gia dinh)\b/,
+};
+
+const wordsOf = (text: string) => new Set(normalizeForMatch(text).split(/\s+/).filter((w) => w.length > 1));
+
+/** Tin của người dùng đã chứa phần lớn câu gợi ý. Chỉ để bỏ gợi ý, không liên quan tới mức cảnh báo. */
+function alreadyAsked(question: string, selfTexts: string[], type?: string): boolean {
+  const q = wordsOf(question);
+  if (q.size === 0) return false;
+  return selfTexts.some((text) => {
+    const said = wordsOf(text);
+    let hit = 0;
+    for (const w of q) if (said.has(w)) hit++;
+    return hit / q.size >= 0.6 || (type !== undefined && !!ASKED_TOPIC[type]?.test(normalizeForMatch(text)));
+  });
+}
+
+export interface AdviceContext {
+  messages: ChatMessage[];
+  nextStep?: AiNextStep;
+}
+
 export const SUPPORT_RESOURCES = [
   'Gọi 113 (Cảnh sát) nếu bạn đang gặp nguy hiểm khẩn cấp.',
   'Gọi 111 (Tổng đài quốc gia bảo vệ trẻ em) nếu bạn hoặc người liên quan dưới 18 tuổi.',
@@ -68,7 +100,7 @@ const CRITICAL_FINANCIAL_ACTIONS = [
   'Lưu lại bằng chứng (ảnh chụp màn hình, báo cáo xuất) và trình báo công an nơi cư trú.',
 ];
 
-export function buildAdvice(level: RiskLevel, signals: Signal[], safetyPriority: boolean): Advice {
+export function buildAdvice(level: RiskLevel, signals: Signal[], safetyPriority: boolean, ctx?: AdviceContext): Advice {
   const actions = [...LEVEL_ACTIONS[level]];
   for (const s of signals) {
     if (!actions.includes(s.recommended_action)) actions.push(s.recommended_action);
@@ -85,10 +117,50 @@ export function buildAdvice(level: RiskLevel, signals: Signal[], safetyPriority:
     }
     return { actions, questions: [], safety_message: SAFETY_MESSAGE, support_resources: SUPPORT_RESOURCES };
   }
-  const questions: string[] = [];
-  for (const s of signals) {
-    const q = QUESTIONS[s.type];
-    if (q && !questions.includes(q)) questions.push(q);
+  if (!ctx) {
+    const questions: string[] = [];
+    for (const s of signals) {
+      const q = QUESTIONS[s.type];
+      if (q && !questions.includes(q)) questions.push(q);
+    }
+    return { actions, questions: questions.slice(0, 4) };
   }
-  return { actions, questions: questions.slice(0, 4) };
+
+  // Theo diễn biến: tín hiệu có bằng chứng mới nhất đứng trước. Cùng tin thì tín hiệu vừa xuất hiện đứng trước tín hiệu đã có từ trước.
+  const seqOf = new Map(ctx.messages.map((m) => [m.id, m.seq]));
+  const seqs = (s: Signal) => s.evidence_message_ids.map((id) => seqOf.get(id) ?? 0);
+  const byRecency = signals
+    .map((s, i) => ({ s, i, seq: Math.max(0, ...seqs(s)), first: Math.min(...seqs(s), Number.MAX_SAFE_INTEGER) }))
+    .sort((a, b) => b.seq - a.seq || b.first - a.first || a.i - b.i);
+  const selfTexts = ctx.messages.filter((m) => m.sender === 'self').map((m) => m.text);
+  const focus_title = byRecency[0]?.s.title;
+  const next = ctx.nextStep;
+
+  const lastOtherSeq = Math.max(0, ...ctx.messages.filter((m) => m.sender !== 'self').map((m) => m.seq));
+  const fresh: string[] = [];
+  const older: string[] = [];
+  for (const { s, seq, first } of byRecency) {
+    const q = QUESTIONS[s.type];
+    if (!q || fresh.includes(q) || older.includes(q) || alreadyAsked(q, selfTexts, s.type)) continue;
+    // AI nói chưa cần hỏi: chỉ gợi ý lại khi có dấu hiệu mới sau lần AI đọc.
+    if (next && next.question === null && seq <= (next.atSeq ?? 0)) continue;
+    (first === lastOtherSeq ? fresh : older).push(q);
+  }
+  // Dấu hiệu vừa xuất hiện đã có câu luật viết sát: dùng trước. Câu AI lấp chỗ luật đã hết câu để hỏi (EXP-018).
+  const aiQuestion = next?.question && !alreadyAsked(next.question, selfTexts) ? next.question : undefined;
+  const questions = [...new Set([...fresh, ...(aiQuestion ? [aiQuestion] : []), ...older])];
+
+  // Tin cuối là câu hỏi của người dùng: chờ đối phương trả lời rồi mới gợi ý tiếp.
+  const last = ctx.messages.at(-1);
+  const waiting = last?.sender === 'self' && (last.text.includes('?') || alreadyAsked(last.text, questions));
+  // Chỉ hiện khi AI thấy điều đáng ngờ. "Đã trả lời" sai cả 3 lần thử và dễ khiến người dùng yên tâm sai (EXP-018).
+  const assessment = !waiting && (next?.assessment === 'evasive' || next?.assessment === 'contradictory') ? next.assessment : undefined;
+  return {
+    actions,
+    questions: waiting ? [] : questions.slice(0, 4),
+    ...(waiting ? { waiting_answer: true } : {}),
+    ...(focus_title ? { focus_title } : {}),
+    ...(!waiting && questions[0] === aiQuestion && next?.reason ? { question_reason: next.reason } : {}),
+    ...(assessment ? { answer_assessment: assessment } : {}),
+  };
 }

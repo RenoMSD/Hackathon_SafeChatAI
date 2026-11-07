@@ -1,5 +1,5 @@
 import type { AiParsed } from '@safechat/core/ai';
-import type { RiskLevel, ScamStage, Signal } from '@safechat/core/types';
+import type { AiNextStep, RiskLevel, ScamStage, Signal } from '@safechat/core/types';
 import { RISK_LEVEL_ORDER } from '@safechat/core/types';
 import type { GatewayConfig } from './config';
 import { containsPromptLeak, maskPii, truncateChars } from './text';
@@ -26,6 +26,7 @@ export interface GuardResult {
   rejected: number;
   downgradeReason?: string;
   detectedStage?: ScamStage;
+  nextStep?: AiNextStep;
   promptLeakSuspected: boolean;
 }
 
@@ -119,6 +120,8 @@ export function applyGuards(input: GuardInput): GuardResult {
     rejected,
     ...(downgradeReason ? { downgradeReason } : {}),
     ...(detectedStage ? { detectedStage } : {}),
+    // Mức Nghiêm trọng tắt câu hỏi thăm dò. Gợi ý có dấu hiệu lặp hướng dẫn hệ thống cũng bỏ.
+    ...(parsed.nextStep && currentLevel !== 'critical' && !(parsed.nextStep.question && containsPromptLeak(parsed.nextStep.question)) ? { nextStep: parsed.nextStep } : {}),
     promptLeakSuspected,
   };
 }

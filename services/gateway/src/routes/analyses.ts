@@ -112,6 +112,7 @@ analysesRoute.post('/', async (c) => {
             rejected: parsed.rejected + parsedSecond.rejected,
             downgradeReason: parsedSecond.downgradeReason,
             detectedStage: parsedSecond.detectedStage ?? parsed.detectedStage,
+            nextStep: parsedSecond.nextStep ?? parsed.nextStep,
           };
           model = second.model;
           tier = 'large';
@@ -147,6 +148,7 @@ analysesRoute.post('/', async (c) => {
       rejected: guarded.rejected,
       ...(guarded.downgradeReason ? { downgradeReason: guarded.downgradeReason } : {}),
       ...(guarded.detectedStage ? { detectedStage: guarded.detectedStage } : {}),
+      ...(guarded.nextStep ? { nextStep: guarded.nextStep } : {}),
       usage: { model, tier, inputTokens, outputTokens, costUsd: Math.round(costUsd * 1e6) / 1e6, latencyMs },
     };
 

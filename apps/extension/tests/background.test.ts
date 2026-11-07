@@ -193,6 +193,39 @@ describe('background — vòng đời phiên', () => {
     expect(local.safechat_device?.baseUrl).toBe(GW);
   });
 
+  it('Gateway: câu gợi ý an toàn đứng đầu kèm lý do; câu nguy hiểm bị client chặn dù gateway đã cho qua', async () => {
+    const reply = (question: string) =>
+      new Response(
+        JSON.stringify({
+          signals: [goodSignal],
+          summary: 'x',
+          uncertainties: [],
+          rejected: 0,
+          nextStep: { question, reason: 'Chưa rõ pháp nhân', assessment: 'evasive' },
+          usage: { tier: 'large', model: 'test-model' },
+        }),
+        { status: 200 },
+      );
+    (fake.chrome.permissions as { contains: () => Promise<boolean> }).contains = async () => true;
+    await fake.chrome.storage.local.set({
+      safechat_settings: { policyVersion: 2, gatewayEnabled: true, gatewayUrl: GW, minIntervalSec: 3, batchSize: 5, dailyBudget: 50 },
+    });
+    mockGateway(() => reply('Cho em xin mã số thuế của công ty được không ạ?'));
+    await startAiSession('mock:ai-next');
+    const good = (await session())!;
+    expect(good.ai.nextStep?.atSeq).toBeGreaterThan(0);
+    expect(good.result?.advice.questions[0]).toContain('mã số thuế');
+    expect(good.result?.advice.question_reason).toBe('Chưa rõ pháp nhân');
+    expect(good.result?.advice.answer_assessment).toBe('evasive');
+
+    mockGateway(() => reply('Em gửi mã OTP cho anh để xác minh nhé?'));
+    await startAiSession('mock:ai-next-bad');
+    const bad = (await session())!;
+    expect(bad.ai.nextStep).toBeUndefined();
+    expect(bad.result?.advice.questions.join(' ')).not.toContain('OTP');
+    expect(bad.result?.advice.questions.length).toBeGreaterThan(0);
+  });
+
   it('quét ban đầu: yêu cầu tải lịch sử, ghi tiến độ, AI chạy ngay lượt sâu', async () => {
     const gw = mockGateway(() => okResponse([]));
     await fake.chrome.storage.local.set({

@@ -1092,6 +1092,11 @@ function segCountFor(r: AnalysisResult, rowLevel: RiskLevel): number {
   return row < cur ? (rowLevel === 'low' ? 1 : 2) : 0;
 }
 
+const ASSESSMENT_TEXT: Record<string, string | undefined> = {
+  evasive: 'AI: câu trả lời còn né tránh, chung chung.',
+  contradictory: 'AI: câu trả lời mâu thuẫn với điều đã nói trước đó.',
+};
+
 export function initFloatingWidget(
   probeLocal: () => ProbeResult,
   getThreadRect?: (threadId: string) => DOMRect | null,
@@ -1933,6 +1938,7 @@ export function initFloatingWidget(
     const latestSig = r?.signals.at(-1);
     const topAction = r?.advice.actions[0];
     const topQuestion = r?.safety_priority ? undefined : r?.advice.questions[0];
+    const assessmentText = r?.safety_priority ? undefined : ASSESSMENT_TEXT[r?.advice.answer_assessment ?? 'none'];
 
     const otherOpenThreads = probeThreads(probeLocal()).filter((t) => t.threadId !== session?.threadId);
 
@@ -1944,7 +1950,7 @@ export function initFloatingWidget(
           : r?.safety_priority && r.advice.safety_message
             ? r.advice.safety_message
             : latestSig
-              ? `${latestSig.title}${topAction ? ` — Gợi ý: ${topAction}` : ''}`
+              ? `${r?.advice.focus_title ?? latestSig.title}${topAction ? ` — Gợi ý: ${topAction}` : ''}`
               : topAction && lv !== 'low'
                 ? `Gợi ý: ${topAction}`
                 : session.scan?.state === 'loading'
@@ -2008,6 +2014,10 @@ export function initFloatingWidget(
               },
             },
             h('div', {}, suggestionText),
+            assessmentText && !session.waiting && h('div', { style: 'margin-top:4px;font-size:11px;font-weight:700;color:#b45309' }, assessmentText),
+            r?.advice.waiting_answer &&
+              !session.waiting &&
+              h('div', { style: 'margin-top:4px;font-size:11px;color:#64748b' }, 'Đang chờ đối phương trả lời. Đọc kỹ câu trả lời trước khi làm tiếp.'),
             topQuestion &&
               !session.waiting &&
               h(
@@ -2016,7 +2026,12 @@ export function initFloatingWidget(
                   class: 'bubble-question-row',
                   onclick: (ev: Event) => ev.stopPropagation(),
                 },
-                h('span', { style: 'min-width:0;flex:1' }, `Hỏi thử: "${topQuestion}"`),
+                h(
+                  'span',
+                  { style: 'min-width:0;flex:1' },
+                  `Hỏi thử: "${topQuestion}"`,
+                  r?.advice.question_reason && h('div', { style: 'margin-top:2px;font-size:10.5px;color:#64748b' }, `Vì sao nên hỏi: ${r.advice.question_reason}`),
+                ),
                 h(
                   'button',
                   {

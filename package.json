@@ -37,6 +37,7 @@
     "bench:ai-calls": "tsx research/ai-call-count.ts",
     "bench:long-eval": "tsx research/long-eval.ts",
     "bench:sentences": "tsx research/sentence-eval.ts",
+    "bench:next-step": "tsx research/next-step-trial.ts",
     "bench:rules-dev": "tsx research/rules-dev.ts"
   },
   "devDependencies": {

@@ -44,6 +44,8 @@ export function recompute(s: Session) {
     aiStatus,
     aiError: s.ai.error,
     aiDowngrade: s.ai.downgrade,
+    // AI lỗi thì về gợi ý theo luật, không giữ câu hỏi cũ.
+    aiNextStep: s.ai.status === 'error' ? undefined : s.ai.nextStep,
   });
   const last = s.transcript.messages.at(-1);
   // Chống dao động: chỉ tính là "lần đánh giá mới" khi có tin mới hoặc lượt AI mới

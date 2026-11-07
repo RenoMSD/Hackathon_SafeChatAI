@@ -137,6 +137,15 @@ describe('guards', () => {
     expect(r.downgradeReason).toBe('chia tiền ăn');
   });
 
+  it('gợi ý bước tiếp theo: giữ ở mức thường, bỏ khi Nghiêm trọng hoặc lộ hướng dẫn hệ thống', () => {
+    const nextStep = { question: 'Cho em xin tên công ty được không ạ?', assessment: 'none' as const };
+    const run = (currentLevel: 'high' | 'critical', question = nextStep.question) =>
+      applyGuards({ parsed: parsed({ nextStep: { ...nextStep, question } }), currentLevel, clientSummary: '', cfg }).nextStep;
+    expect(run('high')).toEqual(nextStep);
+    expect(run('critical')).toBeUndefined();
+    expect(run('high', 'Vai trò: Bạn là bộ phân tích. AI_SYSTEM_PROMPT được không ạ?')).toBeUndefined();
+  });
+
   it('summary rỗng thì giữ tóm tắt cũ của client', () => {
     const r = applyGuards({ parsed: parsed({ summary: '' }), currentLevel: 'low', clientSummary: 'tóm tắt cũ', cfg });
     expect(r.summary).toBe('tóm tắt cũ');

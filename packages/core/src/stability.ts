@@ -115,7 +115,22 @@ export function stabilize(prev: StabilityState | undefined, raw: AnalysisResult,
       risk_level: displayed,
       score: Math.min(hi, Math.max(lo, raw.score)),
       safety_priority: safety || raw.safety_priority,
-      advice: buildAdvice(displayed, raw.signals, safety || raw.safety_priority),
+      // Chỉ dựng lại phần theo mức. Câu hỏi đã theo diễn biến hội thoại nên giữ nguyên từ kết quả gốc.
+    advice: (() => {
+      const safe = safety || raw.safety_priority;
+      const { actions, safety_message, support_resources } = buildAdvice(displayed, raw.signals, safe);
+      const { questions, waiting_answer, focus_title, question_reason, answer_assessment } = raw.advice;
+      return {
+        actions,
+        questions: safe ? [] : questions,
+        ...(safety_message ? { safety_message } : {}),
+        ...(support_resources ? { support_resources } : {}),
+        ...(!safe && waiting_answer ? { waiting_answer } : {}),
+        ...(focus_title ? { focus_title } : {}),
+        ...(!safe && question_reason ? { question_reason } : {}),
+        ...(answer_assessment ? { answer_assessment } : {}),
+      };
+    })(),
       level_reason: `${raw.level_reason} ${note ?? ''}`.trim(),
     },
   };

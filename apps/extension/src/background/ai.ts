@@ -10,6 +10,7 @@ import {
   maskPii,
   mergeAiSignals,
   parseAiResponse,
+  sanitizeNextStep,
   type AiParsed,
   type AiRequest,
   type AiTier,
@@ -222,6 +223,14 @@ function clientVersion(): string {
 }
 
 /** Đổi phản hồi gateway sang dạng core dùng, vẫn kiểm tra trích dẫn lần cuối ở client. */
+/** Kiểm tra lại câu hỏi ở client, không tin hoàn toàn vào máy chủ. Trích dẫn của phần đánh giá đã được gateway kiểm tra. */
+function checkedNextStep(res: AnalysisResponse, request: AiRequest) {
+  if (!res.nextStep) return undefined;
+  const { question, reason, assessment } = res.nextStep;
+  const checked = sanitizeNextStep({ question, reason, answer_assessment: 'none' }, request.sent);
+  return checked && { ...checked, assessment };
+}
+
 function parsedFromGateway(
   res: AnalysisResponse,
   request: AiRequest,
@@ -246,6 +255,7 @@ function parsedFromGateway(
       rejected: (Number.isFinite(res.rejected) ? res.rejected : 0) + rejected.length,
       downgradeReason: res.downgradeReason ? maskPii(String(res.downgradeReason)).slice(0, 200) : undefined,
       detectedStage: res.detectedStage,
+      nextStep: checkedNextStep(res, request),
     },
   };
 }
@@ -266,6 +276,7 @@ async function applyResult(
     cur.ai.uncertainties = parsed.uncertainties;
     cur.ai.downgrade = parsed.downgradeReason ? { reason: parsed.downgradeReason, fromLevel: meta.level } : undefined;
     cur.ai.detectedStage = parsed.detectedStage;
+    cur.ai.nextStep = parsed.nextStep ? { ...parsed.nextStep, atSeq: request.upToSeq } : undefined;
     cur.ai.lastSeq = request.upToSeq;
     cur.ai.lastAt = Date.now();
     cur.ai.failures = undefined;
