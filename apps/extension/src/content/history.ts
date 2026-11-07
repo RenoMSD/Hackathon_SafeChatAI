@@ -29,6 +29,24 @@ export interface HistoryResult {
   complete: boolean;
 }
 
+/** Lần quét đầu theo lựa chọn của người dùng: được cuộn thì tải thêm, không thì chỉ đọc tin đang có. Luôn giữ tin mới nhất. */
+export async function readInitial(
+  source: {
+    readMessages(threadId: string): { messages: ObservedMessage[]; error?: string };
+    loadHistory?(threadId: string, target: number, cancelled: () => boolean): Promise<HistoryResult>;
+  },
+  threadId: string,
+  allowScroll: boolean,
+  cancelled: () => boolean,
+  target = HISTORY_TARGET,
+): Promise<HistoryResult> {
+  const result =
+    allowScroll && source.loadHistory
+      ? await source.loadHistory(threadId, target, cancelled)
+      : { ...source.readMessages(threadId), complete: true };
+  return { ...result, messages: result.messages.slice(-target) };
+}
+
 export async function collectHistory(d: HistoryDriver, target = HISTORY_TARGET): Promise<HistoryResult> {
   const sleep = d.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const now = d.now ?? Date.now;

@@ -61,7 +61,7 @@ async function handlePanel(req: PanelRequest): Promise<unknown> {
       recompute(s);
       await saveSession(s);
       await updateBadge(s);
-      await sendToTab(req.tabId, { kind: 'cs_start', threadId: s.threadId, loadHistory: true });
+      await sendToTab(req.tabId, { kind: 'cs_start', threadId: s.threadId, loadHistory: true, allowScroll: settings.historyScroll });
       return { ok: true };
     }
 
@@ -206,7 +206,8 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
 
   if (ev.kind === 'cs_ready') {
     if (s.status === 'tracking') {
-      await sendToTab(s.tabId, { kind: 'cs_start', threadId: s.threadId, loadHistory: s.transcript.messages.length === 0 });
+      const settings = await loadSettings();
+      await sendToTab(s.tabId, { kind: 'cs_start', threadId: s.threadId, loadHistory: s.transcript.messages.length === 0, allowScroll: settings.historyScroll });
     }
     return;
   }
@@ -222,7 +223,7 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
 
   if (ev.kind === 'cs_scan_started') {
     if (ev.threadId !== s.threadId || s.status !== 'tracking') return;
-    s.scan = { state: 'loading', target: ev.target };
+    s.scan = { state: 'loading', target: ev.target, scroll: ev.scroll };
     await saveSession(s);
     return;
   }
@@ -239,7 +240,7 @@ async function handleContent(ev: ContentEvent, tabId: number | undefined): Promi
     s.readerError = ev.error;
     await saveSession(s);
   }
-  if (ev.initial) s.scan = { state: 'done', target: ev.initial.target, read: ev.batch.length, complete: ev.initial.complete };
+  if (ev.initial) s.scan = { state: 'done', target: ev.initial.target, scroll: s.scan?.scroll, read: ev.batch.length, complete: ev.initial.complete };
   if (ev.error) {
     if (ev.initial) await saveSession(s);
     return;

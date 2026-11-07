@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ObservedMessage } from '@safechat/core/transcript';
-import { collectHistory, type HistoryDriver } from '../src/content/history';
+import { collectHistory, readInitial, type HistoryDriver } from '../src/content/history';
 
 const msg = (i: number): ObservedMessage => ({ sender: 'other', text: `tin ${i}`, domId: `d${i}` });
 
@@ -30,6 +30,46 @@ function fakeChat(total: number, loaded: number, step: number, windowSize = Infi
   };
   return { driver, state };
 }
+
+describe('readInitial: lựa chọn cách đọc', () => {
+  const many = Array.from({ length: 80 }, (_, i) => msg(i));
+  const make = () => {
+    const calls = { load: 0 };
+    return {
+      calls,
+      source: {
+        readMessages: () => ({ messages: many.slice(-20) }),
+        loadHistory: async () => {
+          calls.load++;
+          return { messages: many, complete: true };
+        },
+      },
+    };
+  };
+  it('không cuộn: không gọi tải lịch sử, chỉ trả tin đang có', async () => {
+    const { source, calls } = make();
+    const r = await readInitial(source, 't', false, () => false);
+    expect(calls.load).toBe(0);
+    expect(r.messages).toHaveLength(20);
+    expect(r.messages.at(-1)?.text).toBe('tin 79');
+  });
+  it('được cuộn: gọi tải lịch sử và giữ tối đa 50 tin mới nhất', async () => {
+    const { source, calls } = make();
+    const r = await readInitial(source, 't', true, () => false);
+    expect(calls.load).toBe(1);
+    expect(r.messages).toHaveLength(50);
+    expect(r.messages[0]?.text).toBe('tin 30');
+  });
+  it('không cuộn mà trang có quá 50 tin: vẫn chỉ giữ 50 tin mới nhất', async () => {
+    const r = await readInitial({ readMessages: () => ({ messages: many }) }, 't', false, () => false);
+    expect(r.messages).toHaveLength(50);
+    expect(r.messages.at(-1)?.text).toBe('tin 79');
+  });
+  it('trang không hỗ trợ cuộn: đọc tin đang có dù đã chọn tự cuộn', async () => {
+    const r = await readInitial({ readMessages: () => ({ messages: many.slice(-5) }) }, 't', true, () => false);
+    expect(r.messages).toHaveLength(5);
+  });
+});
 
 describe('collectHistory', () => {
   it('đã đủ tin thì không cuộn và lấy đúng các tin mới nhất', async () => {

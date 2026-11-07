@@ -1,10 +1,10 @@
 // Content script: thụ động cho tới khi background gửi cs_start (sau khi người dùng đồng ý).
 // Chỉ đọc văn bản tin nhắn của cuộc trò chuyện đã chọn; không gửi tin, không bấm gì.
-// Lần quét đầu có thể tự cuộn khung chat để tải lịch sử, rồi trả về vị trí cũ.
+// Lần quét đầu có thể tự cuộn khung chat để tải lịch sử rồi trả về vị trí cũ, nếu người dùng không tắt tùy chọn này.
 import type { ContentEvent, ContentRequest, ProbeResult } from '../shared/protocol';
 import type { ChatAdapter } from './adapter';
 import { initFloatingWidget } from './floatingWidget';
-import { HISTORY_TARGET } from './history';
+import { HISTORY_TARGET, readInitial } from './history';
 import { messengerAdapter } from './messengerAdapter';
 import { mockAdapter } from './mockAdapter';
 
@@ -90,7 +90,7 @@ function beginWatching(adapter: ChatAdapter) {
   checkTimer = setInterval(() => checkThread(adapter), CHECK_MS);
 }
 
-function start(adapter: ChatAdapter, threadId: string, loadHistory = false) {
+function start(adapter: ChatAdapter, threadId: string, loadHistory = false, allowScroll = false) {
   stop();
   trackedThread = threadId;
   const run = startRun;
@@ -99,19 +99,16 @@ function start(adapter: ChatAdapter, threadId: string, loadHistory = false) {
     flush(adapter);
     return;
   }
-  void initialScan(adapter, threadId, run);
+  void initialScan(adapter, threadId, run, allowScroll);
 }
 
 /** Lần quét đầu: gom tối đa HISTORY_TARGET tin rồi gửi một lần, sau đó mới theo dõi tin mới. */
-async function initialScan(adapter: ChatAdapter, threadId: string, run: number) {
-  send({ kind: 'cs_scan_started', threadId, target: HISTORY_TARGET });
+async function initialScan(adapter: ChatAdapter, threadId: string, run: number, allowScroll: boolean) {
+  send({ kind: 'cs_scan_started', threadId, target: HISTORY_TARGET, scroll: allowScroll });
   const cancelled = () => run !== startRun;
-  const result = adapter.loadHistory
-    ? await adapter.loadHistory(threadId, HISTORY_TARGET, cancelled)
-    : { ...adapter.readMessages(threadId), complete: true };
+  const result = await readInitial(adapter, threadId, allowScroll, cancelled);
   if (cancelled()) return;
-  const batch = result.messages.slice(-HISTORY_TARGET);
-  send({ kind: 'cs_messages', threadId, batch, error: result.error, initial: { target: HISTORY_TARGET, complete: result.complete } });
+  send({ kind: 'cs_messages', threadId, batch: result.messages, error: result.error, initial: { target: HISTORY_TARGET, complete: result.complete } });
   beginWatching(adapter);
 }
 
@@ -144,7 +141,7 @@ chrome.runtime.onMessage.addListener((req: ContentRequest, _sender, sendResponse
       sendResponse(probeLocal());
       return false;
     case 'cs_start':
-      if (adapter) start(adapter, req.threadId, req.loadHistory);
+      if (adapter) start(adapter, req.threadId, req.loadHistory, req.allowScroll);
       sendResponse({ ok: !!adapter });
       return false;
     case 'cs_stop':

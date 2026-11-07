@@ -203,20 +203,41 @@ describe('background — vòng đời phiên', () => {
     startMsgs.length = 0;
     await fake.panel({ kind: 'start', tabId: TAB });
     await fake.panel({ kind: 'reanalyze' });
-    expect(startMsgs).toEqual([{ kind: 'cs_start', threadId: 'mock:scan', loadHistory: true }]);
-    await fake.content(TAB, { kind: 'cs_scan_started', threadId: 'mock:scan', target: 50 });
+    expect(startMsgs).toEqual([{ kind: 'cs_start', threadId: 'mock:scan', loadHistory: true, allowScroll: true }]);
+    await fake.content(TAB, { kind: 'cs_scan_started', threadId: 'mock:scan', target: 50, scroll: true });
     await tick();
-    expect((await session())!.scan).toEqual({ state: 'loading', target: 50 });
+    expect((await session())!.scan).toEqual({ state: 'loading', target: 50, scroll: true });
     const batch = Array.from({ length: 30 }, (_, i) => ({ sender: 'other', text: `Tin lịch sử ${i + 1}` }));
     await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:scan', batch, initial: { target: 50, complete: true } });
     await new Promise((r) => setTimeout(r, 700));
     const s = (await session())!;
-    expect(s.scan).toEqual({ state: 'done', target: 50, read: 30, complete: true });
+    expect(s.scan).toEqual({ state: 'done', target: 50, scroll: true, read: 30, complete: true });
     expect(s.transcript.messages).toHaveLength(30);
     expect(gw.analyses).toBe(1);
     expect(gw.bodies[0]!.tier).toBe('large');
     expect(gw.bodies[0]!.messages).toHaveLength(30);
     expect(s.ai.lastReason).toBe('Quét ban đầu 30 tin');
+  });
+
+  it('chọn không cuộn: báo content script không được cuộn, vẫn đọc và đánh giá ngay', async () => {
+    const gw = mockGateway(() => okResponse([]));
+    await fake.chrome.storage.local.set({
+      safechat_settings: { policyVersion: 2, gatewayEnabled: true, gatewayUrl: GW, dailyBudget: 50, historyScroll: false },
+    });
+    thread = { threadId: 'mock:noscroll', threadLabel: 'Không cuộn' };
+    await fake.panel({ kind: 'stop_and_clear' });
+    startMsgs.length = 0;
+    await fake.panel({ kind: 'start', tabId: TAB });
+    await fake.panel({ kind: 'reanalyze' });
+    expect(startMsgs).toEqual([{ kind: 'cs_start', threadId: 'mock:noscroll', loadHistory: true, allowScroll: false }]);
+    await fake.content(TAB, { kind: 'cs_scan_started', threadId: 'mock:noscroll', target: 50, scroll: false });
+    const batch = Array.from({ length: 12 }, (_, i) => ({ sender: 'other', text: `Tin đang hiện ${i + 1}` }));
+    await fake.content(TAB, { kind: 'cs_messages', threadId: 'mock:noscroll', batch, initial: { target: 50, complete: true } });
+    await new Promise((r) => setTimeout(r, 700));
+    const s = (await session())!;
+    expect(s.scan).toEqual({ state: 'done', target: 50, scroll: false, read: 12, complete: true });
+    expect(s.transcript.messages).toHaveLength(12);
+    expect(gw.analyses).toBe(1);
   });
 
   it('cài đặt cũ 5 tin, 60 giây nhận mặc định mới một lần; đặt lại sau đó thì giữ', async () => {

@@ -431,6 +431,7 @@ function introView(): Node {
         { class: 'launcher-thread-box' },
         h('div', { class: 'muted small', style: 'font-weight:600;margin-bottom:4px' }, 'Cuộc trò chuyện hiện tại:'),
         threadPicker(),
+        historyModeControl(),
         h(
           'label',
           { class: 'check', style: 'margin-top:8px' },
@@ -442,7 +443,9 @@ function introView(): Node {
               render();
             },
           }),
-          h('span', { class: 'small' }, 'Tôi hiểu và đồng ý cho SafeChat AI đọc văn bản của riêng cuộc trò chuyện đang mở, gồm tối đa 50 tin gần nhất. Tiện ích có thể tự cuộn khung chat lên để tải các tin này rồi trả về chỗ cũ, không gửi tin và không bấm gì.'),
+          h('span', { class: 'small' }, state.settings.historyScroll
+            ? 'Tôi hiểu và đồng ý cho SafeChat AI đọc văn bản của riêng cuộc trò chuyện đang mở, gồm tối đa 50 tin gần nhất. Tiện ích có thể tự cuộn khung chat lên để tải các tin này rồi trả về chỗ cũ, không gửi tin và không bấm gì.'
+            : 'Tôi hiểu và đồng ý cho SafeChat AI đọc văn bản của riêng cuộc trò chuyện đang mở, tối đa 50 tin đang có trên trang. Tiện ích không cuộn khung chat, không gửi tin và không bấm gì.'),
         ),
       ),
     ),
@@ -611,14 +614,16 @@ function sessionHeader(s: Session): Node {
       s.resumedFrom &&
         h('div', { class: 'muted small', style: 'margin-top:4px' }, `Tiếp tục từ bản nháp lưu lúc ${new Date(s.resumedFrom.savedAt).toLocaleString('vi-VN')}`),
       s.status === 'tracking' &&
-        s.scan?.state === 'loading' && h('p', { class: 'banner small' }, `Đang đọc lịch sử, tối đa ${s.scan.target} tin…`),
+        s.scan?.state === 'loading' && h('p', { class: 'banner small' }, s.scan.scroll === false ? 'Đang đọc các tin đang hiển thị…' : `Đang đọc lịch sử, tối đa ${s.scan.target} tin…`),
       s.scan?.state === 'done' &&
         s.scan.read !== undefined &&
         s.scan.read < s.scan.target &&
         h(
           'p',
           { class: 'muted small' },
-          s.scan.complete
+          s.scan.scroll === false
+            ? `Đã đọc ${s.scan.read} tin đang hiển thị, không cuộn. Đánh giá có thể thiếu các tin cũ hơn. Muốn đọc thêm, hãy cuộn khung chat lên rồi quét lại, hoặc chọn tự cuộn.`
+            : s.scan.complete
             ? `Đã đọc ${s.scan.read} tin, đây là toàn bộ tin tải được. Đánh giá dựa trên phần này.`
             : `Mới đọc được ${s.scan.read} tin trong thời gian cho phép. Đánh giá có thể thiếu các tin cũ hơn.`,
         ),
@@ -1147,6 +1152,30 @@ function draftView(s: Session): Node {
   );
 }
 
+/** Cách đọc khi bắt đầu quét. Lưu ngay, áp dụng từ lần quét sau. */
+function historyModeControl(): Node {
+  const st = state.settings;
+  const choose = async (historyScroll: boolean) => {
+    state.settings = { ...st, historyScroll };
+    await chrome.storage.local.set({ [SETTINGS_KEY]: state.settings });
+    render();
+  };
+  const option = (value: boolean, title: string, note: string) =>
+    h(
+      'label',
+      { class: 'check', style: 'margin-top:6px' },
+      h('input', { type: 'radio', name: 'history-mode', checked: st.historyScroll === value, onchange: () => void choose(value) }),
+      h('span', { class: 'small' }, h('b', {}, title), ` ${note}`),
+    );
+  return h(
+    'div',
+    { style: 'margin-top:8px' },
+    h('div', { class: 'muted small', style: 'font-weight:600' }, 'Cách đọc khi bắt đầu quét:'),
+    option(true, 'Tự cuộn đọc lịch sử.', 'Tự cuộn khung chat lên để tải tối đa 50 tin rồi trả về chỗ cũ. Đánh giá đầy đủ hơn.'),
+    option(false, 'Không cuộn.', 'Chỉ đọc các tin đang có trên trang, tối đa 50 tin mới nhất. Khung chat không bị đụng tới, nhưng có thể thiếu tin cũ.'),
+  );
+}
+
 function settingsCard(): Node {
   const st = state.settings;
   const save = async (next: Settings) => {
@@ -1159,6 +1188,7 @@ function settingsCard(): Node {
     'section',
     { class: 'card', id: 'settings-section' },
     h('h2', {}, 'Cài đặt'),
+    historyModeControl(),
     h(
       'div',
       { class: 'field' },

@@ -62,7 +62,7 @@ export interface Session {
   platform: 'messenger' | 'mock';
   startedAt: number;
   /** Tiến độ quét ban đầu: đang tải lịch sử, hoặc đã đọc được bao nhiêu tin. */
-  scan?: { state: 'loading' | 'done'; target: number; read?: number; complete?: boolean };
+  scan?: { state: 'loading' | 'done'; target: number; scroll?: boolean; read?: number; complete?: boolean };
   /** Thời điểm nhận tin gần nhất, để biết hội thoại đã dừng bao lâu. Thiếu thì tính từ startedAt. */
   lastMessageAt?: number;
   maxMessages: number;
@@ -97,6 +97,8 @@ export interface Settings {
   dailyBudget: number;
   /** Gọi AI khi đủ N tin mới (cả hai phía), có ít nhất 1 tin của đối phương. */
   batchSize: number;
+  /** Khi bắt đầu quét: true tự cuộn khung chat để tải tối đa 50 tin; false không cuộn, chỉ đọc các tin đang có trên trang. */
+  historyScroll: boolean;
   /** Phiên bản mặc định của lịch gọi AI, để đổi một lần cho máy đã lưu cài đặt cũ. */
   policyVersion?: number;
   /** Hội thoại dừng lâu chừng này thì gọi nốt tin lẻ chưa đủ lô. 0 = tắt. */
@@ -111,6 +113,7 @@ export const DEFAULT_SETTINGS: Settings = {
   gatewayUrl: DEFAULT_GATEWAY_URL,
   dailyBudget: 200,
   batchSize: 2,
+  historyScroll: true,
   policyVersion: 2,
   idleFlushSec: 20,
   minIntervalSec: 30,
@@ -182,14 +185,14 @@ export interface StopResult {
 /** Background → content script */
 export type ContentRequest =
   | { kind: 'cs_probe' }
-  /** loadHistory: lần quét đầu của phiên, tải thêm lịch sử nếu chưa đủ. */
-  | { kind: 'cs_start'; threadId: string; loadHistory?: boolean }
+  /** loadHistory: lần quét đầu của phiên, gom tin một lần. allowScroll: được tự cuộn để tải thêm. */
+  | { kind: 'cs_start'; threadId: string; loadHistory?: boolean; allowScroll?: boolean }
   | { kind: 'cs_stop' };
 
 /** Content script → background */
 export type ContentEvent =
   | { kind: 'cs_ready' }
-  | { kind: 'cs_scan_started'; threadId: string; target: number }
+  | { kind: 'cs_scan_started'; threadId: string; target: number; scroll: boolean }
   | { kind: 'cs_messages'; threadId: string; batch: ObservedMessage[]; error?: string; initial?: { target: number; complete: boolean } }
   /** Khung chat đã chọn bị đóng (waiting=true) hoặc đã mở lại (false). */
   | { kind: 'cs_thread_waiting'; threadId: string; waiting: boolean }
