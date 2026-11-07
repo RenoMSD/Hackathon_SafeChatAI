@@ -26,7 +26,7 @@ npm run bench:run -- --provider groq --dataset set:v2 --split tune --limit 2 --c
 4. Chạy đủ tune cho từng model. `hybrid-hint` là cấu hình chấm chính (giống sản phẩm nhất); `ai`, `hybrid`, `hybrid-veto` dùng chung một lượt gọi, còn `hybrid-hint` tốn thêm một lượt nên có thể chạy gộp hoặc tách ngày nếu hạn mức ít:
 
 ```bash
-npm run bench:run -- --provider groq --dataset set:v2 --split tune --configs rules,ai,hybrid,hybrid-veto,hybrid-hint --models openai/gpt-oss-20b --interval-ms 30000 --run-id groq_20b_tune
+npm run bench:run -- --provider groq --dataset set:v2 --split tune --configs rules,ai,gateway,gateway-nocal --models openai/gpt-oss-20b --reasoning-effort low --interval-ms 30000 --run-id groq_20b_tune
 ```
 
 Hết hạn mức ngày thì lệnh tự dừng. Hôm sau chạy lại đúng lệnh, cùng `--run-id`; ca đã xong lấy từ cache.
@@ -34,7 +34,7 @@ Hết hạn mức ngày thì lệnh tự dừng. Hôm sau chạy lại đúng l�
 5. Ghi vào sổ thí nghiệm (chấm theo `--config hybrid-hint`), rồi tự viết `README.md` của thí nghiệm đó:
 
 ```bash
-npm run bench:experiment-ai -- --id EXP-011 --run groq_20b_tune --model openai/gpt-oss-20b --config hybrid-hint --title "Luật + Groq gpt-oss-20b" --hypothesis "..."
+npm run bench:experiment-ai -- --id EXP-011 --run groq_20b_tune --model openai/gpt-oss-20b --config gateway --title "Luật + Groq gpt-oss-20b" --hypothesis "..."
 ```
 
 ```bash

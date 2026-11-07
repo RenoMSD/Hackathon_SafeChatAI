@@ -20,6 +20,7 @@ export function createAiClient(cfg: GatewayConfig): AiClient {
         model: tier === 'large' ? cfg.groqModelLarge : cfg.groqModelSmall,
         timeoutMs: tier === 'large' ? cfg.aiTimeoutLargeMs : cfg.aiTimeoutSmallMs,
         maxOutputTokens: tier === 'large' ? cfg.aiMaxOutputTokensLarge : cfg.aiMaxOutputTokensSmall,
+        reasoningEffort: cfg.groqReasoningEffort,
       });
     },
   };

@@ -18,8 +18,10 @@
 import { execSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { parseAiResponse } from '@safechat/core/ai';
 import { analyze } from '@safechat/core/analyzer';
 import type { RiskLevel } from '@safechat/core/types';
+import { gatewayBenchRequest, gatewayLevel } from './lib/gateway-bench';
 import { benchRequest, hybridHintLevel, hybridLevel, hybridVetoLevel, PROMPT_VERSION, readAiOutcome, type AiOutcome, type BenchConfig } from './lib/bench';
 import { arg, CACHE_DIR, hasTuneCheckSplit, loadDataset, loadEnv, RESEARCH_DIR, RESULTS_DIR } from './lib/io';
 import { caseReplayStats, replayCase, type CaseReplayStats, type ReplayTurn } from './lib/replay';
@@ -251,6 +253,24 @@ outer: for (const c of cases) {
         if (configs.includes('hybrid-hint')) {
           const x = await call(true);
           write(row('hybrid-hint', hybridHintLevel(c.messages, x.out), x));
+        }
+        if (configs.includes('gateway') || configs.includes('gateway-nocal')) {
+          // Prompt quá dài hoặc AI lỗi: sản phẩm giữ kết quả luật, nên dòng đo cũng giữ kết quả luật và ghi lỗi.
+          let x: Awaited<ReturnType<typeof call>>;
+          try {
+            const prompt = gatewayBenchRequest(c.messages);
+            const res = await chatLogged(c.id, 'gateway', { model, system: prompt.request.system, user: prompt.request.user, variant: rep });
+            try {
+              x = { out: { level: null, parsed: parseAiResponse(res.content, prompt.request, c.messages, model), jsonValid: true }, res };
+            } catch (e) {
+              x = { out: { level: null, parsed: null, jsonValid: false, error: (e as Error).message }, res };
+            }
+          } catch (e) {
+            if (e instanceof DailyCapReached) throw e;
+            x = { out: { level: null, parsed: null, jsonValid: false }, error: (e as Error).message };
+          }
+          if (configs.includes('gateway')) write(row('gateway', gatewayLevel(c.messages, x.out.parsed), x));
+          if (configs.includes('gateway-nocal')) write(row('gateway-nocal', gatewayLevel(c.messages, x.out.parsed, false), x));
         }
         if (configs.includes('replay-hybrid')) {
           let tokIn = 0;

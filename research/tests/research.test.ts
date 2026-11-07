@@ -1,3 +1,7 @@
+import type { AiParsed } from '@safechat/core/ai';
+import { analyze } from '@safechat/core/analyzer';
+import { RISK_LEVEL_ORDER } from '@safechat/core/types';
+import { gatewayBenchRequest, gatewayLevel } from '../lib/gateway-bench';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -353,6 +357,48 @@ describe('client OpenRouter (fetch giả)', () => {
   });
 });
 
+describe('đo đường gateway', () => {
+  const m: ChatMessage[] = [
+    { id: 'msg-001', seq: 1, sender: 'other', text: 'Chị thấy em dạo này ổn không' },
+    { id: 'msg-002', seq: 2, sender: 'other', text: 'Em cứ tin chị, chị thương em lắm' },
+  ];
+  const parsed = {
+    signals: [
+      {
+        type: 'ai_love_bombing_x',
+        category: 'pressure',
+        severity: 'high',
+        title: 't',
+        explanation: 'e',
+        evidence_message_ids: ['msg-002'],
+        evidence_quotes: ['Em cứ tin chị'],
+        recommended_action: 'r',
+        source: 'ai',
+        confidence: 0.9,
+      },
+    ],
+    summary: '',
+    uncertainties: [],
+    rejected: 0,
+  } as unknown as AiParsed;
+  it('prompt che PII và dùng hướng dẫn của gateway', () => {
+    const p = gatewayBenchRequest([{ id: 'msg-001', seq: 1, sender: 'other', text: 'Chuyển vào 1903 4567 8901 nhé' }]);
+    expect(p.request.user).toContain('[SỐ]');
+    expect(p.request.user).not.toContain('1903 4567 8901');
+    expect(p.request.system).toContain('TAXONOMY');
+  });
+  it('AI lỗi thì giữ kết quả luật', () => {
+    expect(gatewayLevel(m, null)).toBe(analyze(m).risk_level);
+  });
+  it('calibrate hạ tín hiệu không nguy hiểm khi luật còn thấp; tắt thì mức cao hơn hoặc bằng', () => {
+    const on = gatewayLevel(m, parsed);
+    const off = gatewayLevel(m, parsed, false);
+    expect(RISK_LEVEL_ORDER[off]).toBeGreaterThanOrEqual(RISK_LEVEL_ORDER[on]);
+    expect(RISK_LEVEL_ORDER[off]).toBeGreaterThan(RISK_LEVEL_ORDER.low);
+    expect(on).toBe('low');
+  });
+});
+
 describe('tóm tắt lần chạy AI', () => {
   const row = (over: Partial<AiRunRow>): AiRunRow => ({
     caseId: 'a',
@@ -412,7 +458,7 @@ describe('tập tune/check đã khóa', () => {
 describe('cấu hình so sánh', () => {
   const m: ChatMessage[] = [{ id: 'msg-001', seq: 1, sender: 'other', text: 'Ck vô stk 9988776655 giúp mình nhé' }];
   it('prompt AI-only không chứa tín hiệu luật, prompt hint thì có, có schema JSON và PROMPT_VERSION bench-v2', () => {
-    expect(PROMPT_VERSION).toBe('bench-v2');
+    expect(PROMPT_VERSION).toBe('bench-v3');
     expect(benchRequest(m, false).user).toContain('<rule_signals>[]</rule_signals>');
     expect(benchRequest(m, true).user).toContain('money_transfer');
     expect(benchRequest(m, false).system).toContain('risk_level');

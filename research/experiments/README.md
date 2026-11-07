@@ -25,7 +25,7 @@ Repo đang public nên không đưa nội dung hội thoại hay mã ca của ch
 
 | Mục | Quy định đã chốt |
 |---|---|
-| **Chấm theo cấu hình nào** | `hybrid-hint`, vì giống sản phẩm nhất. `ai` chỉ để xem năng lực riêng của model |
+| **Chấm theo cấu hình nào** | `gateway`, vì đúng đường sản phẩm sau khi gộp gateway (đổi ngày 2026-11-07, trước khi có số của cấu hình này). `ai` chỉ để xem năng lực riêng của model |
 | **Điều kiện loại** | JSON hợp lệ dưới 95%, hoặc bỏ sót nhiều hơn chỉ dùng luật (`rules`), hoặc báo nhầm `Cao+` nhiều hơn chỉ dùng luật (`rules`) |
 | **Khi hai model gần nhau** | Chọn model ít token hơn. Chênh dưới 2 ca trên `tune` thì coi là bằng nhau |
 | **Dùng `check` thế nào** | Xem một lần cho model đã chọn, không dùng để so giữa các model. `check` đã xem 2 lần |

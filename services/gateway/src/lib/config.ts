@@ -8,6 +8,7 @@ export interface GatewayConfig {
   groqApiKey?: string;
   groqModelSmall: string;
   groqModelLarge: string;
+  groqReasoningEffort?: 'low' | 'medium' | 'high';
   aiTimeoutSmallMs: number;
   aiTimeoutLargeMs: number;
   aiContextMessages: number;
@@ -114,6 +115,13 @@ async function resolveSecret(env: Env, directName: string, arnName: string, regi
   }
 }
 
+function reasoningEffort(raw: string | undefined): GatewayConfig['groqReasoningEffort'] {
+  const v = raw?.trim();
+  if (!v) return undefined;
+  if (v === 'low' || v === 'medium' || v === 'high') return v;
+  throw new ConfigError('GROQ_REASONING_EFFORT chỉ nhận low, medium hoặc high');
+}
+
 export async function loadConfig(env: Env = process.env): Promise<GatewayConfig> {
   const awsRegion = env.AWS_REGION?.trim() || env.AWS_DEFAULT_REGION?.trim() || 'ap-northeast-1';
   const providerRaw = (env.AI_PROVIDER?.trim().toLowerCase() || 'none') as AiProviderName;
@@ -137,6 +145,7 @@ export async function loadConfig(env: Env = process.env): Promise<GatewayConfig>
     groqApiKey,
     groqModelSmall: env.GROQ_MODEL_SMALL?.trim() || env.MODEL_SMALL?.trim() || 'openai/gpt-oss-120b',
     groqModelLarge: env.GROQ_MODEL_LARGE?.trim() || env.MODEL_LARGE?.trim() || 'openai/gpt-oss-120b',
+    groqReasoningEffort: reasoningEffort(env.GROQ_REASONING_EFFORT),
     aiTimeoutSmallMs: int(env, 'AI_TIMEOUT_SMALL_MS', 8000, 1000, 60000),
     aiTimeoutLargeMs: int(env, 'AI_TIMEOUT_LARGE_MS', 10000, 1000, 60000),
     aiContextMessages: int(env, 'AI_CONTEXT_MESSAGES', 8, 0, 30),

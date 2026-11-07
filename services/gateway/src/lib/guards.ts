@@ -15,6 +15,8 @@ export interface GuardInput {
   /** Loại tín hiệu bộ luật đã báo; AI trùng loại sẽ bị bỏ để không tính điểm hai lần. */
   ruleHintTypes?: string[];
   cfg: Pick<GatewayConfig, 'aiMaxSignals' | 'summaryMaxChars'>;
+  /** Hạ mức tín hiệu AI theo mức của luật. Mặc định bật; tắt để đo riêng tác dụng của lớp này. */
+  calibrate?: boolean;
 }
 
 export interface GuardResult {
@@ -56,7 +58,7 @@ export function applyGuards(input: GuardInput): GuardResult {
   // Ba lớp hiệu chỉnh: bỏ trùng với bộ luật, hạ mức khi luật còn thấp, bỏ thông báo OTP an toàn.
   const normalized = normalizeSignals(parsed.signals, cfg.aiMaxSignals);
   const deduped = dropRuleDuplicates(normalized, input.ruleHintTypes ?? []);
-  const calibrated = calibrateSignals(deduped.signals, currentLevel);
+  const calibrated = input.calibrate === false ? { signals: deduped.signals, calibrated: 0 } : calibrateSignals(deduped.signals, currentLevel);
   const benign = dropBenignWarnings(calibrated.signals, currentLevel);
   // AI một mình không được đẩy lên Nghiêm trọng; giữ cùng bất biến với analyze() trong core.
   const lowConfidenceCritical = benign.signals.some((s) => s.severity === 'critical' && (s.confidence ?? 1) < 0.5);

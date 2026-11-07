@@ -3,14 +3,16 @@
 //  - ai          : chỉ AI, KHÔNG thấy tín hiệu luật, tự chấm risk_level
 //  - hybrid      : luật + tín hiệu AI (từ chính phản hồi của "ai", không gọi thêm) — AI chỉ được BỔ SUNG, không hạ mức
 //  - hybrid-veto : như hybrid nhưng AI được hạ ≤ 1 bậc khi tự chấm thấp hơn luật (đo đánh đổi: bớt báo nhầm vs. bỏ sót)
-//  - hybrid-hint : như sản phẩm thật — AI nhận kèm tín hiệu luật, đề nghị hạ qua level_adjustment (tốn thêm 1 lượt gọi)
+//  - hybrid-hint : AI nhận kèm tín hiệu luật, đề nghị hạ qua level_adjustment (tốn thêm 1 lượt gọi)
+//  - gateway     : đúng đường sản phẩm: prompt và lớp bảo vệ của gateway (xem gateway-bench.ts)
+//  - gateway-nocal: như gateway nhưng tắt calibrateSignals, dùng lại phản hồi của gateway
 import { AI_SYSTEM_PROMPT, buildAiRequest, parseAiResponse, type AiParsed, type AiRequest } from '@safechat/core/ai';
 import { analyze } from '@safechat/core/analyzer';
 import type { ChatMessage, RiskLevel } from '@safechat/core/types';
 import { RISK_LEVEL_ORDER } from '@safechat/core/types';
 
-export type BenchConfig = 'rules' | 'ai' | 'hybrid' | 'hybrid-veto' | 'hybrid-hint' | 'replay-rules' | 'replay-rules-raw' | 'replay-hybrid';
-export const PROMPT_VERSION = 'bench-v2';
+export type BenchConfig = 'rules' | 'ai' | 'hybrid' | 'hybrid-veto' | 'hybrid-hint' | 'gateway' | 'gateway-nocal' | 'replay-rules' | 'replay-rules-raw' | 'replay-hybrid';
+export const PROMPT_VERSION = 'bench-v3';
 
 const LEVEL_INSTRUCTION = `
 Ngoài ra, trả thêm trường "risk_level" — đánh giá TỔNG THỂ của bạn về cuộc trò chuyện tới tin cuối:

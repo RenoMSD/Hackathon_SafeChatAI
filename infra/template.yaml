@@ -18,6 +18,11 @@ Parameters:
   GroqModelLarge:
     Type: String
     Default: openai/gpt-oss-120b
+  GroqReasoningEffort:
+    Type: String
+    AllowedValues: ['', low, medium, high]
+    Default: ''
+    Description: Mức suy luận của model gpt-oss. Để trống thì dùng mặc định của Groq.
   GroqSecretArn:
     Type: String
     Default: ''
@@ -165,6 +170,7 @@ Resources:
           ADMIN_TOKEN_SECRET_ARN: !Ref AdminTokenSecretArn
           GROQ_MODEL_SMALL: !Ref GroqModelSmall
           GROQ_MODEL_LARGE: !Ref GroqModelLarge
+          GROQ_REASONING_EFFORT: !Ref GroqReasoningEffort
           AI_TIMEOUT_SMALL_MS: '8000'
           AI_TIMEOUT_LARGE_MS: '10000'
           AI_CONTEXT_MESSAGES: '8'

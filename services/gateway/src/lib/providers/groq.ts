@@ -18,6 +18,8 @@ export interface GroqOptions {
   model: string;
   timeoutMs: number;
   maxOutputTokens: number;
+  /** Mức suy luận của model gpt-oss. Không đặt thì dùng mặc định của Groq. */
+  reasoningEffort?: 'low' | 'medium' | 'high';
 }
 
 interface GroqResponse {
@@ -66,6 +68,7 @@ async function requestOnce(
         model: opts.model,
         temperature: 0,
         max_tokens: maxTokens,
+        ...(opts.reasoningEffort ? { reasoning_effort: opts.reasoningEffort } : {}),
         response_format: { type: 'json_object' },
         messages,
       }),
