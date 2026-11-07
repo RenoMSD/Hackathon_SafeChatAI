@@ -305,6 +305,11 @@ describe('client OpenRouter (fetch giả)', () => {
     await expect(client.chat(req)).rejects.toBeInstanceOf(DailyCapReached);
     expect(calls).toHaveLength(1);
   });
+  it('hết hạn mức ngày: giữ lại lời báo có số đã dùng', async () => {
+    const body = JSON.stringify({ error: { message: 'Limit 200000, Used 199000 tokens per day (TPD). Please try again in 3m' } });
+    const { client } = make([() => new Response(body, { status: 429 })]);
+    await expect(client.chat(req)).rejects.toThrow('Used 199000');
+  });
   it('429 có Retry-After → chờ đúng thời gian đó', async () => {
     const slept: number[] = [];
     let i = 0;

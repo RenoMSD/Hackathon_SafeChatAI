@@ -332,5 +332,6 @@ if (allFailed) {
   process.exitCode = 1;
 } else {
   const errors = errorRows ? `, ${errorRows}/${rowCount} dòng lỗi (gồm JSON sai)` : '';
-  console.log(`\nXong ${done}/${cases.length} ca${errors} → ${outFile}\nTạo báo cáo: npm run bench:report -- --runs ${runId}`);
+  const head = meta.stoppedEarly ? `DỪNG GIỮA CHỪNG ở ${done}/${cases.length} ca` : `Xong ${done}/${cases.length} ca`;
+  console.log(`\n${head}${errors} → ${outFile}\nTạo báo cáo: npm run bench:report -- --runs ${runId}`);
 }

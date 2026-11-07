@@ -31,6 +31,15 @@ export interface ChatResult {
   jsonFailure?: { code?: string; message?: string; generatedChars?: number };
 }
 
+/** Lời báo hạn mức của nhà cung cấp: có số đã dùng và thời gian chờ, không chứa nội dung chat. */
+function readLimitMessage(body: string): string {
+  try {
+    return String((JSON.parse(body) as { error?: { message?: string } }).error?.message ?? '').slice(0, 300);
+  } catch {
+    return body.slice(0, 300);
+  }
+}
+
 function readJsonFailure(body: string): ChatResult['jsonFailure'] {
   try {
     const e = (JSON.parse(body) as { error?: { code?: string; message?: string; failed_generation?: string } }).error;
@@ -170,7 +179,7 @@ export class OpenRouterClient {
         continue;
       }
       // Hết hạn mức ngày thì thử lại vô ích: dừng an toàn để các ca sau không bị ghi thành lỗi.
-      if (res.status === 429 && /per day|\b[RT]PD\b/i.test(body)) throw new DailyCapReached(`${label}: hết hạn mức trong ngày`);
+      if (res.status === 429 && /per day|\b[RT]PD\b/i.test(body)) throw new DailyCapReached(`${label}: hết hạn mức trong ngày. ${readLimitMessage(body)}`.trim());
       if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
         const retryAfterSec = Number(res.headers.get('retry-after'));
         await this.sleep(retryAfterSec > 0 ? Math.min(120_000, retryAfterSec * 1000) : Math.min(60_000, 5_000 * 2 ** attempt));
