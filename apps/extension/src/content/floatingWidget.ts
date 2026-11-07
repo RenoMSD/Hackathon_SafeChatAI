@@ -105,10 +105,75 @@ const WIDGET_CSS = `
 }
 * { box-sizing: border-box; }
 
-/* Hiệu ứng chuyển động mượt mà cho chú mèo Pixel Art */
+/* Hiệu ứng chuyển động riêng biệt hoàn toàn cho 4 mức độ + 3 bước Kéo-Thả vào khung chat */
 @keyframes cat-breathe {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2.5px); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes cat-curious-tilt {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-1.5px) rotate(-4deg); }
+  70% { transform: translateY(-1px) rotate(4deg); }
+}
+@keyframes cat-magnifier-scan {
+  0%, 100% { transform: translate(0, 0) rotate(-6deg); }
+  50% { transform: translate(2.5px, -1.5px) rotate(8deg); }
+}
+@keyframes cat-flag-wave {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(14deg); }
+}
+@keyframes cat-siren-flash {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.92); }
+}
+@keyframes cat-alert-stance {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2.5px) scale(1.03); }
+}
+@keyframes cat-dangle-sway {
+  0%, 100% { transform: translateY(-2px) rotate(-5deg); }
+  50% { transform: translateY(1px) rotate(5deg); }
+}
+@keyframes cat-dangle-legs {
+  0%, 100% { transform: rotate(10deg); }
+  50% { transform: rotate(-10deg); }
+}
+@keyframes cat-pounce-wiggle {
+  0%, 100% { transform: translateY(0) scale(1.04, 0.96); }
+  50% { transform: translateY(-3px) scale(0.97, 1.05); }
+}
+@keyframes cat-paws-reach {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(1.8px); }
+}
+@keyframes cat-land-bounce {
+  0% { transform: translateY(-14px) scale(0.92, 1.1); }
+  45% { transform: translateY(3px) scale(1.12, 0.88); }
+  75% { transform: translateY(-3px) scale(0.97, 1.03); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes cat-sleep-breathe {
+  0%, 100% { transform: scale(1, 1) translateY(0); }
+  50% { transform: scale(1.03, 0.96) translateY(0.4px); }
+}
+@keyframes cat-zzz-float-1 {
+  0% { opacity: 0; transform: translate(0, 2px) scale(0.85); }
+  30% { opacity: 1; }
+  80% { opacity: 0.9; transform: translate(1.8px, -3px) scale(1); }
+  100% { opacity: 0; transform: translate(2.8px, -4.8px) scale(1.05); }
+}
+@keyframes cat-zzz-float-2 {
+  0%, 20% { opacity: 0; transform: translate(0, 2px) scale(0.85); }
+  50% { opacity: 1; }
+  90% { opacity: 0.95; transform: translate(2.2px, -3.5px) scale(1.05); }
+  100% { opacity: 0; transform: translate(3.2px, -5.2px) scale(1.1); }
+}
+@keyframes cat-wake-stretch {
+  0% { transform: translateY(3px) scale(1.12, 0.86); }
+  40% { transform: translateY(-6px) scale(0.94, 1.08) rotate(-3deg); }
+  75% { transform: translateY(1px) scale(1.03, 0.98) rotate(2deg); }
+  100% { transform: translateY(0) scale(1, 1) rotate(0deg); }
 }
 @keyframes cat-blink {
   0%, 43%, 47%, 89%, 93%, 100% { transform: scaleY(1); }
@@ -116,21 +181,54 @@ const WIDGET_CSS = `
 }
 @keyframes cat-ear-left {
   0%, 80%, 100% { transform: rotate(0deg); }
-  84% { transform: rotate(-6deg); }
+  84% { transform: rotate(-7deg); }
   88% { transform: rotate(2deg); }
 }
 @keyframes cat-ear-right {
   0%, 56%, 100% { transform: rotate(0deg); }
-  60% { transform: rotate(6deg); }
+  60% { transform: rotate(7deg); }
   64% { transform: rotate(-2deg); }
 }
 @keyframes cat-tail-sway {
   0%, 100% { transform: rotate(-6deg); }
-  50% { transform: rotate(9deg); }
+  50% { transform: rotate(10deg); }
 }
-@keyframes shield-glow {
+@keyframes shield-hug-breathe {
   0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-1.5px) scale(1.04); }
+  50% { transform: translateY(-1.5px) scale(1.03); }
+}
+@keyframes shield-hug-guard {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2.5px) scale(1.06); }
+}
+@keyframes cat-badge-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2.5px) scale(1.08); }
+}
+/* Hoạt ảnh bùng nổ trong ~3 giây đầu khi vừa đổi mức cảnh báo để thu hút sự chú ý */
+@keyframes cat-burst-attention {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-7px) rotate(-6deg) scale(1.06); }
+  55% { transform: translateY(0) rotate(5deg); }
+  80% { transform: translateY(-4px) rotate(-3deg); }
+}
+@keyframes cat-burst-high {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  15% { transform: translate(-3px, -8px) rotate(-5deg) scale(1.08); }
+  30% { transform: translate(3px, -7px) rotate(5deg) scale(1.08); }
+  45% { transform: translate(-3px, -4px) rotate(-4deg) scale(1.05); }
+  60% { transform: translate(3px, -4px) rotate(4deg) scale(1.05); }
+  75% { transform: translate(-2px, -2px) rotate(-2deg); }
+}
+@keyframes cat-burst-critical {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  12% { transform: translate(-4px, -10px) rotate(-7deg) scale(1.12); }
+  24% { transform: translate(4px, -9px) rotate(7deg) scale(1.12); }
+  36% { transform: translate(-4px, -6px) rotate(-6deg) scale(1.09); }
+  48% { transform: translate(4px, -6px) rotate(6deg) scale(1.09); }
+  60% { transform: translate(-3px, -3px) rotate(-4deg) scale(1.05); }
+  72% { transform: translate(3px, -3px) rotate(4deg) scale(1.05); }
+  84% { transform: translate(-2px, -1px) rotate(-2deg); }
 }
 @keyframes pulse-dot {
   0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.55); }
@@ -151,14 +249,93 @@ const WIDGET_CSS = `
   shape-rendering: crispEdges;
   image-rendering: pixelated;
   filter: drop-shadow(0 6px 12px rgba(15, 23, 42, 0.22));
+  transform-origin: 50% 85%;
 }
+.pixel-cat-svg.level-attention {
+  filter: drop-shadow(0 6px 14px rgba(37, 99, 235, 0.28));
+}
+.pixel-cat-svg.level-high {
+  filter: drop-shadow(0 6px 15px rgba(234, 88, 12, 0.34));
+}
+.pixel-cat-svg.level-critical {
+  filter: drop-shadow(0 6px 16px rgba(220, 38, 38, 0.42));
+}
+.pixel-cat-svg.level-attention.burst {
+  animation: cat-burst-attention 0.75s cubic-bezier(0.22, 1, 0.36, 1) 3;
+}
+.pixel-cat-svg.level-high.burst {
+  animation: cat-burst-high 0.6s ease-in-out 5;
+}
+.pixel-cat-svg.level-critical.burst {
+  animation: cat-burst-critical 0.5s ease-in-out 6;
+}
+.pixel-cat-svg.pose-dragging {
+  animation: cat-dangle-sway 0.75s ease-in-out infinite;
+  filter: drop-shadow(0 14px 20px rgba(15, 23, 42, 0.32));
+}
+.pixel-cat-svg.pose-pounce {
+  animation: cat-pounce-wiggle 0.48s ease-in-out infinite;
+  filter: drop-shadow(0 8px 18px rgba(37, 99, 235, 0.45));
+}
+.pixel-cat-svg.pose-landing {
+  animation: cat-land-bounce 0.65s cubic-bezier(0.22, 1, 0.36, 1) 1;
+}
+.pixel-cat-svg.pose-sleeping {
+  filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.18));
+}
+.pixel-cat-svg.pose-waking {
+  animation: cat-wake-stretch 0.65s cubic-bezier(0.22, 1, 0.36, 1) 1;
+}
+.pixel-cat-sleep-body {
+  animation: cat-sleep-breathe 3.4s ease-in-out infinite;
+  transform-origin: 13px 14px;
+}
+.pixel-cat-zzz-1 {
+  animation: cat-zzz-float-1 2.8s ease-in-out infinite;
+  transform-origin: 17px 4px;
+}
+.pixel-cat-zzz-2 {
+  animation: cat-zzz-float-2 2.8s ease-in-out infinite;
+  transform-origin: 21px 2px;
+}
+
 .pixel-cat-body {
   animation: cat-breathe 2.8s ease-in-out infinite;
-  transform-origin: 12px 13px;
+  transform-origin: 11px 9px;
 }
+.pixel-cat-svg.level-attention .pixel-cat-body {
+  animation: cat-curious-tilt 2.4s ease-in-out infinite;
+}
+.pixel-cat-svg.level-high .pixel-cat-body {
+  animation: cat-alert-stance 1.6s ease-in-out infinite;
+}
+.pixel-cat-svg.level-critical .pixel-cat-body {
+  animation: cat-alert-stance 1.15s ease-in-out infinite;
+}
+
+.pixel-cat-magnifier {
+  animation: cat-magnifier-scan 1.6s ease-in-out infinite;
+  transform-origin: 6px 7px;
+}
+.pixel-cat-flag {
+  animation: cat-flag-wave 0.75s ease-in-out infinite;
+  transform-origin: 18px 11px;
+}
+.pixel-cat-siren-beams {
+  animation: cat-siren-flash 0.45s steps(2, end) infinite;
+  transform-origin: 11px 1px;
+}
+.pixel-cat-dangle-legs {
+  animation: cat-dangle-legs 0.55s ease-in-out infinite;
+  transform-origin: 11px 16px;
+}
+.pixel-cat-paws-reach {
+  animation: cat-paws-reach 0.45s ease-in-out infinite;
+}
+
 .pixel-cat-eyes {
   animation: cat-blink 5.2s ease-in-out infinite;
-  transform-origin: 11px 6px;
+  transform-origin: 11px 7px;
 }
 .pixel-ear-l {
   animation: cat-ear-left 4.6s ease-in-out infinite;
@@ -166,18 +343,51 @@ const WIDGET_CSS = `
 }
 .pixel-ear-r {
   animation: cat-ear-right 5.4s ease-in-out infinite;
-  transform-origin: 16px 4px;
+  transform-origin: 15px 4px;
+}
+.pixel-cat-svg.level-attention .pixel-ear-l,
+.pixel-cat-svg.level-attention .pixel-ear-r {
+  animation-duration: 2.2s;
+}
+.pixel-cat-svg.level-high .pixel-ear-l,
+.pixel-cat-svg.level-high .pixel-ear-r,
+.pixel-cat-svg.level-critical .pixel-ear-l,
+.pixel-cat-svg.level-critical .pixel-ear-r {
+  animation-duration: 1.3s;
 }
 .pixel-cat-tail {
-  animation: cat-tail-sway 2.4s ease-in-out infinite;
-  transform-origin: 16px 13px;
+  animation: cat-tail-sway 2.5s ease-in-out infinite;
+  transform-origin: 16px 14px;
 }
-.pixel-cat-tail.fast {
-  animation-duration: 1.2s;
+.pixel-cat-svg.level-attention .pixel-cat-tail {
+  animation-duration: 1.6s;
+}
+.pixel-cat-svg.level-high .pixel-cat-tail {
+  animation-duration: 0.95s;
+}
+.pixel-cat-svg.level-critical .pixel-cat-tail,
+.pixel-cat-svg.pose-pounce .pixel-cat-tail {
+  animation-duration: 0.55s;
 }
 .pixel-cat-shield {
-  animation: shield-glow 2.5s ease-in-out infinite;
-  transform-origin: 4px 12px;
+  animation: shield-hug-breathe 2.6s ease-in-out infinite;
+  transform-origin: 11px 13px;
+}
+.pixel-cat-svg.level-attention .pixel-cat-shield {
+  animation: shield-hug-guard 2.0s ease-in-out infinite;
+}
+.pixel-cat-svg.level-high .pixel-cat-shield {
+  animation: shield-hug-guard 1.35s ease-in-out infinite;
+}
+.pixel-cat-svg.level-critical .pixel-cat-shield {
+  animation: shield-hug-guard 0.95s ease-in-out infinite;
+}
+.pixel-cat-badge {
+  animation: cat-badge-bob 1.2s ease-in-out infinite;
+  transform-origin: 21px 3px;
+}
+.pixel-cat-svg.level-critical .pixel-cat-badge {
+  animation-duration: 0.7s;
 }
 
 .spotlight-box {
@@ -905,178 +1115,616 @@ function px(x: number, y: number, w: number, hgt: number, fill: string): SVGElem
   return svg('rect', { x, y, width: w, height: hgt, fill });
 }
 
+type CatPose = 'idle' | 'dragging' | 'pounce' | 'landing' | 'sleeping' | 'waking';
+
 /**
- * Vẽ chú Mèo Tuxedo (Đen - Trắng) Pixel Art cầm Khiên Pixel đổi màu theo 4 mức độ:
- * - Lưới pixel sắc nét (shape-rendering="crispEdges")
- * - Bộ lông đen than (#1e222d) viền đen (#090a0f) kết hợp mảng lông trắng Tuxedo (#ffffff):
- *   + Trán chữ V ngược & mõm trắng, mũi hồng (#fb7185)
- *   + Yếm ngực trắng Tuxedo trước bụng
- *   + Đôi tất chân trắng ở bàn chân bám khung chat & chóp đuôi trắng
- * - Hai tai nhọn viền đen với mảng hồng hình chữ L bên trong (#f9a8ba)
- * - Đôi mắt 2 tầng pixel (trên vàng cam #f59e0b, dưới đen), 2 cặp râu ngang hai bên má
- * - Tay trước cầm chiếc Khiên Pixel đổi màu theo 4 mức độ (.pixel-cat-shield)
+ * Vẽ chú Mèo Tuxedo (Đen - Trắng) Pixel Art ÔM KHIÊN LỚN trước ngực, với:
+ * - 4 HÀNH ĐỘNG & ĐẠO CỤ KHÁC BIỆT HOÀN TOÀN theo 4 mức độ khi ở trạng thái canh gác (pose === 'idle'):
+ *   1. low (Bình thường): Mèo ngồi lim dim thư giãn (mắt híp vui vẻ ^ ^), hai tay đi tất trắng ôm khiên xanh lá (✓).
+ *   2. attention (Cần chú ý): Mèo Thám Tử tay trái cầm KÍNH LÚP PIXEL đưa lên mắt soi qua lại (?), tay phải giữ khiên xanh dương.
+ *   3. high (Cao): Mèo đứng dậy tay phải cầm CỜ HIỆU CẢNH BÁO CAM (!) vẫy liên hồi, tay trái giữ khiên cam.
+ *   4. critical (Nguy hiểm): Mèo XÙ LÔNG chiến đấu, nhe nanh, đỉnh đầu bật ĐÈN CÒI BÁO ĐỘNG ĐỎ nhấp nháy tia sáng, 2 tay ghì khiên chắn đỏ khổng lồ (!!).
+ * - 3 TƯ THẾ KÉO - THẢ VÀO KHUNG CHAT:
+ *   + dragging: Mèo đang được nhấc lơ lửng, mắt tròn xoe, 2 chân sau đi tất trắng buông thõng đung đưa trong không trung.
+ *   + pounce: Khi kéo rê trúng khung chat — mèo vươn 2 bàn tay trắng ra trước chuẩn bị vồ/bám, mắt sáng rực khóa mục tiêu.
+ *   + landing: Khi vừa thả xuống khung chat — mèo nhún chân đáp xuống bám chặt lên đỉnh khung chat.
+ * - TƯ THẾ NGỦ & THỨC DẬY (sau 2 phút không sử dụng ở chế độ thu gọn):
+ *   + sleeping: Mèo cuộn tròn tựa đầu lên khiên ngủ ngon lành (mắt nhắm - -, nhịp thở chậm + chữ Zzz pixel bay lên).
+ *   + waking: Mèo giật mình tỉnh dậy, mở tròn mắt và vươn vai khi người dùng chạm chuột hoặc nắm kéo.
  */
-function pixelCatShieldSvg(level: RiskLevel, width = 96, height = 66): SVGElement {
+function pixelCatShieldSvg(
+  level: RiskLevel,
+  width = 98,
+  height = 72,
+  isBurst = false,
+  pose: CatPose = 'idle',
+): SVGElement {
   const BK = '#090a0f';
   const DK = '#1e222d';
   const LT = '#343946';
   const PK = '#f9a8ba';
   const NS = '#fb7185';
-  const EY = level === 'critical' ? '#fde047' : '#f59e0b';
   const WT = '#ffffff';
   const WS = '#dbe4f0';
   const pal = SHIELD_PIXEL_PALETTE[level];
-  const isAlert = level === 'high' || level === 'critical';
 
-  // Đuôi mèo Tuxedo pixel bậc thang bên phải (có chóp đuôi trắng)
+  if (pose === 'sleeping') {
+    const sleepShieldGroup = svg(
+      'g',
+      {},
+      // Viền đen chiếc khiên đặt nghiêng bên trái làm gối tựa (x=2..11, y=9..17)
+      px(3, 9, 8, 1, BK),
+      px(2, 10, 1, 5, BK),
+      px(11, 10, 1, 5, BK),
+      px(3, 15, 1, 1, BK),
+      px(10, 15, 1, 1, BK),
+      px(4, 16, 2, 1, BK),
+      px(8, 16, 2, 1, BK),
+      px(6, 17, 2, 1, BK),
+      // Nền khiên
+      px(3, 10, 8, 5, pal.main),
+      px(4, 15, 6, 1, pal.main),
+      px(6, 16, 2, 1, pal.main),
+      px(3, 10, 4, 1, pal.light),
+      px(3, 11, 1, 3, pal.light),
+      px(10, 11, 1, 4, pal.dark),
+      px(8, 15, 2, 1, pal.dark),
+      // Dấu ✓ trắng trên khiên
+      px(5, 13, 1, 1, WT),
+      px(6, 14, 1, 1, WT),
+      px(7, 13, 1, 1, WT),
+      px(8, 12, 1, 1, WT),
+      px(9, 11, 1, 1, WT),
+    );
+
+    const sleepCatBody = svg(
+      'g',
+      { class: 'pixel-cat-sleep-body' },
+      // Lưng mèo Tuxedo cuộn tròn ấm áp bên phải (x=13..22, y=8..16)
+      px(14, 8, 6, 1, BK),
+      px(20, 9, 2, 1, BK),
+      px(22, 10, 1, 5, BK),
+      px(13, 16, 9, 1, BK),
+      px(14, 9, 6, 7, DK),
+      px(20, 10, 2, 6, DK),
+      px(15, 9, 4, 1, LT),
+      px(19, 10, 2, 2, LT),
+      // Tai trái & tai phải cụp nhẹ thư giãn (y=4..6)
+      px(6, 4, 3, 1, BK),
+      px(5, 5, 1, 2, BK),
+      px(9, 5, 1, 1, BK),
+      px(6, 5, 2, 1, PK),
+      px(8, 5, 1, 1, LT),
+      px(14, 4, 3, 1, BK),
+      px(13, 5, 1, 1, BK),
+      px(17, 5, 1, 2, BK),
+      px(15, 5, 2, 1, PK),
+      px(14, 5, 1, 1, LT),
+      // Đầu mèo Tuxedo tựa lên khiên (x=5..17, y=5..13)
+      px(9, 5, 5, 1, BK),
+      px(5, 6, 1, 6, BK),
+      px(17, 6, 1, 5, BK),
+      px(6, 6, 11, 6, DK),
+      px(15, 6, 2, 3, LT),
+      // Mặt nạ trắng Tuxedo ở mũi, má và ngực
+      px(10, 8, 2, 1, WT),
+      px(9, 9, 4, 1, WT),
+      px(8, 10, 6, 2, WT),
+      px(7, 12, 8, 2, WT),
+      // Đôi mắt nhắm nghiền bình yên (- -) + hai má hồng
+      px(7, 9, 2, 1, BK),
+      px(13, 9, 2, 1, BK),
+      px(6, 10, 1, 1, PK),
+      px(15, 10, 1, 1, PK),
+      // Mũi hồng nhỏ xinh
+      px(10, 10, 2, 1, NS),
+      px(10, 11, 2, 1, WS),
+      // Râu hai bên má
+      px(3, 9, 2, 1, BK),
+      px(3, 11, 2, 1, BK),
+      px(18, 9, 2, 1, BK),
+      px(18, 11, 2, 1, BK),
+      // Hai bàn tay đi tất trắng đặt gọn dưới cằm / ôm mép khiên
+      px(6, 13, 3, 2, WT),
+      px(5, 13, 1, 2, BK),
+      px(6, 15, 3, 1, BK),
+      px(11, 13, 3, 2, WT),
+      px(14, 13, 1, 2, BK),
+      px(11, 15, 3, 1, BK),
+      // Chiếc đuôi đen có chóp đuôi trắng quấn gọn quanh thân trước
+      px(15, 14, 7, 1, BK),
+      px(22, 15, 2, 2, BK),
+      px(15, 17, 8, 1, BK),
+      px(18, 15, 4, 2, DK),
+      px(15, 15, 3, 2, WT),
+      px(14, 15, 1, 2, BK),
+    );
+
+    // Chữ Zzz pixel bay lơ lửng trên đầu mèo
+    const zzzSmall = svg(
+      'g',
+      { class: 'pixel-cat-zzz-1' },
+      px(16, 3, 3, 1, '#2563eb'),
+      px(17, 4, 1, 1, '#60a5fa'),
+      px(16, 5, 3, 1, '#2563eb'),
+    );
+    const zzzLarge = svg(
+      'g',
+      { class: 'pixel-cat-zzz-2' },
+      px(20, 0, 4, 1, '#1d4ed8'),
+      px(22, 1, 1, 1, '#3b82f6'),
+      px(21, 2, 1, 1, '#3b82f6'),
+      px(20, 3, 4, 1, '#1d4ed8'),
+    );
+
+    return svg(
+      'svg',
+      {
+        viewBox: '0 0 26 19',
+        width,
+        height,
+        class: `pixel-cat-svg level-${level} pose-sleeping`,
+        'shape-rendering': 'crispEdges',
+        'aria-hidden': 'true',
+      },
+      svg('ellipse', {
+        cx: 13,
+        cy: 17.5,
+        rx: 10.6,
+        ry: 1.35,
+        fill: 'rgba(15, 23, 42, 0.18)',
+      }),
+      sleepShieldGroup,
+      sleepCatBody,
+      zzzSmall,
+      zzzLarge,
+    );
+  }
+
+  // Đuôi mèo Tuxedo pixel bậc thang bên phải (có chóp đuôi trắng; xù gai nếu ở mức critical)
   const tailGroup = svg(
     'g',
-    { class: `pixel-cat-tail${isAlert ? ' fast' : ''}` },
-    // Viền đen bậc thang của đuôi
-    px(15, 12, 2, 1, BK),
-    px(16, 11, 2, 1, BK),
-    px(17, 10, 2, 1, BK),
-    px(18, 8, 2, 2, BK),
-    px(19, 7, 3, 1, BK),
-    px(21, 8, 2, 3, BK),
-    px(20, 11, 2, 1, BK),
-    px(19, 12, 2, 1, BK),
-    px(18, 13, 2, 1, BK),
-    px(16, 14, 3, 1, BK),
-    // Lõi đuôi đen + chóp đuôi trắng Tuxedo
-    px(15, 13, 3, 1, DK),
-    px(17, 11, 3, 2, DK),
-    px(19, 10, 2, 1, DK),
-    px(19, 8, 2, 2, WT),
+    { class: 'pixel-cat-tail' },
+    px(16, 13, 2, 1, BK),
+    px(17, 12, 2, 1, BK),
+    px(18, 11, 2, 1, BK),
+    px(19, 9, 2, 2, BK),
+    px(20, 8, 3, 1, BK),
+    px(22, 9, 2, 3, BK),
+    px(21, 12, 2, 1, BK),
+    px(20, 13, 2, 1, BK),
+    px(19, 14, 2, 1, BK),
+    px(17, 15, 3, 1, BK),
+    px(16, 14, 3, 1, DK),
+    px(18, 12, 3, 2, DK),
+    px(20, 11, 2, 1, DK),
+    px(20, 9, 2, 2, WT),
+    // Gai lông đuôi xù dựng đứng khi ở mức Nguy hiểm (critical)
+    ...(level === 'critical' && pose === 'idle'
+      ? [px(18, 8, 1, 1, BK), px(21, 7, 1, 1, BK), px(23, 8, 1, 1, BK), px(23, 11, 1, 1, BK)]
+      : []),
   );
 
   // Tai trái pixel (hình chữ L màu hồng bên trong)
   const leftEarGroup = svg(
     'g',
     { class: 'pixel-ear-l' },
-    px(6, 1, 3, 1, BK),
-    px(5, 2, 1, 2, BK),
-    px(9, 2, 1, 2, BK),
-    px(6, 2, 1, 2, PK),
-    px(7, 3, 1, 1, PK),
-    px(7, 2, 2, 1, LT),
-    px(8, 3, 1, 1, DK),
+    px(6, 2, 3, 1, BK),
+    px(5, 3, 1, 2, BK),
+    px(9, 3, 1, 2, BK),
+    px(6, 3, 1, 2, PK),
+    px(7, 4, 1, 1, PK),
+    px(7, 3, 2, 1, LT),
+    px(8, 4, 1, 1, DK),
   );
 
   // Tai phải pixel (hình chữ L màu hồng đối xứng)
   const rightEarGroup = svg(
     'g',
     { class: 'pixel-ear-r' },
-    px(14, 1, 3, 1, BK),
-    px(13, 2, 1, 2, BK),
-    px(17, 2, 1, 2, BK),
-    px(16, 2, 1, 2, PK),
-    px(15, 3, 1, 1, PK),
-    px(14, 2, 2, 1, LT),
-    px(14, 3, 1, 1, DK),
+    px(14, 2, 3, 1, BK),
+    px(13, 3, 1, 2, BK),
+    px(17, 3, 1, 2, BK),
+    px(16, 3, 1, 2, PK),
+    px(15, 4, 1, 1, PK),
+    px(14, 3, 2, 1, LT),
+    px(14, 4, 1, 1, DK),
   );
 
-  // Mắt 2 tầng pixel (vàng cam ở trên, đen ở dưới)
-  const eyesGroup = svg(
-    'g',
-    { class: 'pixel-cat-eyes' },
-    // Mắt trái
-    px(8, 5, 1, 1, EY),
-    px(8, 6, 1, 1, BK),
-    // Mắt phải
-    px(13, 5, 1, 1, EY),
-    px(13, 6, 1, 1, BK),
-  );
+  // Biểu cảm mắt & lông mày theo tư thế kéo-thả/thức dậy hoặc theo 4 mức độ
+  let eyesAndBrows: SVGElement;
+  if (pose === 'dragging' || pose === 'waking') {
+    // Đang được nhấc kéo lơ lửng hoặc vừa giật mình tỉnh dậy: mắt tròn xoe long lanh
+    eyesAndBrows = svg(
+      'g',
+      { class: 'pixel-cat-eyes' },
+      px(7, 6, 2, 2, '#f59e0b'),
+      px(7, 6, 1, 1, WT),
+      px(8, 7, 1, 1, BK),
+      px(13, 6, 2, 2, '#f59e0b'),
+      px(13, 6, 1, 1, WT),
+      px(14, 7, 1, 1, BK),
+    );
+  } else if (pose === 'pounce') {
+    // Rê trúng khung chat: mắt sáng xanh-vàng khóa mục tiêu
+    eyesAndBrows = svg(
+      'g',
+      { class: 'pixel-cat-eyes' },
+      px(7, 5, 2, 1, BK),
+      px(13, 5, 2, 1, BK),
+      px(8, 6, 1, 1, '#38bdf8'),
+      px(8, 7, 1, 1, '#fef08a'),
+      px(13, 6, 1, 1, '#38bdf8'),
+      px(13, 7, 1, 1, '#fef08a'),
+    );
+  } else if (level === 'low') {
+    // Mức 1 (Bình thường): mắt híp cong vui vẻ thư giãn (^ ^)
+    eyesAndBrows = svg(
+      'g',
+      { class: 'pixel-cat-eyes' },
+      px(7, 7, 1, 1, '#f59e0b'),
+      px(8, 6, 2, 1, '#f59e0b'),
+      px(9, 7, 1, 1, BK),
+      px(13, 7, 1, 1, BK),
+      px(13, 6, 2, 1, '#f59e0b'),
+      px(15, 7, 1, 1, '#f59e0b'),
+    );
+  } else if (level === 'attention') {
+    // Mức 2 (Cần chú ý - Soi kính lúp): mắt phải nheo dò xét, mắt trái mở to trong kính lúp
+    eyesAndBrows = svg(
+      'g',
+      { class: 'pixel-cat-eyes' },
+      px(13, 5, 2, 1, BK),
+      px(13, 6, 1, 1, '#38bdf8'),
+      px(13, 7, 1, 1, BK),
+    );
+  } else if (level === 'high') {
+    // Mức 3 (Cao - Phất cờ hiệu cam): mày xếch nghiêm nghị + mắt cam rực
+    eyesAndBrows = svg(
+      'g',
+      { class: 'pixel-cat-eyes' },
+      px(7, 5, 2, 1, BK),
+      px(9, 6, 1, 1, BK),
+      px(13, 5, 2, 1, BK),
+      px(12, 6, 1, 1, BK),
+      px(8, 6, 1, 1, '#fb923c'),
+      px(8, 7, 1, 1, BK),
+      px(13, 6, 1, 1, '#fb923c'),
+      px(13, 7, 1, 1, BK),
+    );
+  } else {
+    // Mức 4 (Nguy hiểm - Xù lông + Còi báo động đỏ): mày chữ V rực lửa + mắt sáng vàng-đỏ
+    eyesAndBrows = svg(
+      'g',
+      { class: 'pixel-cat-eyes' },
+      px(7, 5, 2, 1, '#fca5a5'),
+      px(9, 6, 1, 1, BK),
+      px(13, 5, 2, 1, '#fca5a5'),
+      px(12, 6, 1, 1, BK),
+      px(8, 6, 1, 1, '#fef08a'),
+      px(8, 7, 1, 1, '#ef4444'),
+      px(13, 6, 1, 1, '#fef08a'),
+      px(13, 7, 1, 1, '#ef4444'),
+    );
+  }
 
-  // Đầu, mặt nạ Tuxedo trắng, râu ngang & thân mèo yếm trắng
+  // Hai chân sau của mèo: nếu đang bị nhấc kéo (dragging) thì buông thõng đung đưa, còn lại bám dưới đáy khiên
+  const hindFeetGroup =
+    pose === 'dragging'
+      ? svg(
+          'g',
+          { class: 'pixel-cat-dangle-legs' },
+          px(7, 16, 2, 2, WT),
+          px(7, 18, 2, 1, BK),
+          px(14, 16, 2, 2, WT),
+          px(14, 18, 2, 1, BK),
+        )
+      : svg(
+          'g',
+          {},
+          px(6, 16, 2, 1, WT),
+          px(6, 17, 2, 1, BK),
+          px(15, 16, 2, 1, WT),
+          px(15, 17, 2, 1, BK),
+        );
+
+  // Đầu mèo Tuxedo nhô lên phía trên đỉnh khiên (kèm lông xù & nanh trắng nếu ở mức critical)
   const bodyGroup = svg(
     'g',
     { class: 'pixel-cat-body' },
     leftEarGroup,
     rightEarGroup,
-    // Đỉnh đầu nối giữa 2 tai
-    px(10, 3, 3, 1, BK),
-    // Khung đầu (x=5..17, y=4..8)
-    px(5, 4, 1, 5, BK),
-    px(17, 4, 1, 5, BK),
-    px(6, 4, 11, 5, DK),
-    px(16, 4, 1, 4, LT),
-    // Mảng lông trắng Tuxedo hình chữ V ngược ở giữa sống mũi & hai má (y=5..8)
-    px(10, 5, 2, 1, WT),
-    px(9, 6, 4, 1, WT),
-    px(8, 7, 6, 2, WT),
-    px(7, 8, 8, 1, WT),
-    // Mũi hồng xinh xắn giữa mặt nạ trắng
-    px(10, 6, 2, 1, NS),
-    // Điểm nhấn miệng nhỏ dưới mũi
-    px(10, 7, 2, 1, WS),
+    px(10, 4, 3, 1, BK),
+    px(5, 5, 1, 5, BK),
+    px(17, 5, 1, 5, BK),
+    px(6, 5, 11, 5, DK),
+    px(16, 5, 1, 4, LT),
+    // Gai lông xù dựng đứng hai bên má & vai khi ở mức Nguy hiểm (critical)
+    ...(level === 'critical' && pose === 'idle'
+      ? [
+          px(4, 5, 1, 1, BK),
+          px(3, 6, 2, 1, DK),
+          px(4, 8, 1, 1, BK),
+          px(18, 5, 1, 1, BK),
+          px(18, 6, 2, 1, DK),
+          px(18, 8, 1, 1, BK),
+        ]
+      : []),
+    // Mặt nạ trắng Tuxedo hình chữ V ngược giữa sống mũi & hai má
+    px(10, 6, 2, 1, WT),
+    px(9, 7, 4, 1, WT),
+    px(8, 8, 6, 2, WT),
+    px(7, 9, 8, 1, WT),
+    // Mũi hồng & miệng theo mức cảnh báo (critical: miệng gầm + 2 răng nanh trắng)
+    px(10, 7, 2, 1, NS),
+    ...(level === 'critical' && pose === 'idle'
+      ? [px(9, 8, 4, 1, '#dc2626'), px(9, 8, 1, 1, WT), px(12, 8, 1, 1, WT)]
+      : [px(10, 8, 2, 1, level === 'high' ? '#ea580c' : WS)]),
     // Hai cặp râu ngang 2 bên má
-    px(3, 6, 2, 1, BK),
-    px(3, 8, 2, 1, BK),
-    px(18, 6, 2, 1, BK),
-    px(18, 8, 2, 1, BK),
-    eyesGroup,
-    // Cằm & cổ
-    px(6, 9, 2, 1, BK),
-    px(14, 9, 3, 1, BK),
-    px(8, 9, 6, 1, WT),
-    // Thân mèo Tuxedo ngồi (x=7..16, y=10..15)
-    px(7, 10, 1, 5, BK),
-    px(8, 10, 6, 5, DK),
-    px(14, 10, 1, 2, BK),
-    px(15, 12, 1, 1, BK),
-    px(14, 12, 1, 3, DK),
-    px(15, 13, 1, 2, DK),
-    px(16, 14, 1, 1, BK),
-    // Yếm ngực trắng Tuxedo (Bib) trước ngực mèo
-    px(9, 10, 4, 3, WT),
-    px(10, 13, 2, 1, WT),
-    px(9, 12, 1, 1, WS),
-    px(12, 12, 1, 1, WS),
-    // Đôi tất trắng (White Socks) ở hai bàn chân trước bám khung chat
-    px(8, 14, 2, 1, WT),
-    px(11, 14, 1, 1, WT),
-    px(13, 14, 2, 1, WT),
-    // Đáy chân viền đen có khe phân tách bàn chân
-    px(8, 15, 2, 1, BK),
-    px(10, 14, 1, 1, BK),
-    px(11, 15, 1, 1, BK),
-    px(12, 14, 1, 1, BK),
-    px(13, 15, 3, 1, BK),
+    px(3, 7, 2, 1, BK),
+    px(3, 9, 2, 1, BK),
+    px(18, 7, 2, 1, BK),
+    px(18, 9, 2, 1, BK),
+    eyesAndBrows,
+    hindFeetGroup,
   );
 
-  // Chiếc Khiên Pixel Art bên tay trái của mèo (x=1..7, y=9..15)
-  const shieldGroup = svg(
+  // Biểu tượng ở tâm chiếc khiên lớn theo 4 mức độ
+  let shieldEmblem: SVGElement;
+  if (level === 'low') {
+    shieldEmblem = svg(
+      'g',
+      {},
+      px(9, 13, 1, 1, WT),
+      px(10, 14, 1, 1, WT),
+      px(11, 13, 1, 1, WT),
+      px(12, 12, 1, 1, WT),
+      px(13, 11, 1, 1, WT),
+    );
+  } else if (level === 'attention') {
+    shieldEmblem = svg(
+      'g',
+      {},
+      px(10, 11, 3, 1, WT),
+      px(12, 12, 1, 1, WT),
+      px(11, 13, 1, 1, WT),
+      px(11, 15, 1, 1, WT),
+    );
+  } else if (level === 'high') {
+    shieldEmblem = svg('g', {}, px(11, 11, 1, 3, WT), px(11, 15, 1, 1, WT));
+  } else {
+    shieldEmblem = svg(
+      'g',
+      {},
+      px(9, 11, 2, 3, '#fef08a'),
+      px(9, 15, 2, 1, WT),
+      px(12, 11, 2, 3, '#fef08a'),
+      px(12, 15, 2, 1, WT),
+    );
+  }
+
+  // Hai bàn tay mèo + Đạo cụ riêng biệt theo từng mức độ hoặc tư thế kéo-thả
+  let pawsAndPropsGroup: SVGElement;
+  if (pose === 'pounce') {
+    // Khi rê trúng khung chat: hai bàn tay trắng vươn rộng hướng xuống chuẩn bị vồ/bám mép chat!
+    pawsAndPropsGroup = svg(
+      'g',
+      { class: 'pixel-cat-paws-reach' },
+      // Tay trái vươn xuống
+      px(4, 11, 1, 4, BK),
+      px(5, 11, 2, 3, WT),
+      px(5, 14, 3, 1, WT),
+      px(5, 15, 3, 1, BK),
+      // Tay phải vươn xuống
+      px(18, 11, 1, 4, BK),
+      px(16, 11, 2, 3, WT),
+      px(15, 14, 3, 1, WT),
+      px(15, 15, 3, 1, BK),
+    );
+  } else if (pose === 'idle' && level === 'attention') {
+    // MỨC 2 (Cần chú ý): Tay trái cầm KÍNH LÚP PIXEL đưa lên mắt soi qua lại, tay phải ôm khiên!
+    pawsAndPropsGroup = svg(
+      'g',
+      {},
+      // Tay phải đi tất trắng giữ mép phải khiên
+      px(17, 10, 1, 4, BK),
+      px(16, 10, 1, 1, DK),
+      px(15, 11, 2, 2, WT),
+      px(14, 12, 1, 1, WT),
+      px(16, 12, 1, 1, WS),
+      px(14, 11, 1, 1, BK),
+      px(14, 13, 3, 1, BK),
+      // Tay trái + KÍNH LÚP PIXEL chuyển động soi xét (.pixel-cat-magnifier)
+      svg(
+        'g',
+        { class: 'pixel-cat-magnifier' },
+        // Bàn tay trái trắng cầm cán kính lúp
+        px(3, 9, 3, 2, WT),
+        px(2, 9, 1, 2, BK),
+        px(3, 11, 3, 1, BK),
+        // Cán kính lúp vàng đồng
+        px(4, 8, 2, 1, '#f59e0b'),
+        // Vành kính lúp tròn (x=4..9, y=3..8)
+        px(5, 3, 4, 1, '#1e3a8a'),
+        px(5, 8, 4, 1, '#1e3a8a'),
+        px(4, 4, 1, 4, '#1e3a8a'),
+        px(9, 4, 1, 4, '#1e3a8a'),
+        // Mặt kính xanh sáng trong suốt + con mắt mèo phóng to bên trong kính lúp
+        px(5, 4, 4, 4, '#bae6fd'),
+        px(5, 4, 2, 1, WT),
+        px(5, 5, 1, 1, WT),
+        px(7, 5, 2, 2, '#f59e0b'),
+        px(7, 6, 1, 1, BK),
+      ),
+    );
+  } else if (pose === 'idle' && level === 'high') {
+    // MỨC 3 (Cao): Tay trái giữ khiên cam, tay phải giơ cao CỜ HIỆU CẢNH BÁO CAM (!) vẫy qua lại liên hồi!
+    pawsAndPropsGroup = svg(
+      'g',
+      {},
+      // Tay trái đi tất trắng ôm mép trái khiên
+      px(5, 10, 1, 4, BK),
+      px(6, 10, 1, 1, DK),
+      px(6, 11, 2, 2, WT),
+      px(8, 12, 1, 1, WT),
+      px(6, 12, 1, 1, WS),
+      px(8, 11, 1, 1, BK),
+      px(6, 13, 3, 1, BK),
+      // Tay phải + CỜ HIỆU CẢNH BÁO CAM vẫy liên tục (.pixel-cat-flag)
+      svg(
+        'g',
+        { class: 'pixel-cat-flag' },
+        // Bàn tay phải trắng giơ lên nắm cán cờ
+        px(16, 9, 3, 2, WT),
+        px(16, 8, 3, 1, BK),
+        px(16, 11, 3, 1, BK),
+        // Cán cờ đứng (x=18, y=1..12)
+        px(18, 1, 1, 11, BK),
+        px(18, 0, 1, 1, '#fbbf24'),
+        // Lá cờ cảnh báo màu cam phần phật (x=19..25, y=1..6)
+        px(19, 1, 6, 1, BK),
+        px(25, 2, 1, 4, BK),
+        px(19, 6, 6, 1, BK),
+        px(19, 2, 6, 4, '#ea580c'),
+        px(19, 2, 3, 1, '#fb923c'),
+        // Dấu chấm than trắng (!) nổi bật trên lá cờ cam
+        px(22, 2, 1, 2, WT),
+        px(22, 5, 1, 1, WT),
+      ),
+    );
+  } else {
+    // MỨC 1 (Bình thường), MỨC 4 (Nguy hiểm) hoặc khi đang kéo (dragging): 2 bàn tay trắng ôm chặt 2 bên mép khiên
+    pawsAndPropsGroup = svg(
+      'g',
+      {},
+      // Bàn tay trái đi tất trắng ôm mép trái khiên
+      px(5, 10, 1, 4, BK),
+      px(6, 10, 1, 1, DK),
+      px(6, 11, 2, 2, WT),
+      px(8, 12, 1, 1, WT),
+      px(6, 12, 1, 1, WS),
+      px(8, 11, 1, 1, BK),
+      px(6, 13, 3, 1, BK),
+      // Bàn tay phải đi tất trắng ôm mép phải khiên
+      px(17, 10, 1, 4, BK),
+      px(16, 10, 1, 1, DK),
+      px(15, 11, 2, 2, WT),
+      px(14, 12, 1, 1, WT),
+      px(16, 12, 1, 1, WS),
+      px(14, 11, 1, 1, BK),
+      px(14, 13, 3, 1, BK),
+    );
+  }
+
+  // Chiếc Khiên Pixel LỚN trước ngực mèo (rộng 11px x cao 9px: x=6..16, y=9..17)
+  const shieldAndPawsGroup = svg(
     'g',
     { class: 'pixel-cat-shield' },
-    // Viền đen ngoài của khiên pixel
-    px(2, 9, 5, 1, BK),
-    px(1, 10, 1, 4, BK),
-    px(7, 10, 1, 4, BK),
-    px(2, 14, 1, 1, BK),
-    px(6, 14, 1, 1, BK),
-    px(3, 15, 3, 1, BK),
-    // Nền màu của khiên theo 4 mức độ
-    px(2, 10, 5, 4, pal.main),
-    px(3, 14, 3, 1, pal.main),
-    // Viền sáng pixel góc trái trên & bóng đậm góc phải dưới
-    px(2, 10, 2, 1, pal.light),
-    px(2, 11, 1, 2, pal.light),
-    px(6, 11, 1, 3, pal.dark),
-    px(5, 14, 1, 1, pal.dark),
-    // Biểu tượng trắng ở tâm khiên (dấu chấm than hoặc dấu kiểm pixel)
-    isAlert
-      ? svg('g', {}, px(4, 10, 1, 2, WT), px(4, 13, 1, 1, WT))
-      : svg('g', {}, px(3, 12, 1, 1, WT), px(4, 13, 1, 1, WT), px(5, 11, 1, 2, WT)),
+    // Hào quang viền sáng đỏ khi ở mức Nguy hiểm (critical)
+    ...(level === 'critical' && pose === 'idle'
+      ? [px(6, 8, 11, 1, '#fca5a5'), px(5, 9, 1, 6, '#fca5a5'), px(17, 9, 1, 6, '#fca5a5')]
+      : []),
+    // Viền đen ngoài của chiếc khiên lớn
+    px(7, 9, 9, 1, BK),
+    px(6, 10, 1, 5, BK),
+    px(16, 10, 1, 5, BK),
+    px(7, 15, 1, 1, BK),
+    px(15, 15, 1, 1, BK),
+    px(8, 16, 2, 1, BK),
+    px(13, 16, 2, 1, BK),
+    px(10, 17, 3, 1, BK),
+    // Nền màu chính của khiên theo 4 mức độ
+    px(7, 10, 9, 5, pal.main),
+    px(8, 15, 7, 1, pal.main),
+    px(10, 16, 3, 1, pal.main),
+    // Viền sáng pixel góc trái trên & bóng khối góc phải dưới của khiên
+    px(7, 10, 4, 1, pal.light),
+    px(7, 11, 1, 3, pal.light),
+    px(8, 11, 1, 1, pal.light),
+    px(15, 11, 1, 4, pal.dark),
+    px(13, 15, 2, 1, pal.dark),
+    px(11, 16, 2, 1, pal.dark),
+    shieldEmblem,
+    pawsAndPropsGroup,
   );
 
-  return svg(
-    'svg',
-    { viewBox: '0 0 24 17', width, height, class: 'pixel-cat-svg', 'aria-hidden': 'true' },
-    svg('ellipse', { cx: 12, cy: 15.6, rx: 9.5, ry: 1.2, fill: 'rgba(15, 23, 42, 0.16)' }),
+  // Ký hiệu / Đèn còi báo động trên đầu mèo
+  let overheadBadge: SVGElement | null = null;
+  if (pose === 'pounce') {
+    // Mũi tên tâm ngắm xanh báo hiệu sẵn sàng bám xuống khung chat
+    overheadBadge = svg(
+      'g',
+      { class: 'pixel-cat-badge' },
+      px(11, 0, 1, 3, '#2563eb'),
+      px(10, 1, 3, 1, '#60a5fa'),
+    );
+  } else if (pose === 'idle' && level === 'attention') {
+    // Dấu ? xanh dương trên đầu mèo Thám tử
+    overheadBadge = svg(
+      'g',
+      { class: 'pixel-cat-badge' },
+      px(20, 0, 3, 1, BK),
+      px(19, 1, 1, 2, BK),
+      px(23, 1, 1, 2, BK),
+      px(20, 1, 3, 1, '#60a5fa'),
+      px(22, 2, 1, 1, '#2563eb'),
+      px(21, 3, 2, 1, '#2563eb'),
+      px(20, 3, 1, 2, BK),
+      px(21, 4, 1, 1, '#2563eb'),
+      px(22, 4, 1, 1, BK),
+      px(20, 6, 3, 1, BK),
+      px(21, 5, 1, 1, '#2563eb'),
+    );
+  } else if (pose === 'idle' && level === 'critical') {
+    // MỨC 4 (Nguy hiểm): ĐÈN CÒI BÁO ĐỘNG ĐỎ (Red Siren) gắn ngay trên đỉnh đầu mèo + tia chớp nhấp nháy!
+    overheadBadge = svg(
+      'g',
+      {},
+      // Đế đèn & vòm đèn còi báo động đỏ (x=9..13, y=1..4)
+      px(9, 3, 5, 1, BK),
+      px(10, 1, 3, 1, BK),
+      px(9, 2, 1, 1, BK),
+      px(13, 2, 1, 1, BK),
+      px(10, 2, 3, 1, '#dc2626'),
+      px(11, 2, 1, 1, '#fef08a'),
+      // Chùm tia sáng còi hú nhấp nháy hai bên (.pixel-cat-siren-beams)
+      svg(
+        'g',
+        { class: 'pixel-cat-siren-beams' },
+        px(7, 1, 2, 1, '#ef4444'),
+        px(6, 0, 2, 1, '#fef08a'),
+        px(14, 1, 2, 1, '#ef4444'),
+        px(15, 0, 2, 1, '#fef08a'),
+        px(11, 0, 1, 1, '#fef08a'),
+      ),
+    );
+  }
+
+  const children: SVGElement[] = [
+    svg('ellipse', {
+      cx: 12,
+      cy: 17.5,
+      rx: pose === 'dragging' ? 6.5 : 9.8,
+      ry: pose === 'dragging' ? 0.8 : 1.25,
+      fill: pose === 'dragging' ? 'rgba(15, 23, 42, 0.10)' : 'rgba(15, 23, 42, 0.18)',
+    }),
     tailGroup,
     bodyGroup,
-    shieldGroup,
+    shieldAndPawsGroup,
+  ];
+  if (overheadBadge) children.push(overheadBadge);
+
+  const poseClass = pose !== 'idle' ? ` pose-${pose}` : '';
+  return svg(
+    'svg',
+    {
+      viewBox: '0 0 26 19',
+      width,
+      height,
+      class: `pixel-cat-svg level-${level}${isBurst ? ' burst' : ''}${poseClass}`,
+      'aria-hidden': 'true',
+    },
+    ...children,
   );
 }
 
@@ -1148,19 +1796,74 @@ export function initFloatingWidget(
 
   let expandedAdvice = false;
   let spotlightTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastRiskLevel: RiskLevel = 'low';
+  let levelBurstUntil = 0;
+  let burstTimer: ReturnType<typeof setTimeout> | undefined;
+  let catPose: CatPose = 'idle';
+  let dragHoverThread: ThreadInfo | null = null;
+  let landingThreadLabel = '';
+  let landingTimer: ReturnType<typeof setTimeout> | undefined;
+  const SLEEP_IDLE_MS = 2 * 60 * 1000; // 2 phút (120.000 ms) không tương tác thì mèo nằm ngủ
+  let lastActivityAt = Date.now();
+  let lastMsgCount = 0;
+
+  function canCatSleep(): boolean {
+    if (isDragging) return false;
+    if (minimized && !session) return true;
+    if (
+      session &&
+      sessionViewMode === 'mini' &&
+      (session.result?.risk_level ?? 'low') === 'low' &&
+      session.scan?.state !== 'loading'
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  function wakeUpCatIfNeeded() {
+    lastActivityAt = Date.now();
+    if (catPose === 'sleeping' && !isDragging) {
+      clearTimeout(landingTimer);
+      catPose = 'waking';
+      renderWidget();
+      landingTimer = setTimeout(() => {
+        if (catPose === 'waking' && !isDragging) {
+          catPose = 'idle';
+          renderWidget();
+        }
+      }, 850);
+    }
+  }
+
+  function checkLevelBurst(lv: RiskLevel): boolean {
+    if (lv !== lastRiskLevel) {
+      lastRiskLevel = lv;
+      if (lv !== 'low') {
+        levelBurstUntil = Date.now() + 3100;
+        clearTimeout(burstTimer);
+        burstTimer = setTimeout(() => {
+          renderWidget();
+        }, 3150);
+      } else {
+        levelBurstUntil = 0;
+      }
+    }
+    return Date.now() < levelBurstUntil;
+  }
 
   function sendReq<T = { ok: boolean; reason?: string }>(req: PanelRequest): Promise<T> {
     return chrome.runtime.sendMessage(req) as Promise<T>;
   }
 
-  function showSpotlight(threadId: string, label: string, durationMs = 0) {
+  function showSpotlight(threadId: string, label: string, durationMs = 0, customTag?: string) {
     clearTimeout(spotlightTimer);
     const rect = getThreadRect?.(threadId);
     if (!rect || rect.width < 20 || rect.height < 20) {
       spotlightEl.style.display = 'none';
       return;
     }
-    spotlightTag.textContent = `Khung chat: ${label}`;
+    spotlightTag.textContent = customTag ?? `Khung chat: ${label}`;
     spotlightEl.style.display = 'block';
     spotlightEl.style.left = `${Math.max(2, rect.left - 4)}px`;
     spotlightEl.style.top = `${Math.max(2, rect.top - 4)}px`;
@@ -1178,6 +1881,49 @@ export function initFloatingWidget(
     spotlightEl.style.display = 'none';
   }
 
+  function findThreadUnderDrag(
+    clientX: number,
+    clientY: number,
+    boxLeft: number,
+    boxTop: number,
+    boxW: number,
+    boxH: number,
+    candidates: ThreadInfo[],
+  ): ThreadInfo | null {
+    if (!getThreadRect || candidates.length === 0) return null;
+    const pawX = boxLeft + boxW / 2;
+    const pawY = boxTop + boxH - 10;
+    const centerX = boxLeft + boxW / 2;
+    const centerY = boxTop + boxH * 0.62;
+
+    let best: ThreadInfo | null = null;
+    let bestDist = Infinity;
+
+    for (const t of candidates) {
+      const rect = getThreadRect(t.threadId);
+      if (!rect || rect.width < 40 || rect.height < 40) continue;
+      const left = rect.left - 24;
+      const right = rect.right + 24;
+      const top = rect.top - 72;
+      const bottom = rect.bottom + 16;
+
+      const pointerIn = clientX >= left && clientX <= right && clientY >= top && clientY <= bottom;
+      const pawIn = pawX >= left && pawX <= right && pawY >= top && pawY <= bottom;
+      const centerIn = centerX >= left && centerX <= right && centerY >= top && centerY <= bottom;
+
+      if (pointerIn || pawIn || centerIn) {
+        const rcx = rect.left + rect.width / 2;
+        const rcy = rect.top + Math.min(80, rect.height / 3);
+        const dist = Math.hypot(clientX - rcx, clientY - rcy);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = t;
+        }
+      }
+    }
+    return best;
+  }
+
   function clampCoords(x: number, y: number, w: number, hgt: number) {
     const maxX = Math.max(8, window.innerWidth - w - 8);
     const maxY = Math.max(8, window.innerHeight - hgt - 8);
@@ -1193,11 +1939,14 @@ export function initFloatingWidget(
     const w = rectMount.width || (session && sessionViewMode === 'mini' ? 328 : 348);
     const hgt = rectMount.height || (session && sessionViewMode === 'mini' ? 148 : 380);
 
-    if (session && dockedToChat && !session.waiting && getThreadRect) {
-      const chatRect = getThreadRect(session.threadId);
+    const dockThreadId =
+      session && !session.waiting ? session.threadId : catPose === 'landing' ? chosenThreadId : null;
+
+    if (dockThreadId && dockedToChat && getThreadRect) {
+      const chatRect = getThreadRect(dockThreadId);
       if (chatRect && chatRect.width > 40 && chatRect.height > 40) {
         mount.classList.add('docked-transition');
-        if (sessionViewMode === 'mini') {
+        if (!session || sessionViewMode === 'mini') {
           const perchEl = mount.querySelector<HTMLElement>('.cat-perch-container');
           const targetW = Math.max(280, Math.min(348, chatRect.width));
           if (perchEl) perchEl.style.width = `${targetW}px`;
@@ -1251,9 +2000,26 @@ export function initFloatingWidget(
     }
   }
 
+  mount.addEventListener('pointerenter', () => {
+    wakeUpCatIfNeeded();
+  });
+  mount.addEventListener('pointermove', () => {
+    if (!isDragging) {
+      wakeUpCatIfNeeded();
+    }
+  });
+  mount.addEventListener(
+    'pointerdown',
+    () => {
+      wakeUpCatIfNeeded();
+    },
+    true,
+  );
+
   mount.addEventListener(
     'click',
     (e) => {
+      lastActivityAt = Date.now();
       if (suppressClick) {
         e.stopPropagation();
         e.preventDefault();
@@ -1266,6 +2032,7 @@ export function initFloatingWidget(
   function bindDragHandle(el: HTMLElement) {
     el.addEventListener('pointerdown', (e: PointerEvent) => {
       if (e.button !== 0) return;
+      lastActivityAt = Date.now();
       const target = e.target as HTMLElement | null;
       if (
         target &&
@@ -1282,6 +2049,8 @@ export function initFloatingWidget(
       const origTop = box.top;
       let moved = false;
       const wasDocked = dockedToChat;
+      const isCatMode = (minimized && !session) || (Boolean(session) && sessionViewMode === 'mini');
+      let cachedThreads: ThreadInfo[] = [];
 
       const onMove = (ev: PointerEvent) => {
         const dx = ev.clientX - startX;
@@ -1292,6 +2061,13 @@ export function initFloatingWidget(
           suppressClick = true;
           dockedToChat = false;
           mount.classList.remove('docked-transition');
+          if (isCatMode) {
+            clearTimeout(landingTimer);
+            cachedThreads = probeThreads(probeLocal());
+            catPose = 'dragging';
+            dragHoverThread = null;
+            renderWidget();
+          }
         }
         if (moved) {
           const next = clampCoords(origLeft + dx, origTop + dy, box.width, box.height);
@@ -1300,6 +2076,36 @@ export function initFloatingWidget(
           mount.style.top = `${next.y}px`;
           mount.style.right = 'auto';
           mount.style.bottom = 'auto';
+
+          if (isCatMode) {
+            const hit = findThreadUnderDrag(
+              ev.clientX,
+              ev.clientY,
+              next.x,
+              next.y,
+              box.width,
+              box.height,
+              cachedThreads,
+            );
+            const prevId = dragHoverThread?.threadId ?? null;
+            const nextId = hit?.threadId ?? null;
+            const nextPose: CatPose = hit ? 'pounce' : 'dragging';
+            if (prevId !== nextId || catPose !== nextPose) {
+              dragHoverThread = hit;
+              catPose = nextPose;
+              if (hit) {
+                showSpotlight(
+                  hit.threadId,
+                  hit.threadLabel,
+                  0,
+                  `Thả mèo vào đây để khóa: ${hit.threadLabel}`,
+                );
+              } else {
+                hideSpotlight();
+              }
+              renderWidget();
+            }
+          }
         }
       };
 
@@ -1309,8 +2115,47 @@ export function initFloatingWidget(
         window.removeEventListener('pointercancel', onUp);
         if (moved) {
           isDragging = false;
-          if (wasDocked && session) {
+          if (isCatMode && dragHoverThread) {
+            const targetChat = dragHoverThread;
+            dragHoverThread = null;
+            catPose = 'landing';
+            landingThreadLabel = targetChat.threadLabel;
+            chosenThreadId = targetChat.threadId;
+            dockedToChat = true;
+            minimized = false;
+            sessionViewMode = 'mini';
+            consent = true;
+            clearTimeout(landingTimer);
+            landingTimer = setTimeout(() => {
+              catPose = 'idle';
+              renderWidget();
+            }, 1050);
+
+            if (!session) {
+              void lockThread(targetChat);
+            } else if (session.threadId !== targetChat.threadId) {
+              void (async () => {
+                await sendReq({ kind: 'stop_and_clear' });
+                await lockThread(targetChat);
+              })();
+            } else {
+              showSpotlight(
+                targetChat.threadId,
+                targetChat.threadLabel,
+                950,
+                `Đã bám vào chat: ${targetChat.threadLabel}`,
+              );
+            }
             renderWidget();
+          } else {
+            if (isCatMode) {
+              catPose = 'idle';
+              dragHoverThread = null;
+              hideSpotlight();
+              renderWidget();
+            } else if (wasDocked && session) {
+              renderWidget();
+            }
           }
           setTimeout(() => {
             suppressClick = false;
@@ -1451,7 +2296,7 @@ export function initFloatingWidget(
         h(
           'div',
           { class: 'sub-card' },
-          pixelCatShieldSvg(lv, 92, 65),
+          pixelCatShieldSvg(lv, 96, 70, checkLevelBurst(lv)),
           h('div', { class: `level-pill ${lv}`, style: 'margin-top:4px' }, LEVEL_DISPLAY[lv]),
           h('div', { class: 'level-status-sub' }, LEVEL_SUBTITLE[lv]),
         ),
@@ -1714,21 +2559,60 @@ export function initFloatingWidget(
   }
 
   function renderWidget() {
-    // 1. Mặc định khi mở lên (hoặc thu gọn khi chưa khóa chat): chú mèo Tuxedo Pixel cầm khiên + nút Quét chat
-    if (minimized && !session) {
+    // 1. Mặc định khi mở lên (hoặc thu gọn khi chưa khóa chat, hoặc đang kéo/nhảy đáp/ngủ): chú mèo Tuxedo Pixel cầm khiên + nút Quét chat
+    if ((minimized || catPose !== 'idle') && !session) {
       const openAndScan = () => {
+        catPose = 'idle';
+        lastActivityAt = Date.now();
         minimized = false;
         runScan();
       };
+      const bubbleTitle =
+        catPose === 'pounce' && dragHoverThread
+          ? `Nhận diện: ${dragHoverThread.threadLabel}`
+          : catPose === 'dragging'
+            ? 'Kéo mèo thả vào khung chat để bám & khóa'
+            : catPose === 'landing'
+              ? `Đã bám vào: ${landingThreadLabel || 'đoạn chat'}!`
+              : catPose === 'sleeping'
+                ? 'Zzz... Mèo đang ngủ nghỉ ngơi'
+                : catPose === 'waking'
+                  ? 'Meow! Mèo đã thức dậy!'
+                  : 'Bấm vào mèo để quét đoạn chat';
+      const bubbleSub =
+        catPose === 'pounce' && dragHoverThread
+          ? 'Thả chuột ra để mèo vồ bám & khóa ngay!'
+          : catPose === 'landing'
+            ? 'Đang khóa và bắt đầu quét tin nhắn...'
+            : catPose === 'sleeping'
+              ? 'Chạm chuột hoặc nắm kéo để gọi mèo dậy'
+              : 'Hoặc kéo mèo thả thẳng vào khung chat';
+      const shieldTagText =
+        catPose === 'pounce'
+          ? 'Thả để khóa!'
+          : catPose === 'dragging'
+            ? 'Đang kéo...'
+            : catPose === 'landing'
+              ? 'Đã bám chat!'
+              : catPose === 'sleeping'
+                ? 'Zzz Đang ngủ'
+                : catPose === 'waking'
+                  ? 'Sẵn sàng!'
+                  : 'Quét chat';
+
       const catBtn = h(
         'button',
         {
           class: 'cat-stage-btn',
-          title: 'Kéo để di chuyển · Bấm vào mèo để quét đoạn chat',
+          title: 'Giữ kéo mèo thả vào khung chat để khóa ngay · Hoặc bấm để quét đoạn chat',
           onclick: openAndScan,
         },
-        pixelCatShieldSvg('low', 88, 62),
-        h('span', { class: 'cat-shield-tag attention' }, 'Quét chat'),
+        pixelCatShieldSvg('low', 88, 62, false, catPose),
+        h(
+          'span',
+          { class: `cat-shield-tag ${catPose === 'pounce' || catPose === 'landing' || catPose === 'sleeping' ? 'low' : 'attention'}` },
+          shieldTagText,
+        ),
       );
       bindDragHandle(catBtn);
 
@@ -1738,11 +2622,12 @@ export function initFloatingWidget(
         h(
           'div',
           {
-            class: 'cat-bubble attention',
-            style: 'padding:6px 10px;width:auto;max-width:220px;cursor:pointer',
+            class: `cat-bubble ${catPose === 'pounce' || catPose === 'landing' || catPose === 'sleeping' ? 'low' : 'attention'}`,
+            style: 'padding:6px 10px;width:auto;max-width:236px;cursor:pointer',
             onclick: openAndScan,
           },
-          h('div', { style: 'font-size:11px;font-weight:700;color:#1e293b;text-align:center' }, 'Bấm vào mèo để quét đoạn chat'),
+          h('div', { style: 'font-size:11px;font-weight:700;color:#1e293b;text-align:center' }, bubbleTitle),
+          h('div', { style: 'font-size:10px;color:#475569;text-align:center;margin-top:2px' }, bubbleSub),
         ),
         catBtn,
       );
@@ -1943,53 +2828,85 @@ export function initFloatingWidget(
     const otherOpenThreads = probeThreads(probeLocal()).filter((t) => t.threadId !== session?.threadId);
 
     if (sessionViewMode === 'mini') {
-      const suggestionText = session.waiting
-        ? `Khung chat "${session.threadLabel}" đã đóng — mở lại hoặc chọn chat khác bên dưới.`
-        : session.readerError
-          ? session.readerError
-          : r?.safety_priority && r.advice.safety_message
-            ? r.advice.safety_message
-            : latestSig
-              ? `${r?.advice.focus_title ?? latestSig.title}${topAction ? ` — Gợi ý: ${topAction}` : ''}`
-              : topAction && lv !== 'low'
-                ? `Gợi ý: ${topAction}`
-                : session.scan?.state === 'loading'
-          ? session.scan.scroll === false
-            ? 'Đang đọc các tin đang hiển thị…'
-            : `Đang đọc lịch sử, tối đa ${session.scan.target} tin…`
-          : `Đang canh gác (${session.transcript.messages.length} tin) · ${LEVEL_SUBTITLE[lv]}`;
+      const suggestionText =
+        catPose === 'pounce' && dragHoverThread
+          ? dragHoverThread.threadId === session.threadId
+            ? `Thả chuột để mèo bám lại lên đỉnh khung chat "${dragHoverThread.threadLabel}"!`
+            : `Nhận diện: "${dragHoverThread.threadLabel}" — Thả chuột ra để mèo nhảy sang bám & khóa đoạn chat này!`
+          : catPose === 'dragging'
+            ? 'Kéo mèo tới vị trí bất kỳ, hoặc thả vào khung chat khác để đổi sang khóa & quét chat đó.'
+            : catPose === 'landing'
+              ? `Đã bám chặt vào khung chat "${landingThreadLabel || session.threadLabel}"! Đang canh gác...`
+              : catPose === 'sleeping'
+                ? 'Zzz... Cuộc trò chuyện đang yên ắng. Chạm chuột hoặc nắm kéo để gọi mèo dậy!'
+                : catPose === 'waking'
+                  ? 'Meow! Mèo đã tỉnh dậy và tiếp tục canh gác đoạn chat này!'
+                  : session.waiting
+                    ? `Khung chat "${session.threadLabel}" đã đóng — mở lại hoặc chọn chat khác bên dưới.`
+                    : session.readerError
+                      ? session.readerError
+                      : r?.safety_priority && r.advice.safety_message
+                        ? r.advice.safety_message
+                        : latestSig
+                          ? `${r?.advice.focus_title ?? latestSig.title}${topAction ? ` — Gợi ý: ${topAction}` : ''}`
+                          : topAction && lv !== 'low'
+                            ? `Gợi ý: ${topAction}`
+                            : session.scan?.state === 'loading'
+                              ? session.scan.scroll === false
+                                ? 'Đang đọc các tin đang hiển thị…'
+                                : `Đang đọc lịch sử, tối đa ${session.scan.target} tin…`
+                              : `Đang canh gác (${session.transcript.messages.length} tin) · ${LEVEL_SUBTITLE[lv]}`;
 
       const bubbleHead = h(
         'div',
         {
           class: 'bubble-top drag-handle',
           title: dockedToChat
-            ? 'Đang bám trên đỉnh khung chat · Giữ kéo để tách rời tới vị trí bất kỳ'
-            : 'Chế độ tự do · Giữ kéo để di chuyển hoặc bấm Ghim để mèo bám lại lên khung chat',
+            ? 'Đang bám trên đỉnh khung chat · Giữ kéo để tách rời hoặc thả vào chat khác'
+            : 'Chế độ tự do · Giữ kéo thả vào chat để bám hoặc bấm Ghim lên chat',
         },
         h(
           'div',
           { class: 'bubble-thread-wrap' },
           h('span', { class: `dot${session.status !== 'tracking' || session.waiting ? ' paused' : ''}` }),
-          h('span', { class: 'bubble-thread-name', title: session.threadLabel }, session.threadLabel),
+          h(
+            'span',
+            { class: 'bubble-thread-name', title: dragHoverThread?.threadLabel ?? session.threadLabel },
+            catPose === 'pounce' && dragHoverThread ? `→ ${dragHoverThread.threadLabel}` : session.threadLabel,
+          ),
         ),
         h('span', { class: `level-pill ${lv}` }, LEVEL_DISPLAY[lv]),
       );
       bindDragHandle(bubbleHead);
 
+      const isBurst = checkLevelBurst(lv);
+      const miniShieldTag =
+        catPose === 'pounce'
+          ? 'Thả để khóa!'
+          : catPose === 'dragging'
+            ? 'Đang kéo...'
+            : catPose === 'landing'
+              ? 'Đã bám chat!'
+              : catPose === 'sleeping'
+                ? 'Zzz Đang ngủ'
+                : catPose === 'waking'
+                  ? 'Sẵn sàng!'
+                  : LEVEL_DISPLAY[lv];
       const catStageBtn = h(
         'button',
         {
           class: 'cat-stage-btn',
-          title: 'Bấm vào mèo để mở bảng Chi tiết bên cạnh khung chat · Giữ kéo để di chuyển',
+          title: 'Bấm vào mèo để mở bảng Chi tiết bên cạnh khung chat · Giữ kéo thả vào khung chat để bám',
           onclick: () => {
+            catPose = 'idle';
+            lastActivityAt = Date.now();
             sessionViewMode = 'detail';
             detailTab = sigCount > 0 ? 'evaluate' : 'overview';
             renderWidget();
           },
         },
-        pixelCatShieldSvg(lv, 98, 68),
-        h('span', { class: `cat-shield-tag ${lv}` }, LEVEL_DISPLAY[lv]),
+        pixelCatShieldSvg(lv, 102, 74, isBurst, catPose),
+        h('span', { class: `cat-shield-tag ${lv}` }, miniShieldTag),
       );
       bindDragHandle(catStageBtn);
 
@@ -2280,6 +3197,17 @@ export function initFloatingWidget(
   window.addEventListener('scroll', () => updateWidgetPosition(), true);
   setInterval(() => {
     if (isDragging) return;
+    if (catPose === 'sleeping' && !canCatSleep()) {
+      catPose = 'idle';
+      lastActivityAt = Date.now();
+      renderWidget();
+      return;
+    }
+    if (catPose === 'idle' && canCatSleep() && Date.now() - lastActivityAt >= SLEEP_IDLE_MS) {
+      catPose = 'sleeping';
+      renderWidget();
+      return;
+    }
     if (session && dockedToChat && !session.waiting) {
       updateWidgetPosition();
     }
@@ -2298,6 +3226,7 @@ export function initFloatingWidget(
     ?.get?.(SESSION_KEY)
     .then((res) => {
       session = (res?.[SESSION_KEY] as Session | undefined) ?? null;
+      lastMsgCount = session?.transcript.messages.length ?? 0;
       renderWidget();
     })
     .catch(() => renderWidget());
@@ -2306,6 +3235,22 @@ export function initFloatingWidget(
     if (SESSION_KEY in changes) {
       const prev = session;
       session = (changes[SESSION_KEY]?.newValue as Session | undefined) ?? null;
+      const nextMsgCount = session?.transcript.messages.length ?? 0;
+      const nextLv = session?.result?.risk_level ?? 'low';
+      if (nextMsgCount !== lastMsgCount || nextLv !== 'low') {
+        lastMsgCount = nextMsgCount;
+        lastActivityAt = Date.now();
+        if (catPose === 'sleeping') {
+          catPose = 'waking';
+          clearTimeout(landingTimer);
+          landingTimer = setTimeout(() => {
+            if (catPose === 'waking' && !isDragging) {
+              catPose = 'idle';
+              renderWidget();
+            }
+          }, 850);
+        }
+      }
       if (!prev && session) {
         sessionViewMode = 'mini';
         dockedToChat = true;

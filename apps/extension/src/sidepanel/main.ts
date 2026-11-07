@@ -174,113 +174,268 @@ function catShieldSvg(level: RiskLevel): SVGElement {
   const LT = '#343946';
   const PK = '#f9a8ba';
   const NS = '#fb7185';
-  const EY = level === 'critical' ? '#fde047' : '#f59e0b';
   const WT = '#ffffff';
   const WS = '#dbe4f0';
   const pal = SHIELD_PIXEL_PALETTE[level];
-  const isAlert = level === 'high' || level === 'critical';
+
+  let eyesAndBrows: SVGElement;
+  if (level === 'attention') {
+    eyesAndBrows = svg(
+      'g',
+      {},
+      px(7, 5, 2, 1, BK),
+      px(13, 4, 2, 1, BK),
+      px(8, 6, 1, 1, '#38bdf8'),
+      px(8, 7, 1, 1, '#f59e0b'),
+      px(13, 6, 1, 1, '#38bdf8'),
+      px(13, 7, 1, 1, '#f59e0b'),
+    );
+  } else if (level === 'high') {
+    eyesAndBrows = svg(
+      'g',
+      {},
+      px(7, 5, 2, 1, BK),
+      px(9, 6, 1, 1, BK),
+      px(13, 5, 2, 1, BK),
+      px(12, 6, 1, 1, BK),
+      px(8, 6, 1, 1, '#fb923c'),
+      px(8, 7, 1, 1, BK),
+      px(13, 6, 1, 1, '#fb923c'),
+      px(13, 7, 1, 1, BK),
+    );
+  } else if (level === 'critical') {
+    eyesAndBrows = svg(
+      'g',
+      {},
+      px(7, 5, 2, 1, '#fca5a5'),
+      px(9, 6, 1, 1, BK),
+      px(13, 5, 2, 1, '#fca5a5'),
+      px(12, 6, 1, 1, BK),
+      px(8, 6, 1, 1, '#fef08a'),
+      px(8, 7, 1, 1, '#ef4444'),
+      px(13, 6, 1, 1, '#fef08a'),
+      px(13, 7, 1, 1, '#ef4444'),
+    );
+  } else {
+    // Mức 1 (Bình thường): mắt híp cong vui vẻ ^ ^
+    eyesAndBrows = svg(
+      'g',
+      {},
+      px(7, 6, 2, 1, '#f59e0b'),
+      px(7, 7, 1, 1, BK),
+      px(9, 7, 1, 1, BK),
+      px(13, 6, 2, 1, '#f59e0b'),
+      px(12, 7, 1, 1, BK),
+      px(14, 7, 1, 1, BK),
+    );
+  }
+
+  let shieldEmblem: SVGElement;
+  if (level === 'low') {
+    shieldEmblem = svg(
+      'g',
+      {},
+      px(9, 13, 1, 1, WT),
+      px(10, 14, 1, 1, WT),
+      px(11, 13, 1, 1, WT),
+      px(12, 12, 1, 1, WT),
+      px(13, 11, 1, 1, WT),
+    );
+  } else if (level === 'attention') {
+    shieldEmblem = svg(
+      'g',
+      {},
+      px(10, 11, 3, 1, WT),
+      px(12, 12, 1, 1, WT),
+      px(11, 13, 1, 1, WT),
+      px(11, 15, 1, 1, WT),
+    );
+  } else if (level === 'high') {
+    shieldEmblem = svg('g', {}, px(11, 11, 1, 3, WT), px(11, 15, 1, 1, WT));
+  } else {
+    shieldEmblem = svg('g', {}, px(10, 11, 3, 1, '#fef08a'), px(11, 12, 1, 2, WT), px(11, 15, 1, 1, WT));
+  }
+
+  let overheadBadge: SVGElement | null = null;
+  if (level === 'attention') {
+    // Mức 2 (Cần chú ý): Kính lúp thám tử soi trước mắt + dấu ? trên đầu
+    overheadBadge = svg(
+      'g',
+      {},
+      px(2, 4, 4, 1, BK),
+      px(1, 5, 1, 3, BK),
+      px(6, 5, 1, 3, BK),
+      px(2, 8, 4, 1, BK),
+      px(2, 5, 4, 3, '#bae6fd'),
+      px(2, 5, 2, 1, WT),
+      px(2, 6, 1, 1, WT),
+      px(5, 8, 1, 1, '#92400e'),
+      px(6, 9, 1, 1, '#78350f'),
+      px(7, 10, 1, 1, BK),
+      px(4, 10, 2, 2, WT),
+      px(4, 9, 2, 1, BK),
+      px(3, 10, 1, 2, BK),
+      px(4, 12, 2, 1, BK),
+      px(20, 0, 3, 1, BK),
+      px(19, 1, 1, 2, BK),
+      px(23, 1, 1, 2, BK),
+      px(20, 1, 3, 1, '#60a5fa'),
+      px(22, 2, 1, 1, '#2563eb'),
+      px(21, 3, 2, 1, '#2563eb'),
+      px(20, 3, 1, 2, BK),
+      px(21, 4, 1, 1, '#2563eb'),
+      px(22, 4, 1, 1, BK),
+      px(20, 6, 3, 1, BK),
+      px(21, 5, 1, 1, '#2563eb'),
+    );
+  } else if (level === 'high') {
+    // Mức 3 (Cao): Cờ hiệu cảnh báo màu cam có dấu ! trắng
+    overheadBadge = svg(
+      'g',
+      {},
+      px(19, 1, 1, 11, BK),
+      px(19, 0, 1, 1, '#facc15'),
+      px(20, 1, 6, 1, BK),
+      px(20, 6, 6, 1, BK),
+      px(25, 2, 1, 4, BK),
+      px(20, 2, 5, 4, '#ea580c'),
+      px(20, 2, 4, 1, '#fb923c'),
+      px(22, 2, 1, 2, WT),
+      px(22, 5, 1, 1, WT),
+      px(17, 9, 2, 2, WT),
+      px(17, 8, 2, 1, BK),
+      px(17, 11, 2, 1, BK),
+    );
+  } else if (level === 'critical') {
+    // Mức 4 (Nguy hiểm): Đèn còi báo động đỏ (Red Siren) + tia sáng chớp + dấu !!
+    overheadBadge = svg(
+      'g',
+      {},
+      px(9, 3, 5, 1, BK),
+      px(10, 1, 3, 2, '#dc2626'),
+      px(10, 1, 1, 1, '#fca5a5'),
+      px(11, 2, 1, 1, '#fef08a'),
+      px(9, 1, 1, 2, BK),
+      px(13, 1, 1, 2, BK),
+      px(10, 0, 3, 1, BK),
+      px(7, 0, 1, 1, '#fef08a'),
+      px(8, 1, 1, 1, '#ef4444'),
+      px(15, 0, 1, 1, '#fef08a'),
+      px(14, 1, 1, 1, '#ef4444'),
+      px(6, 2, 2, 1, '#f97316'),
+      px(15, 2, 2, 1, '#f97316'),
+      px(19, 0, 2, 4, BK),
+      px(19, 1, 1, 2, '#fef08a'),
+      px(19, 5, 2, 1, '#ef4444'),
+      px(22, 0, 2, 4, BK),
+      px(22, 1, 1, 2, '#fef08a'),
+      px(22, 5, 2, 1, '#ef4444'),
+    );
+  }
+
+  const children: SVGElement[] = [
+    svg('ellipse', { cx: 12, cy: 17.4, rx: 9.8, ry: 1.25, fill: 'rgba(15, 23, 42, 0.18)' }),
+    // Đuôi pixel bậc thang bên phải (có chóp đuôi trắng Tuxedo)
+    px(16, 13, 2, 1, BK),
+    px(17, 12, 2, 1, BK),
+    px(18, 11, 2, 1, BK),
+    px(19, 9, 2, 2, BK),
+    px(20, 8, 3, 1, BK),
+    px(22, 9, 2, 3, BK),
+    px(21, 12, 2, 1, BK),
+    px(20, 13, 2, 1, BK),
+    px(19, 14, 2, 1, BK),
+    px(17, 15, 3, 1, BK),
+    px(16, 14, 3, 1, DK),
+    px(18, 12, 3, 2, DK),
+    px(20, 11, 2, 1, DK),
+    px(20, 9, 2, 2, WT),
+    // Tai trái pixel
+    px(6, 2, 3, 1, BK),
+    px(5, 3, 1, 2, BK),
+    px(9, 3, 1, 2, BK),
+    px(6, 3, 1, 2, PK),
+    px(7, 4, 1, 1, PK),
+    px(7, 3, 2, 1, LT),
+    px(8, 4, 1, 1, DK),
+    // Tai phải pixel
+    px(14, 2, 3, 1, BK),
+    px(13, 3, 1, 2, BK),
+    px(17, 3, 1, 2, BK),
+    px(16, 3, 1, 2, PK),
+    px(15, 4, 1, 1, PK),
+    px(14, 3, 2, 1, LT),
+    px(14, 4, 1, 1, DK),
+    // Đầu mèo Tuxedo nhô trên đỉnh khiên
+    px(10, 4, 3, 1, BK),
+    px(5, 5, 1, 5, BK),
+    px(17, 5, 1, 5, BK),
+    px(6, 5, 11, 5, DK),
+    px(16, 5, 1, 4, LT),
+    px(10, 6, 2, 1, WT),
+    px(9, 7, 4, 1, WT),
+    px(8, 8, 6, 2, WT),
+    px(7, 9, 8, 1, WT),
+    px(10, 7, 2, 1, NS),
+    px(10, 8, 2, 1, level === 'critical' ? '#ef4444' : level === 'high' ? '#94a3b8' : WS),
+    px(3, 7, 2, 1, BK),
+    px(3, 9, 2, 1, BK),
+    px(18, 7, 2, 1, BK),
+    px(18, 9, 2, 1, BK),
+    eyesAndBrows,
+    // Bàn chân sau đi tất trắng lấp ló hai bên đáy khiên
+    px(6, 16, 2, 1, WT),
+    px(6, 17, 2, 1, BK),
+    px(15, 16, 2, 1, WT),
+    px(15, 17, 2, 1, BK),
+    // Khiên Pixel LỚN trước ngực (11x9 pixel, x=6..16, y=9..17)
+    px(7, 9, 9, 1, BK),
+    px(6, 10, 1, 5, BK),
+    px(16, 10, 1, 5, BK),
+    px(7, 15, 1, 1, BK),
+    px(15, 15, 1, 1, BK),
+    px(8, 16, 2, 1, BK),
+    px(13, 16, 2, 1, BK),
+    px(10, 17, 3, 1, BK),
+    px(7, 10, 9, 5, pal.main),
+    px(8, 15, 7, 1, pal.main),
+    px(10, 16, 3, 1, pal.main),
+    px(7, 10, 4, 1, pal.light),
+    px(7, 11, 1, 3, pal.light),
+    px(8, 11, 1, 1, pal.light),
+    px(15, 11, 1, 4, pal.dark),
+    px(13, 15, 2, 1, pal.dark),
+    px(11, 16, 2, 1, pal.dark),
+    shieldEmblem,
+    // Hai bàn tay đi tất trắng vòng ra hai bên mép khiên ôm chặt lấy khiên
+    px(5, 10, 1, 4, BK),
+    px(6, 10, 1, 1, DK),
+    px(6, 11, 2, 2, WT),
+    px(8, 12, 1, 1, WT),
+    px(6, 12, 1, 1, WS),
+    px(8, 11, 1, 1, BK),
+    px(6, 13, 3, 1, BK),
+    px(17, 10, 1, 4, BK),
+    px(16, 10, 1, 1, DK),
+    px(15, 11, 2, 2, WT),
+    px(14, 12, 1, 1, WT),
+    px(16, 12, 1, 1, WS),
+    px(14, 11, 1, 1, BK),
+    px(14, 13, 3, 1, BK),
+  ];
+  if (overheadBadge) children.push(overheadBadge);
 
   return svg(
     'svg',
     {
-      viewBox: '0 0 24 17',
-      width: 96,
-      height: 68,
+      viewBox: '0 0 26 19',
+      width: 98,
+      height: 72,
       class: 'mascot-float',
       'shape-rendering': 'crispEdges',
       'aria-hidden': 'true',
     },
-    svg('ellipse', { cx: 12, cy: 15.6, rx: 9.5, ry: 1.2, fill: 'rgba(15, 23, 42, 0.16)' }),
-    // Đuôi pixel bậc thang bên phải (có chóp đuôi trắng Tuxedo)
-    px(15, 12, 2, 1, BK),
-    px(16, 11, 2, 1, BK),
-    px(17, 10, 2, 1, BK),
-    px(18, 8, 2, 2, BK),
-    px(19, 7, 3, 1, BK),
-    px(21, 8, 2, 3, BK),
-    px(20, 11, 2, 1, BK),
-    px(19, 12, 2, 1, BK),
-    px(18, 13, 2, 1, BK),
-    px(16, 14, 3, 1, BK),
-    px(15, 13, 3, 1, DK),
-    px(17, 11, 3, 2, DK),
-    px(19, 10, 2, 1, DK),
-    px(19, 8, 2, 2, WT),
-    // Tai trái pixel
-    px(6, 1, 3, 1, BK),
-    px(5, 2, 1, 2, BK),
-    px(9, 2, 1, 2, BK),
-    px(6, 2, 1, 2, PK),
-    px(7, 3, 1, 1, PK),
-    px(7, 2, 2, 1, LT),
-    px(8, 3, 1, 1, DK),
-    // Tai phải pixel
-    px(14, 1, 3, 1, BK),
-    px(13, 2, 1, 2, BK),
-    px(17, 2, 1, 2, BK),
-    px(16, 2, 1, 2, PK),
-    px(15, 3, 1, 1, PK),
-    px(14, 2, 2, 1, LT),
-    px(14, 3, 1, 1, DK),
-    // Đầu, mặt nạ trắng Tuxedo, râu ngang & mắt 2 tầng pixel
-    px(10, 3, 3, 1, BK),
-    px(5, 4, 1, 5, BK),
-    px(17, 4, 1, 5, BK),
-    px(6, 4, 11, 5, DK),
-    px(16, 4, 1, 4, LT),
-    px(10, 5, 2, 1, WT),
-    px(9, 6, 4, 1, WT),
-    px(8, 7, 6, 2, WT),
-    px(7, 8, 8, 1, WT),
-    px(10, 6, 2, 1, NS),
-    px(10, 7, 2, 1, WS),
-    px(3, 6, 2, 1, BK),
-    px(3, 8, 2, 1, BK),
-    px(18, 6, 2, 1, BK),
-    px(18, 8, 2, 1, BK),
-    px(8, 5, 1, 1, EY),
-    px(8, 6, 1, 1, BK),
-    px(13, 5, 1, 1, EY),
-    px(13, 6, 1, 1, BK),
-    // Cằm & thân mèo Tuxedo (yếm ngực trắng + tất chân trắng)
-    px(6, 9, 2, 1, BK),
-    px(14, 9, 3, 1, BK),
-    px(8, 9, 6, 1, WT),
-    px(7, 10, 1, 5, BK),
-    px(8, 10, 6, 5, DK),
-    px(14, 10, 1, 2, BK),
-    px(15, 12, 1, 1, BK),
-    px(14, 12, 1, 3, DK),
-    px(15, 13, 1, 2, DK),
-    px(16, 14, 1, 1, BK),
-    px(9, 10, 4, 3, WT),
-    px(10, 13, 2, 1, WT),
-    px(9, 12, 1, 1, WS),
-    px(12, 12, 1, 1, WS),
-    px(8, 14, 2, 1, WT),
-    px(11, 14, 1, 1, WT),
-    px(13, 14, 2, 1, WT),
-    px(8, 15, 2, 1, BK),
-    px(10, 14, 1, 1, BK),
-    px(11, 15, 1, 1, BK),
-    px(12, 14, 1, 1, BK),
-    px(13, 15, 3, 1, BK),
-    // Khiên Pixel bên tay trái
-    px(2, 9, 5, 1, BK),
-    px(1, 10, 1, 4, BK),
-    px(7, 10, 1, 4, BK),
-    px(2, 14, 1, 1, BK),
-    px(6, 14, 1, 1, BK),
-    px(3, 15, 3, 1, BK),
-    px(2, 10, 5, 4, pal.main),
-    px(3, 14, 3, 1, pal.main),
-    px(2, 10, 2, 1, pal.light),
-    px(2, 11, 1, 2, pal.light),
-    px(6, 11, 1, 3, pal.dark),
-    px(5, 14, 1, 1, pal.dark),
-    isAlert
-      ? svg('g', {}, px(4, 10, 1, 2, WT), px(4, 13, 1, 1, WT))
-      : svg('g', {}, px(3, 12, 1, 1, WT), px(4, 13, 1, 1, WT), px(5, 11, 1, 2, WT)),
+    ...children,
   );
 }
 
