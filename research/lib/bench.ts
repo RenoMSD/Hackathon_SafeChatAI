@@ -12,7 +12,7 @@ import type { ChatMessage, RiskLevel } from '@safechat/core/types';
 import { RISK_LEVEL_ORDER } from '@safechat/core/types';
 
 export type BenchConfig = 'rules' | 'ai' | 'hybrid' | 'hybrid-veto' | 'hybrid-hint' | 'gateway' | 'gateway-nocal' | 'replay-rules' | 'replay-rules-raw' | 'replay-hybrid';
-export const PROMPT_VERSION = 'bench-v4';
+export const PROMPT_VERSION = 'bench-v5';
 
 const LEVEL_INSTRUCTION = `
 Ngoài ra, trả thêm trường "risk_level" — đánh giá TỔNG THỂ của bạn về cuộc trò chuyện tới tin cuối:

@@ -124,7 +124,9 @@ export class OpenRouterClient {
       if (wait > 0) await this.sleep(wait);
       this.lastCallAt = this.now();
       const t0 = this.now();
-      const res = await this.fetchImpl(`${this.o.baseUrl ?? OPENROUTER_URL}/chat/completions`, {
+      let res: Response;
+      try {
+        res = await this.fetchImpl(`${this.o.baseUrl ?? OPENROUTER_URL}/chat/completions`, {
         method: 'POST',
         signal: AbortSignal.timeout(timeoutMs),
         headers: {
@@ -144,6 +146,14 @@ export class OpenRouterClient {
           ],
         }),
       });
+      } catch (e) {
+        // Lỗi mạng: thử lại như lỗi 5xx, chưa nhận phản hồi nên không tính lượt.
+        if (attempt < maxRetries) {
+          await this.sleep(2000 * (attempt + 1));
+          continue;
+        }
+        throw e;
+      }
       this.addUsage();
       if (res.ok) {
         const data = (await res.json()) as {

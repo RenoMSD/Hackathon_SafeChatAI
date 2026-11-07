@@ -307,6 +307,23 @@ describe('client OpenRouter (fetch giả)', () => {
     await expect(client.chat(req)).rejects.toBeInstanceOf(DailyCapReached);
     expect(calls).toHaveLength(1);
   });
+  it('lỗi mạng thì thử lại, hết số lần mới báo lỗi', async () => {
+    let n = 0;
+    const client = new OpenRouterClient({
+      apiKey: 'k', cacheDir: mkdtempSync(join(tmpdir(), 'or-')), dailyCap: 10, minIntervalMs: 0, maxRetries: 2, sleep: async () => {},
+      fetchImpl: (async () => {
+        if (++n < 3) throw new TypeError('fetch failed');
+        return ok('{}');
+      }) as unknown as typeof fetch,
+    });
+    expect((await client.chat(req)).content).toBe('{}');
+    expect(n).toBe(3);
+    const failing = new OpenRouterClient({
+      apiKey: 'k', cacheDir: mkdtempSync(join(tmpdir(), 'or-')), dailyCap: 10, minIntervalMs: 0, maxRetries: 1, sleep: async () => {},
+      fetchImpl: (async () => { throw new TypeError('fetch failed'); }) as unknown as typeof fetch,
+    });
+    await expect(failing.chat(req)).rejects.toThrow('fetch failed');
+  });
   it('hết hạn mức ngày: giữ lại lời báo có số đã dùng', async () => {
     const body = JSON.stringify({ error: { message: 'Limit 200000, Used 199000 tokens per day (TPD). Please try again in 3m' } });
     const { client } = make([() => new Response(body, { status: 429 })]);
@@ -484,7 +501,7 @@ describe('tập tune/check đã khóa', () => {
 describe('cấu hình so sánh', () => {
   const m: ChatMessage[] = [{ id: 'msg-001', seq: 1, sender: 'other', text: 'Ck vô stk 9988776655 giúp mình nhé' }];
   it('prompt AI-only không chứa tín hiệu luật, prompt hint thì có, có schema JSON và đúng PROMPT_VERSION', () => {
-    expect(PROMPT_VERSION).toBe('bench-v4');
+    expect(PROMPT_VERSION).toBe('bench-v5');
     expect(benchRequest(m, false).user).toContain('<rule_signals>[]</rule_signals>');
     expect(benchRequest(m, true).user).toContain('money_transfer');
     expect(benchRequest(m, false).system).toContain('risk_level');
