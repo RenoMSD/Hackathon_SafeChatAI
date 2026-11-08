@@ -311,7 +311,7 @@ describe('app', () => {
         inputTokens: 20,
         outputTokens: 10,
       });
-    const { app, token } = setup({}, { complete });
+    const { app, token } = setup({ groqModelSmall: 'small-model', groqModelLarge: 'large-model' }, { complete });
     const res = await post(app, '/v1/analyses', analysisBody(), token);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { usage: { tier: string; inputTokens: number }; summary: string };
@@ -324,6 +324,38 @@ describe('app', () => {
     expect(firstPrompt.system).toContain('LƯỢT NHANH');
     expect(secondPrompt.system).toContain('LƯỢT SÂU');
     expect(secondPrompt.system).not.toContain('LƯỢT NHANH');
+  });
+
+  it('không leo tầng khi model nhỏ và lớn là cùng một model: chỉ gọi 1 lượt', async () => {
+    const complete = vi.fn().mockResolvedValue({
+      content: JSON.stringify({
+        signals: [
+          {
+            type: 'threat_direct',
+            category: 'pressure',
+            severity: 'high',
+            title: 'Đe dọa',
+            explanation: 'x',
+            evidence_message_ids: ['m1'],
+            evidence_quotes: ['Gửi OTP để xác minh tài khoản'],
+            recommended_action: 'x',
+            confidence: 0.8,
+          },
+        ],
+        summary: 'nhỏ',
+        uncertainties: [],
+      }),
+      model: 'openai/gpt-oss-120b',
+      inputTokens: 10,
+      outputTokens: 5,
+    });
+    const { app, token } = setup({ groqModelSmall: 'openai/gpt-oss-120b', groqModelLarge: 'openai/gpt-oss-120b' }, { complete });
+    const res = await post(app, '/v1/analyses', analysisBody(), token);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { usage: { tier: string; inputTokens: number } };
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(body.usage.tier).toBe('small');
+    expect(body.usage.inputTokens).toBe(10);
   });
 
   it('lỗi đọc kết quả AI không ghi nội dung chat vào log', async () => {

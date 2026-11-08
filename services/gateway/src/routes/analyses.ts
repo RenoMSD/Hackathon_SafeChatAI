@@ -92,7 +92,10 @@ analysesRoute.post('/', async (c) => {
       throw modelUnavailable('Không đọc được kết quả AI', (e as Error).message);
     }
 
-    if (req.tier === 'small' && cfg.aiEscalation && shouldEscalate(parsed.signals, 1)) {
+    // Cùng một model cho hai tầng thì leo tầng chỉ gọi lại đúng model đó: tốn gấp đôi token mà không thêm
+    // thông tin, và lệch với cách đã đo trên tune (mỗi ca một lượt). Chỉ leo khi model lớn thật sự khác.
+    const canEscalate = cfg.aiEscalation && cfg.groqModelLarge !== cfg.groqModelSmall;
+    if (req.tier === 'small' && canEscalate && shouldEscalate(parsed.signals, 1)) {
       let largePrompt: ReturnType<typeof buildGatewayPrompt> | undefined;
       try {
         largePrompt = buildGatewayPrompt(req, cfg, 'large');
