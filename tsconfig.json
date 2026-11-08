@@ -13,5 +13,5 @@
     "noEmit": true
   },
   "include": ["packages", "apps", "services", "research", "scripts", "fixtures"],
-  "exclude": ["**/node_modules", "**/dist", "**/cdk.out", "**/.aws-sam", "apps/mobile/android"]
+  "exclude": ["**/node_modules", "**/dist", "**/cdk.out", "**/.aws-sam"]
 }

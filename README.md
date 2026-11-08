@@ -33,7 +33,7 @@ AI_PROVIDER=groq TOKEN_SECRET="$(node -e "console.log('x'.repeat(40))")" GROQ_AP
 | `main` | Cả nhóm | Luôn xanh. Chỉ nhận thay đổi qua PR |
 | `duy/ai-eval` | Duy | `packages/core`, `research`, `fixtures`, `scripts` |
 | `danh/gateway-aws` | Danh | `services/gateway`, `infra`, workflow CI và deploy |
-| `dat/clients` | Đạt | `apps/extension`, `apps/web`, `apps/mobile`, workflow Android |
+| `dat/clients` | Đạt | `apps/extension` |
 
 `packages/contracts` là hợp đồng API dùng chung, đổi phải báo cả nhóm.
 
@@ -43,8 +43,6 @@ AI_PROVIDER=groq TOKEN_SECRET="$(node -e "console.log('x'.repeat(40))")" GROQ_AP
 packages/core/       logic phân tích thuần: chuẩn hóa, luật, Claim Ledger, chấm điểm, giai đoạn, chống dao động, AI
 packages/contracts/  hợp đồng API và phản hồi mẫu
 apps/extension/      Chrome Extension MV3
-apps/web/            màn hình kiểm tra đoạn chat
-apps/mobile/         app Android bọc apps/web
 services/gateway/    AI Gateway local (Hono + Groq), đóng gói được lên AWS Lambda
 infra/               hạ tầng AWS cho giai đoạn sau
 research/            khung đánh giá (dữ liệu không nằm trong repo)

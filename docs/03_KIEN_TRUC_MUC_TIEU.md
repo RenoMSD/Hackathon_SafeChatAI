@@ -23,7 +23,6 @@ Bản trước không có backend nên giữ được quyền riêng tư, nhưng
 | Người dùng tự xin và tự lưu Groq key | Không cần key. Khóa Groq nằm trong Secrets Manager, không ở trên máy người dùng |
 | Không kiểm soát được chi phí | Hạn mức theo thiết bị, trần ngân sách toàn hệ thống |
 | Không đo được chi phí, độ trễ | Số liệu tổng hợp theo model, không chứa nội dung |
-| Chỉ có Chrome máy tính | Có thêm app Android và bản web |
 
 **Điều không đổi:**
 - Không bật AI thì không có gì rời khỏi thiết bị.
@@ -36,7 +35,7 @@ Bản trước không có backend nên giữ được quyền riêng tư, nhưng
 
 | Nguồn | Dùng cho | Không dùng cho |
 |---|---|---|
-| **Tài khoản AWS** (Danh) | Gateway, web, dữ liệu, Secrets Manager | Benchmark |
+| **Tài khoản AWS** (Danh) | Gateway, dữ liệu, Secrets Manager | Benchmark |
 | **Khóa Groq production** (Danh) | Gateway staging và production | Benchmark |
 | **Khóa Groq benchmark** (Duy) | Đo model trên tune | Bản demo |
 | **Credit Google GDP** | Hỗ trợ lúc phát triển. Duy giữ 1 suất cho đối chứng Gemini | Bất kỳ phần nào của demo |
@@ -47,7 +46,7 @@ Tách hai khóa Groq trên hai tài khoản để benchmark dùng hết hạn m�
 ## 3. Tài khoản AWS và vùng triển khai
 
 - **Giữ Free plan.** Tầng 1 không cần Paid plan. Nâng Paid không hoàn tác được và phải được cả nhóm đồng ý.
-- **Vùng Tokyo (`ap-northeast-1`)** cho Lambda, API Gateway, DynamoDB, S3 và Secrets Manager. Đã có tài khoản ở vùng khác thì dùng tiếp, không cần tạo lại.
+- **Vùng Tokyo (`ap-northeast-1`)** cho Lambda, API Gateway, DynamoDB và Secrets Manager. Đã có tài khoản ở vùng khác thì dùng tiếp, không cần tạo lại.
 - **Kiểm tra gói:** `aws freetier get-account-plan-state --region us-east-1`.
 - **Về Bedrock:** FAQ của FCAJ (trang cộng đồng, không phải tài liệu AWS) ghi Free plan không dùng được AWS Marketplace, trong khi tài liệu AWS mô tả khác. Nếu FAQ đúng thì chờ không làm Claude trên Bedrock mở lại được, nên kế hoạch không phụ thuộc vào Bedrock.
 
@@ -57,10 +56,8 @@ Tách hai khóa Groq trên hai tài khoản để benchmark dùng hết hạn m�
 flowchart LR
   subgraph Device["Thiết bị người dùng"]
     EXT["Chrome Extension<br/>Messenger, chat giả lập"]
-    WEB["App Android và bản web<br/>Dán, chia sẻ, ảnh chụp"]
     CORE["packages/core<br/>Luật, Ledger, chấm điểm"]
     EXT --> CORE
-    WEB --> CORE
   end
 
   subgraph AWS["AWS Tokyo"]
@@ -69,7 +66,6 @@ flowchart LR
     DB[("DynamoDB<br/>Chỉ số liệu, không có nội dung")]
     SM["Secrets Manager<br/>Khóa ký token"]
     LLM["Groq API<br/>gpt-oss-120b"]
-    STATIC["S3 + CloudFront<br/>Bản web"]
     APIGW --> GW
     GW --> DB
     SM --> GW
@@ -79,9 +75,7 @@ flowchart LR
   GW -->|"Delta đã che PII"| LLM
 
   CORE -. "Chỉ khi người dùng bật AI:<br/>delta đã che PII" .-> APIGW
-  STATIC --> WEB
   GH["GitHub Actions"] -->|"Lint, test, eval, build,<br/>deploy qua OIDC"| GW
-  GH --> STATIC
 ```
 
 ## 5. Cấu trúc repo
@@ -91,8 +85,6 @@ Hkth_safechatAI/
   docs/                 tài liệu kế hoạch, báo cáo
   packages/core/        chuyển từ src/core (không gọi chrome.*)
   apps/extension/       chuyển từ src/{content,background,sidepanel,shared}, public/
-  apps/web/             kiểm tra đoạn chat, trang kịch bản, dashboard (Vite, TypeScript)
-  apps/mobile/          Capacitor bọc apps/web thành app Android, nhận share intent
   services/gateway/     Hono + TypeScript, chạy local trước; đóng gói được lên Lambda
   infra/                template AWS SAM cho staging và production
   research/             khung đánh giá, giữ nguyên quy tắc dev/test
@@ -100,7 +92,7 @@ Hkth_safechatAI/
   .github/workflows/    ci.yml, deploy.yml, release.yml
 ```
 
-Dùng npm workspaces. Việc di chuyển giới hạn trong **60 phút**, được 187 test bảo vệ. Quá giờ thì giữ `` nguyên trạng và thêm `services/`, `apps/web/` bên cạnh, import core qua đường dẫn tương đối.
+Dùng npm workspaces. Việc di chuyển giới hạn trong **60 phút**, được 187 test bảo vệ. Quá giờ thì giữ nguyên trạng và thêm `services/` bên cạnh, import core qua đường dẫn tương đối.
 
 Dùng lại **cùng repo GitHub** để giữ lịch sử và tag `eval/dot-*`, vì tái lập số liệu dựa vào các tag này.
 
@@ -150,16 +142,16 @@ Mục này mô tả cấu hình **khi bật AWS**. Giai đoạn hiện tại ch�
 
 | Hạng mục | Lựa chọn |
 |---|---|
-| Vùng | `ap-northeast-1` (Tokyo). CloudFront là dịch vụ toàn cầu |
+| Vùng | `ap-northeast-1` (Tokyo) |
 | Môi trường | Stack `safechat-staging`, `safechat-prod` |
 | Quy mô | Lambda tính theo lượt gọi. `ReservedConcurrentExecutions=5`, API Gateway throttling 20 req/s (burst 40) để chặn chi phí. Làm nóng trước demo |
 | Không dùng | App Runner (đã đóng với khách hàng mới), ECS + Load Balancer (có khả năng tốn hơn khi rảnh; chưa kiểm tra giá) |
 | CI | Mọi PR: gitleaks, typecheck, test, eval so mốc, build extension, build gateway (chưa cấu hình ESLint nên không chạy lint giả) |
-| CD | Chỉ chạy khi `vars.DEPLOY_AWS=true`. Merge `main` → staging + smoke test; tag `v*` → production, đóng gói extension thành zip trong GitHub Release. Job riêng build APK debug thành artifact nội bộ, không đưa vào Release công khai |
+| CD | Chỉ chạy khi `vars.DEPLOY_AWS=true`. Merge `main` → staging + smoke test; tag `v*` → production, đóng gói extension thành zip trong GitHub Release |
 | Xác thực deploy | GitHub OIDC, role chỉ tin đúng repo và nhánh, không có access key dài hạn |
 | Bí mật | Secrets Manager cho khóa ký token và Groq API key. IAM role cho Lambda với quyền tối thiểu; local dùng `.env` không commit |
 | Tài khoản | Bật MFA cho root, không tạo access key cho root, dùng IAM cho việc hằng ngày |
-| Mạng | HTTPS sẵn có của API Gateway và CloudFront, S3 không public, CORS chỉ cho web, origin của app Capacitor và ID extension cố định, security header, giới hạn tốc độ theo route và theo thiết bị |
+| Mạng | HTTPS sẵn có của API Gateway, CORS chỉ cho ID extension cố định, security header, giới hạn tốc độ theo route và theo thiết bị |
 | Log | CloudWatch chỉ ghi số liệu kỹ thuật, giữ 7 ngày; không ghi prompt, tin nhắn, trích dẫn hay `detail` lỗi parse. **Không bật log nội dung của nhà cung cấp model** |
 | Ngân sách | AWS Budgets (tùy chọn, cảnh báo 80% chi phí tháng) + trần lượt/token tự ngắt trong code |
 
@@ -191,7 +183,7 @@ Ngày 2026-11-07, khóa Groq của nhóm không dùng được hai model Llama t
 
 ## 11. Không làm trong 24h
 
-Tự huấn luyện hoặc fine-tune mô hình · RAG · iOS · viết app native từ đầu · Google Play, Chrome Web Store (thời gian duyệt ngoài tầm kiểm soát) · quyền Trợ năng hoặc đọc thông báo · adapter Zalo · tài khoản người dùng · RDS, Kubernetes, ECS · triển khai song song trên Google Cloud · lưu nội dung chat trên server.
+Tự huấn luyện hoặc fine-tune mô hình · RAG · bản web, app Android, iOS · Google Play, Chrome Web Store (thời gian duyệt ngoài tầm kiểm soát) · quyền Trợ năng hoặc đọc thông báo · adapter Zalo · tài khoản người dùng · RDS, Kubernetes, ECS · triển khai song song trên Google Cloud · lưu nội dung chat trên server.
 
 ## Nguồn
 

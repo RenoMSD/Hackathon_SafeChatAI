@@ -2,7 +2,7 @@
 
 Ba người làm độc lập trên 3 nhánh, ghép vào `main` ở 3 mốc cố định. Kiến trúc ở [03_KIEN_TRUC_MUC_TIEU.md](03_KIEN_TRUC_MUC_TIEU.md). Hợp đồng API ở [`packages/contracts`](../packages/contracts/src/index.ts).
 
-**H0** là lúc cả nhóm bắt đầu. Hỗ trợ AI rút ngắn được phần viết code, nhưng **không rút ngắn được** phần đăng ký tài khoản, hạn mức Groq, gán nhãn, thử trên điện thoại và luyện demo. Các việc đó phải bắt đầu đúng giờ.
+**H0** là lúc cả nhóm bắt đầu. Hỗ trợ AI rút ngắn được phần viết code, nhưng **không rút ngắn được** phần đăng ký tài khoản, hạn mức Groq, gán nhãn, thử trên Messenger thật và luyện demo. Các việc đó phải bắt đầu đúng giờ.
 
 ## Phạm vi: đây là bài thi
 
@@ -10,9 +10,9 @@ Chỉ làm những gì phục vụ **bảo mật** và **tiêu chí chấm**. De
 
 | Giữ, vì nằm trong tiêu chí chấm | Bỏ, không mất thời gian |
 |---|---|
-| Không lộ khóa, HTTPS, CORS, IAM quyền tối thiểu | Rà soát điều khoản Meta, Chrome Web Store, Google Play |
+| Không lộ khóa, HTTPS, CORS, IAM quyền tối thiểu | Rà soát điều khoản Meta, Chrome Web Store |
 | Che PII, không log nội dung, rào chặn chèn lệnh, lọc đầu ra | Yêu cầu về vùng lưu dữ liệu và điều khoản model cho chat thật. Demo vẫn chỉ dùng dữ liệu giả lập |
-| Trích dẫn khớp tin gốc, giải thích được quyết định của AI | Hạn chế phát APK. Có thể gửi APK cho ban giám khảo nếu cần |
+| Trích dẫn khớp tin gốc, giải thích được quyết định của AI | Bản web, app Android: ngoài phạm vi, chỉ làm extension |
 | Số liệu trung thực, tái lập được, nêu nguồn dữ liệu | Quy định phát hành sau cuộc thi |
 
 Vùng Tokyo là mặc định cho hạ tầng AWS. Vùng khác cũng được nếu tài khoản đã ở đó. Model chạy qua Groq, ngoài AWS.
@@ -21,9 +21,9 @@ Vùng Tokyo là mặc định cho hạ tầng AWS. Vùng khác cũng được n�
 
 | | **Duy** | **Danh** | **Đạt** |
 |---|---|---|---|
-| Vai trò | AI, dữ liệu, luật. Điều phối ghép nhánh | Backend, AWS, CI/CD | Extension, web, app Android |
+| Vai trò | AI, dữ liệu, luật. Điều phối ghép nhánh | Backend, AWS, CI/CD | Extension |
 | Nhánh | `duy/ai-eval` | `danh/gateway-aws` | `dat/clients` |
-| Được sửa | `packages/core`, `research`, `fixtures`, `scripts` | `services/gateway`, `infra`, `.github/workflows/ci.yml`, `deploy.yml` | `apps/*`, `.github/workflows/android.yml` |
+| Được sửa | `packages/core`, `research`, `fixtures`, `scripts` | `services/gateway`, `infra`, `.github/workflows/ci.yml`, `deploy.yml` | `apps/extension` |
 | Tiêu chí chính | III, VI | VII, IV.3, IV.4, IV.5 | II, IV.2, IV.6, V |
 | Lý do | Dữ liệu nghiên cứu chỉ có trên máy Duy, không có trên repo public | Tách riêng, không phụ thuộc code khác ngoài hợp đồng | Dùng mock trong `packages/contracts` nên không phải chờ gateway |
 
@@ -44,10 +44,10 @@ Phân vai có thể đổi nếu nhóm muốn, miễn đổi cả cột.
 | Mốc | Duy | Danh | Đạt | Cả nhóm kiểm tra |
 |---|---|---|---|---|
 | **H1** | Có khóa Groq benchmark, chạy thử 2 ca | Có tài khoản AWS và khóa Groq production | Máy và công cụ sẵn sàng | Họp 10 phút, xem hạn mức thật theo mục 5 |
-| **M1: H3** | Xong vòng đo đầu trên tune | Staging `/healthz` công khai qua CI | APK khung cài được lên máy Duy | Đều xanh trên `main` |
-| **M2: H6** | Xong vòng 1, chọn được model tạm | `/v1/analyses` chạy thật trên staging | App kiểm tra đoạn chat bằng luật, client chạy với mock | Gọi thật từ app tới staging |
+| **M1: H3** | Xong vòng đo đầu trên tune | Staging `/healthz` công khai qua CI | Extension đọc được chat giả lập | Đều xanh trên `main` |
+| **M2: H6** | Xong vòng 1, chọn được model tạm | `/v1/analyses` chạy thật trên staging | Client gateway của extension chạy với mock | Gọi thật từ extension tới gateway |
 | **Đóng băng: H7.5** | **Đóng băng luật, prompt, model** | Cấu hình model đã chọn | | Không gia hạn |
-| **M3: H8.5** | Xong test cuối một lần | Gateway local ổn định; AWS chỉ deploy nếu còn thời gian | Extension và app trỏ tới gateway | Chạy trọn luồng demo |
+| **M3: H8.5** | Xong test cuối một lần | Gateway local ổn định; AWS chỉ deploy nếu còn thời gian | Extension trỏ tới gateway | Chạy trọn luồng demo |
 | **H10** | | | | **Đóng băng code**, chỉ sửa lỗi chặn demo |
 | **H12** | | | | Nộp bài. Dừng nhận thay đổi ở H11.5 |
 
@@ -105,7 +105,6 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 
 **H6–H8.5**
 - [ ] `POST /v1/feedback`, `GET /v1/metrics/summary` (yêu cầu quyền admin).
-- [ ] S3 + CloudFront cho bản web của Đạt (chỉ khi bật AWS).
 - [ ] Nếu còn thời gian: deploy staging qua OIDC, tag `v0.5.0`, zip extension trong Release.
 - [ ] Đo nhanh p50/p95 phần overhead của gateway.
 
@@ -119,13 +118,7 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 **H0–H1**
 - [ ] Cài Node 20+, nhận credit GDP, chạy `npm install` và `npm run check`.
 
-**H1–H3**
-- [ ] `apps/mobile`: khung Capacitor Android bọc `apps/web`. `android.yml` xuất APK debug thành artifact. **Làm trước tính năng.**
-- [ ] Gửi APK cho Duy cài thử. Quá H4 vẫn lỗi thì cài Android Studio.
-
-**H3–H6**
-- [ ] `apps/web`: màn hình kiểm tra đoạn chat, `@safechat/core` chạy trên thiết bị, dán hội thoại, đổi "Tôi / Đối phương" từng dòng, xem mức và bằng chứng.
-- [ ] Nhận chia sẻ văn bản từ Messenger, Zalo qua Android share intent. Luôn còn đường dán thủ công.
+**H1–H6**
 - [ ] Client gateway dùng `@safechat/contracts/mock`, đổi sang URL staging ở M2.
 
 **H6–H8.5**
@@ -134,8 +127,8 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 - [ ] Thử mục 28–30 của `apps/extension/HUONG_DAN_CAI_DAT.md` trên Facebook thật **với AI tắt**, ghi lại kết quả.
 
 **H8.5–H12**
-- [ ] APK bản demo trỏ tới gateway của nhóm. Duy cài lại trên máy demo, giữ một file dự phòng.
-- [ ] Quay video demo gồm extension và điện thoại.
+- [ ] Bản build extension trỏ tới gateway của nhóm. Duy nạp lại trên máy demo, giữ một bản dự phòng.
+- [ ] Quay video demo extension.
 - [ ] (P1) Dòng thời gian mức cảnh báo. Trang "7 kịch bản lừa đảo" có nguồn.
 - [ ] (P1) Thử với 3–5 sinh viên, ghi độ dễ hiểu, xin đồng ý trước khi trích phản hồi.
 
@@ -157,7 +150,7 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 | Dashboard chạy thật | Dùng trang tĩnh |
 | Tách `sidepanel/main.ts` | Không tăng giá trị demo |
 
-**Không được cắt:** gateway thật gọi Groq, CI/CD, số AI thật, ít nhất 1 vòng model, APK chạy được với dán văn bản, báo cáo mô hình trung thực, video dự phòng. AWS production **đã hoãn** sang giai đoạn sau, không còn là điều kiện của bản demo hiện tại.
+**Không được cắt:** gateway thật gọi Groq, CI/CD, số AI thật, ít nhất 1 vòng model, extension chạy được trên chat giả lập, báo cáo mô hình trung thực, video dự phòng. AWS production **đã hoãn** sang giai đoạn sau, không còn là điều kiện của bản demo hiện tại.
 
 **Nếu chậm:**
 
@@ -166,7 +159,6 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 | H6 chưa xong vòng 1 | Bỏ vòng 2, chỉ giữ 3–4 model, đóng băng đúng H7.5 |
 | H6 chưa có gateway thật | Đạt tiếp tục với mock, Duy hỗ trợ Danh 1 giờ |
 | H8.5 chưa ghép xong | Bỏ mọi việc P1, ưu tiên một luồng demo chạy được |
-| H10 còn lỗi ở share intent | Demo bằng dán thủ công |
 | H10 Messenger thật lỗi | Demo extension bằng chat giả lập, nói rõ giới hạn |
 
 ## 5. Kiểm tra ở H0–H1
@@ -198,7 +190,6 @@ Tick vào ô của mình. Chỉ sửa phần của mình trong file này để t
 | H0 | Chưa bắt đầu |
 | URL gateway local | |
 | URL staging (AWS, hoãn) | |
-| URL bản web | |
 | Hạn mức Groq thật | |
 | Model đã chọn | |
 
@@ -238,4 +229,4 @@ git merge origin/main
 
 - Không push thẳng vào `main`. Mọi thay đổi đi qua PR và `npm run check` phải xanh.
 - Commit nhỏ theo từng việc, bằng tài khoản của chính mình, để lịch sử thể hiện đúng phân công.
-- Không commit khóa, dữ liệu nghiên cứu, bộ đề kín, chat thật, APK. Repo đang **public**.
+- Không commit khóa, dữ liệu nghiên cứu, bộ đề kín, chat thật. Repo đang **public**.

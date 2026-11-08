@@ -50,11 +50,6 @@ research/bo-kin/
 *.pptx
 *.pdf
 
-# Android: chỉ giữ mã nguồn, không giữ file build
-apps/mobile/android/app/build/
-apps/mobile/android/build/
-apps/mobile/android/.gradle/
-apps/mobile/android/local.properties
 *.apk
 *.aab
 

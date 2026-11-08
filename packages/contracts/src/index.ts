@@ -1,4 +1,5 @@
-// Hợp đồng API giữa client (extension, web, app Android) và gateway.
+// Hợp đồng API giữa client (extension) và gateway. Giá trị client 'web' được công cụ đo dùng; 'android' còn trong
+// hợp đồng để test kiểm tra token sai loại client, không có app Android.
 // Đây là điểm ghép giữa các nhánh: đổi file này phải báo cả nhóm và đi bằng PR riêng vào main.
 import type { ChatMessage, RiskLevel, ScamStage, Signal } from '@safechat/core/types';
 
