@@ -4,7 +4,17 @@
 
 Nhóm **Git Push & Pray**. Đây là prototype. SafeChat AI đưa ra *dấu hiệu cần xác minh*, không kết luận ai là tội phạm và không bảo đảm một cuộc trò chuyện là an toàn.
 
-## Bắt đầu
+## Dùng thử nhanh (không cần cài gì)
+
+Repo có sẵn bản build extension trong `apps/extension/dist`:
+
+1. Mở `chrome://extensions`, bật **Developer mode**.
+2. Bấm **Load unpacked**, chọn thư mục `apps/extension/dist`.
+3. Mở một cuộc trò chuyện trên Facebook/Messenger, bấm biểu tượng SafeChat AI.
+
+Bộ quy tắc chạy ngay trên máy. AI là tùy chọn và cần gateway (xem bên dưới). Chi tiết và checklist kiểm thử ở [apps/extension/HUONG_DAN_CAI_DAT.md](apps/extension/HUONG_DAN_CAI_DAT.md).
+
+## Phát triển
 
 Cần Node.js 20 trở lên.
 
@@ -16,13 +26,27 @@ npm install
 npm run check
 ```
 
-Lệnh `check` chạy typecheck, test, eval so với mốc và build extension. Phải xanh trước khi tạo PR.
+Lệnh `check` chạy typecheck, test, eval so với mốc và build extension. Phải xanh trước khi push.
 
-Giai đoạn hiện tại chạy **local-first + Groq `openai/gpt-oss-120b`**, chưa dùng AWS thật. Gateway local giữ khóa Groq và không lưu nội dung chat:
+Giai đoạn hiện tại chạy **local-first + Groq `openai/gpt-oss-120b`**, chưa dùng AWS thật. Gateway local giữ khóa Groq và không lưu nội dung chat. Cách dễ nhất trên mọi hệ điều hành: chép `services/gateway/.env.example` thành `services/gateway/.env`, điền `AI_PROVIDER=groq`, `GROQ_API_KEY`, `TOKEN_SECRET` (chuỗi ngẫu nhiên từ 32 ký tự), `PORT=8787`, rồi chạy:
+
+```bash
+npm run dev:gateway
+```
+
+Hoặc đặt biến môi trường ngay trên dòng lệnh. Bash (macOS, Linux, Git Bash):
 
 ```bash
 AI_PROVIDER=groq TOKEN_SECRET="$(node -e "console.log('x'.repeat(40))")" GROQ_API_KEY=<key> PORT=8787 npm run dev:gateway
 ```
+
+Windows PowerShell:
+
+```powershell
+$env:AI_PROVIDER="groq"; $env:TOKEN_SECRET=(node -e "console.log('x'.repeat(40))"); $env:GROQ_API_KEY="<key>"; $env:PORT="8787"; npm run dev:gateway
+```
+
+Sau đó trong side panel → **Cài đặt**, nhập `http://localhost:8787` và bấm **Bật máy chủ SafeChat**.
 
 **Đọc tiếp:** [Kế hoạch 12 giờ và phân công](docs/04_KE_HOACH_12H.md) · [Kiến trúc](docs/03_KIEN_TRUC_MUC_TIEU.md) · [Quy tắc phát triển](docs/quy-tac-phat-trien.md)
 
@@ -30,7 +54,7 @@ AI_PROVIDER=groq TOKEN_SECRET="$(node -e "console.log('x'.repeat(40))")" GROQ_AP
 
 | Nhánh | Người | Phạm vi |
 |---|---|---|
-| `main` | Cả nhóm | Luôn xanh. Chỉ nhận thay đổi qua PR |
+| `main` | Cả nhóm | Bản tích hợp, luôn xanh. Từ 2026-11-07 nhóm làm và đánh giá trực tiếp trên `main` |
 | `duy/ai-eval` | Duy | `packages/core`, `research`, `fixtures`, `scripts` |
 | `danh/gateway-aws` | Danh | `services/gateway`, `infra`, workflow CI và deploy |
 | `dat/clients` | Đạt | `apps/extension` |

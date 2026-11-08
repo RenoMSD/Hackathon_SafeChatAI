@@ -1,13 +1,15 @@
 # Hướng dẫn cài đặt & kiểm thử SafeChat AI (Developer mode)
  
-## 1. Build
+## 1. Bản build
+ 
+Repo đã có sẵn bản build mới nhất trong `apps/extension/dist/`, nên chỉ để dùng thử thì **không cần cài hay build**, chuyển thẳng sang bước 2.
+ 
+Chỉ khi sửa code extension mới cần build lại:
  
 ```bash
 npm install
 npm run build:extension
 ```
- 
-Kết quả nằm trong `apps/extension/dist/`.
  
 ## 2. Nạp extension vào Chrome
  
@@ -37,7 +39,7 @@ Trong side panel, chọn **Cài đặt**:
  
 **Địa chỉ máy chủ SafeChat:** lấy từ người phụ trách gateway (staging hoặc production): `https://<địa-chỉ-gateway>`. Chỉ chấp nhận HTTPS (riêng `localhost` được dùng `http` khi phát triển). Địa chỉ phải thuộc `*.amazonaws.com`, `*.cloudfront.net` hoặc `*.on.aws`; nếu dùng tên miền riêng thì phải thêm tên miền đó vào `optional_host_permissions` trong `apps/extension/public/manifest.json` rồi build lại. Có thể gắn sẵn địa chỉ mặc định lúc build bằng biến `VITE_SAFECHAT_GATEWAY_URL` (PowerShell: `$env:VITE_SAFECHAT_GATEWAY_URL="https://…"; npm run build:extension`); nếu để trống, người dùng tự nhập trong Cài đặt. Dù có địa chỉ sẵn, người dùng vẫn phải bấm **Bật máy chủ SafeChat** và cấp quyền.
  
-**Khi nào AI chạy:** khi mức cảnh báo tăng, khi có loại tín hiệu quy tắc mới, hoặc khi tích đủ N tin mới (mặc định 5). Hai lần gọi cách nhau ít nhất 10 giây.
+**Khi nào AI chạy:** bộ quy tắc chạy sau từng tin; AI chỉ chạy khi có ít nhất 1 tin mới của đối phương và thỏa một trong hai điều kiện: đủ 2 tin mới (mặc định, đổi được trong Cài đặt), hoặc hội thoại im 20 giây thì gọi nốt tin lẻ. Hai lần gọi cách nhau ít nhất 30 giây. Lúc khẩn cấp (bạn sắp hoặc đã làm theo yêu cầu, hoặc có tín hiệu Nghiêm trọng) AI được gọi ngay bằng lượt sâu, chỉ cần cách lượt trước 15 giây. Lần quét đầu và khi mức đã từ Cần chú ý trở lên dùng lượt sâu; mức Thấp dùng lượt nhanh.
  
 **Gửi đi những gì:** chỉ các tin mới, kèm 4 tin ngữ cảnh và bản tóm tắt do AI viết lần trước. Số điện thoại, số tài khoản và email được che trước khi gửi. Gemini Nano chạy trên máy nên dữ liệu không rời máy; máy chủ SafeChat nhận dữ liệu đã che. **Dừng và xóa phiên** xóa dữ liệu trên máy này nhưng không thu hồi được dữ liệu đã gửi tới máy chủ. Có thể tắt máy chủ SafeChat bất cứ lúc nào; khi tắt, token thiết bị bị xóa khỏi máy.
  
